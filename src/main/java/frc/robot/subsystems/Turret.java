@@ -69,7 +69,7 @@ public class Turret extends SubsystemBase {
         config.Slot0.kD = 0.005;
         //config.Slot0.kV = 0.12; 
         
-        config.MotionMagic.MotionMagicCruiseVelocity = 200.0; 
+        config.MotionMagic.MotionMagicCruiseVelocity = 600.0; 
         config.MotionMagic.MotionMagicAcceleration = 60.0;   
         config.MotionMagic.MotionMagicJerk = 1600.0;          
 
@@ -159,9 +159,7 @@ public class Turret extends SubsystemBase {
 
         // 4. --- CALCULATE AIMING ANGLE ---
         // (Target Angle - Robot Angle - 180 degrees)
-        Rotation2d turretSetpoint = turretToHub.getAngle()
-            .minus(robotPose.getRotation())
-            .minus(Rotation2d.fromDegrees(180)); 
+        Rotation2d turretSetpoint = turretToHub.getAngle().minus(robotPose.getRotation())/* .plus(Rotation2d.fromDegrees(180))*/; 
 
         double desiredTurretRotations = turretSetpoint.getRadians() / (2 * Math.PI);
         desiredTurretRotations = MathUtil.clamp(desiredTurretRotations, -kMaxTurretRotations, kMaxTurretRotations);
