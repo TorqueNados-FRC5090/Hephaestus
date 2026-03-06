@@ -21,9 +21,9 @@ public class Shooter extends SubsystemBase {
   TalonFX followShoot;
   ShooterPosition pos = ShooterPosition.zero;
     public Shooter(){
-        hood = new TalonFX(20, "rio");
-        leadShoot = new TalonFX(27, "rio");
-        followShoot = new TalonFX(15,"rio");
+        hood = new TalonFX(20, "Upper");
+        leadShoot = new TalonFX(27, "Upper");
+        followShoot = new TalonFX(15,"Upper");
     
 
         TalonFXConfiguration hoodConfig = new TalonFXConfiguration();

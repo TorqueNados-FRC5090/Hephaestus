@@ -15,6 +15,10 @@ import edu.wpi.first.math.util.Units;
 import frc.robot.generated.TunerConstants;
 
 public class Constants {
+
+            public static final String Jarvis = "Jarvis";
+            public static final String Upper = "Upper";
+
 /* -------------- DRIVETRAIN CONSTANTS -------------- */
 
     public static final class DriveConstants {
