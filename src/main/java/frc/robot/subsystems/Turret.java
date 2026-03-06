@@ -145,7 +145,9 @@ public class Turret extends SubsystemBase {
         Pose2d robotPose = m_robotPoseSupplier.get(); 
         
         // Calculate the physical Back-Right corner of the robot swinging in space
-        Translation2d globalTurretPos = robotPose.getTranslation().plus(m_robotRelativeTurretOffset.rotateBy(robotPose.getRotation()));
+        Translation2d globalTurretPos = robotPose.getTranslation()
+            .plus(m_robotRelativeTurretOffset
+            .rotateBy(robotPose.getRotation()));
 
         // Create a math vector from the Turret to the Hub
         Translation2d turretToHub = hubTranslation.minus(globalTurretPos);
@@ -159,7 +161,8 @@ public class Turret extends SubsystemBase {
 
         // 4. --- CALCULATE AIMING ANGLE ---
         // (Target Angle - Robot Angle - 180 degrees)
-        Rotation2d turretSetpoint = turretToHub.getAngle().minus(robotPose.getRotation())/* .plus(Rotation2d.fromDegrees(180))*/; 
+        Rotation2d turretSetpoint = turretToHub.getAngle()
+        .minus(robotPose.getRotation()); 
 
         double desiredTurretRotations = turretSetpoint.getRadians() / (2 * Math.PI);
         desiredTurretRotations = MathUtil.clamp(desiredTurretRotations, -kMaxTurretRotations, kMaxTurretRotations);
