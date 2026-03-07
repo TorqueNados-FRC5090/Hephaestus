@@ -104,7 +104,7 @@ public class RobotContainer {
        joystick.x().onTrue(new MoveHood(shooter, ShooterPosition.middle));
        joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far)); */
 
-       joystick.a().onTrue(new BumpHood(shooter,0));
+       joystick.a().onTrue(new BumpHood(shooter));
        joystick.b().onTrue(new BumpVelocity(shooter));
 
 

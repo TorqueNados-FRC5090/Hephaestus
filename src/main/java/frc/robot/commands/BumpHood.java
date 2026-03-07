@@ -8,21 +8,21 @@ public class BumpHood extends Command {
     Shooter shoot;
     ShooterPosition target;
     double angle;
-     public BumpHood(Shooter shoot, double angle){
+     public BumpHood(Shooter shoot){
         this.shoot = shoot;
-        this.angle = angle;
+        
 
         addRequirements(shoot);
     }
   
     @Override
     public void initialize(){
-      angle = angle - 1;
+        shoot.plusAngle();
     }
 
     @Override
     public void execute(){
-     shoot.plusAngle(angle);
+     
     }
 
     @Override 
@@ -32,7 +32,7 @@ public class BumpHood extends Command {
 
     @Override
     public boolean isFinished(){
-      return false;
+      return true;
       
     }
 }

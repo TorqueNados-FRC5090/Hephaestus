@@ -32,7 +32,7 @@ public class Shooter extends SubsystemBase {
         
 
         Slot0Configs PIDconfig = new Slot0Configs();
-        PIDconfig.kP = .6;
+        PIDconfig.kP = .5;
         hood.getConfigurator().apply(PIDconfig);
         leadShoot.getConfigurator().apply(PIDconfig);
         followShoot.getConfigurator().apply(PIDconfig);
@@ -75,10 +75,9 @@ public class Shooter extends SubsystemBase {
         
     }
       
-    public void plusAngle(double angle){
-        PositionVoltage hoodBump = new PositionVoltage(angle);
+        public void plusAngle(){
+        PositionVoltage hoodBump = new PositionVoltage(getAngle() - 1);
         hood.setControl(hoodBump);
-        
     }
     public void plusVelocity(){
         PositionVoltage velocityBump = new PositionVoltage(leadShoot.getVelocity().getValueAsDouble() + 100);
