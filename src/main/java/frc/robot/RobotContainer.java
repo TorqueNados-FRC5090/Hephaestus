@@ -27,12 +27,14 @@ import frc.robot.subsystems.Limelight;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Spindex;
 import frc.robot.Constants.ShooterConstants.ShooterPosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.BumpHood;
 import frc.robot.commands.BumpVelocity;
 import frc.robot.commands.MoveHood;
-import frc.robot.commands.Shoot; 
+import frc.robot.commands.Shoot;
+import frc.robot.commands.SpindexYappy;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -60,6 +62,7 @@ public class RobotContainer {
     private final AutonContainer auton = new AutonContainer(this);
     private final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
     public final Shooter shooter = new Shooter();
+    private final Spindex spindex = new Spindex();
 
     public RobotContainer() {
        
@@ -106,6 +109,7 @@ public class RobotContainer {
 
        joystick.a().onTrue(new BumpHood(shooter));
        joystick.b().onTrue(new BumpVelocity(shooter));
+        joystick.y().onTrue(new SpindexYappy(spindex));
 
 
         // Run SysId routines when holding back/start and X/Y.
