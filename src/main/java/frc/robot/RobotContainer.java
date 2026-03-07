@@ -29,6 +29,8 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Shooter;
 import frc.robot.Constants.ShooterConstants.ShooterPosition;
 import frc.robot.commands.AutonContainer;
+import frc.robot.commands.BumpHood;
+import frc.robot.commands.BumpVelocity;
 import frc.robot.commands.MoveHood;
 import frc.robot.commands.Shoot; 
 
@@ -97,10 +99,13 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
-        joystick.a().onTrue(new MoveHood(shooter, ShooterPosition.zero));
+      /*   joystick.a().onTrue(new MoveHood(shooter, ShooterPosition.zero));
        joystick.b().whileTrue(new Shoot(shooter));
        joystick.x().onTrue(new MoveHood(shooter, ShooterPosition.middle));
-       joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far));
+       joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far)); */
+
+       joystick.a().onTrue(new BumpHood(shooter,0));
+       joystick.b().onTrue(new BumpVelocity(shooter));
 
 
         // Run SysId routines when holding back/start and X/Y.
