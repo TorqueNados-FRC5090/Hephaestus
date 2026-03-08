@@ -41,6 +41,11 @@ public class Turret extends SubsystemBase {
         Units.inchesToMeters(kTurretOffsetYInches)
     );
 
+    // --- HUB OFFSET CORRECTION ---
+    // Tune these to push the target coordinate from the Tag face to the True Center of the Hub.
+    private final double kHubCenterOffsetXInches = 12.0; // Start with 12 inches, tune until centered
+    private final double kHubCenterOffsetYInches = 0.0;  // Tune if tags are physically off-center left/right
+
     // --- Mechanical Constants ---
     private final double kTurretRingTeeth = 200.0; 
     private final double kEncoderGearTeeth = 16.0; 
@@ -56,7 +61,6 @@ public class Turret extends SubsystemBase {
         this.m_robotPoseSupplier = poseSupplier;
         this.m_atLayout = atLayout;
 
-        // Ensure this matches your CANivore name, or remove ,"canivore" if it's on the RoboRIO!
         m_turretMotor = new TalonFXS(16, "Upper"); 
         
         m_motionMagic = new MotionMagicVoltage(0);
@@ -65,17 +69,13 @@ public class Turret extends SubsystemBase {
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         config.Commutation.MotorArrangement = MotorArrangementValue.Minion_JST;
         config.Slot0.kP = 0.6; 
-        //config.Slot0.kI = 0.0;
         config.Slot0.kD = 0.005;
-        //config.Slot0.kV = 0.12; 
         
         config.MotionMagic.MotionMagicCruiseVelocity = 600.0; 
         config.MotionMagic.MotionMagicAcceleration = 60.0;   
         config.MotionMagic.MotionMagicJerk = 1600.0;          
 
-        
         m_turretMotor.getConfigurator().apply(config);
-
         m_turretMotor.setPosition(0.0);
     }
 
@@ -89,14 +89,45 @@ public class Turret extends SubsystemBase {
 
     /**
      * Commands the motor to snap to the target. 
-     * Runs ONLY when you hold the Right Bumper.
      */
     public void alignToHub() {
-        // If the background loop couldn't find the tag, don't try to move!
         if (!m_canSeeTarget) return;
-        
-        // Command the motor to the exact position calculated by periodic()
         m_turretMotor.setControl(m_motionMagic.withPosition(m_targetMotorRotations));
+    }
+
+    /**
+     * Call this when pressing the shoot button! 
+     * It intelligently decides to pass if past midfield, or shoot at the hub if close.
+     */
+    public void passOrShoot() {
+        Pose2d robotPose = m_robotPoseSupplier.get();
+        boolean isRed = isRedAlliance();
+        
+        // FRC field is ~16.54 meters long. Midfield is exactly half.
+        double fieldMidpointX = 16.54 / 2.0; 
+        
+        // Check if we are past the midline into the opponent's zone (or middle)
+        boolean inOpponentOrMidZone = isRed ? (robotPose.getX() <= fieldMidpointX) : (robotPose.getX() >= fieldMidpointX);
+
+        if (inOpponentOrMidZone) {
+            // Target the center of our alliance wall (X=0 for Blue, X=16.54 for Red)
+            // We use the robot's current Y coordinate to pass straight backwards
+            Translation2d passTarget = new Translation2d(isRed ? 16.54 : 0.0, robotPose.getY());
+
+            Translation2d globalTurretPos = robotPose.getTranslation()
+                .plus(m_robotRelativeTurretOffset.rotateBy(robotPose.getRotation()));
+
+            Translation2d turretToPassTarget = passTarget.minus(globalTurretPos);
+            Rotation2d turretSetpoint = turretToPassTarget.getAngle().minus(robotPose.getRotation());
+
+            double desiredTurretRotations = turretSetpoint.getRadians() / (2 * Math.PI);
+            desiredTurretRotations = MathUtil.clamp(desiredTurretRotations, -kMaxTurretRotations, kMaxTurretRotations);
+            
+            m_turretMotor.setControl(m_motionMagic.withPosition(desiredTurretRotations * kTurretGearRatio));
+        } else {
+            // If we are safe in our own zone, aim normally at the hub
+            alignToHub();
+        }
     }
 
     private boolean isRedAlliance() {
@@ -104,10 +135,6 @@ public class Turret extends SubsystemBase {
         return alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
     }
 
-    /**
-     * This method runs 50 times a second ALL THE TIME. 
-     * We use this to push the live distance to the dashboard continuously!
-     */
     @Override
     public void periodic() {
         // 1. --- LIVE MOTOR DATA ---
@@ -118,16 +145,15 @@ public class Turret extends SubsystemBase {
 
         // 2. --- LIVE RANGEFINDER MATH ---
         boolean isRed = isRedAlliance();
-        int targetTag = isRed ? 10 : 26; // Tags 4 & 7 are the valid Speakers for Crescendo
+        int targetTag = isRed ? 10 : 26; 
         Optional<Pose3d> tagPoseOpt = m_atLayout.getTagPose(targetTag);
         
         if (tagPoseOpt.isEmpty()) {
             m_canSeeTarget = false;
-            m_distanceToHubMeters = 0.0; // Reset to 0 so it doesn't get stuck on an old number
+            m_distanceToHubMeters = 0.0; 
             SmartDashboard.putString("Turret/STATUS", "ERROR: Tag " + targetTag + " not found!");
             SmartDashboard.putNumber("Turret/Distance_To_Hub_Meters", 0.0);
-            SmartDashboard.putNumber("Turret/Distance_To_Hub_Inches", 0.0);
-            return; // Exit early!
+            return; 
         } 
         
         m_canSeeTarget = true;
@@ -136,41 +162,38 @@ public class Turret extends SubsystemBase {
         Pose2d hubPose = tagPoseOpt.get().toPose2d();
         Translation2d hubTranslation;
         
+        // APPLYING THE CENTER HUB OFFSETS HERE
+        Translation2d hubCorrectionOffset = new Translation2d(
+            Units.inchesToMeters(kHubCenterOffsetXInches), 
+            Units.inchesToMeters(kHubCenterOffsetYInches)
+        );
+
         if (!isRed) {
-            hubTranslation = hubPose.getTranslation().minus(new Translation2d(Units.inchesToMeters(0), 0));
+            hubTranslation = hubPose.getTranslation().minus(hubCorrectionOffset);
         } else {
-            hubTranslation = hubPose.getTranslation().plus(new Translation2d(Units.inchesToMeters(0), 0));
+            hubTranslation = hubPose.getTranslation().plus(hubCorrectionOffset);
         }
             
         Pose2d robotPose = m_robotPoseSupplier.get(); 
         
-        // Calculate the physical Back-Right corner of the robot swinging in space
         Translation2d globalTurretPos = robotPose.getTranslation()
-            .plus(m_robotRelativeTurretOffset
-            .rotateBy(robotPose.getRotation()));
+            .plus(m_robotRelativeTurretOffset.rotateBy(robotPose.getRotation()));
 
-        // Create a math vector from the Turret to the Hub
         Translation2d turretToHub = hubTranslation.minus(globalTurretPos);
         
-        // Save the exact distance!
         m_distanceToHubMeters = turretToHub.getNorm();
 
         // 3. --- PUSH LIVE DISTANCE TO DASHBOARD ---
         SmartDashboard.putNumber("Turret/Distance_To_Hub_Meters", m_distanceToHubMeters);
-        SmartDashboard.putNumber("Turret/Distance_To_Hub_Inches", Units.metersToInches(m_distanceToHubMeters));
 
         // 4. --- CALCULATE AIMING ANGLE ---
-        // (Target Angle - Robot Angle - 180 degrees)
-        Rotation2d turretSetpoint = turretToHub.getAngle()
-        .minus(robotPose.getRotation()); 
+        Rotation2d turretSetpoint = turretToHub.getAngle().minus(robotPose.getRotation()); 
 
         double desiredTurretRotations = turretSetpoint.getRadians() / (2 * Math.PI);
         desiredTurretRotations = MathUtil.clamp(desiredTurretRotations, -kMaxTurretRotations, kMaxTurretRotations);
         m_targetMotorRotations = desiredTurretRotations * kTurretGearRatio;
 
-        // Push Target Angles to Dashboard
         SmartDashboard.putNumber("Turret/Target_Motor_Rots", m_targetMotorRotations);
         SmartDashboard.putNumber("Turret/Target_Turret_Rots", desiredTurretRotations);
-        
     }
 }
