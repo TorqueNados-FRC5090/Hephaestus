@@ -8,13 +8,10 @@ import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
-
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 //import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
@@ -28,13 +25,10 @@ import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Spindex;
-import frc.robot.Constants.ShooterConstants.ShooterPosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.BumpHood;
 import frc.robot.commands.BumpVelocity;
-import frc.robot.commands.MoveHood;
-import frc.robot.commands.Shoot;
-import frc.robot.commands.SpindexYappy;
+import frc.robot.commands.VeloDown;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -44,8 +38,8 @@ public class RobotContainer {
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
             .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
-    private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
-    private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
+   // private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
+  //  private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
 
     private final Telemetry logger = new Telemetry(MaxSpeed);
 
@@ -107,9 +101,9 @@ public class RobotContainer {
        joystick.x().onTrue(new MoveHood(shooter, ShooterPosition.middle));
        joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far)); */
 
-       joystick.a().onTrue(new BumpHood(shooter));
-       joystick.b().onTrue(new BumpVelocity(shooter));
-        joystick.y().onTrue(new SpindexYappy(spindex));
+       joystick.a().whileTrue(new BumpHood(shooter, spindex));
+       joystick.b().whileTrue(new BumpVelocity(shooter, spindex));
+       joystick.x().whileTrue(new VeloDown(shooter, spindex));
 
 
         // Run SysId routines when holding back/start and X/Y.

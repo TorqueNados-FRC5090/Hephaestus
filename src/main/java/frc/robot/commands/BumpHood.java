@@ -3,13 +3,17 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants.ShooterConstants.ShooterPosition;
 import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Spindex;
 
 public class BumpHood extends Command {
     Shooter shoot;
     ShooterPosition target;
-    double angle;
-     public BumpHood(Shooter shoot){
+    Spindex spindex;
+    //double down;
+     public BumpHood(Shooter shoot, Spindex spinner){
         this.shoot = shoot;
+        this.spindex = spinner;
+       //  down = shoot.getAngle();
         
 
         addRequirements(shoot);
@@ -17,22 +21,24 @@ public class BumpHood extends Command {
   
     @Override
     public void initialize(){
-        shoot.plusAngle();
+       // down = shoot.getAngle() - 1;
     }
 
     @Override
     public void execute(){
-     
+        
+         shoot.plusAngle();
     }
 
     @Override 
     public void end(boolean interrupted){
     
+        
     }
 
     @Override
     public boolean isFinished(){
-      return true;
+      return false;
       
     }
 }

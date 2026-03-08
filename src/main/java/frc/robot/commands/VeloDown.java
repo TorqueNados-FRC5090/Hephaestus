@@ -5,11 +5,11 @@ import frc.robot.Constants.ShooterConstants.ShooterPosition;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Spindex;
 
-public class BumpVelocity extends Command {
+public class VeloDown extends Command {
     Shooter shoot;
     ShooterPosition target;
     Spindex spindex;
-     public BumpVelocity(Shooter shoot, Spindex spindex){
+     public VeloDown(Shooter shoot, Spindex spindex){
         this.shoot = shoot;
         this.spindex = spindex;
 
@@ -24,7 +24,7 @@ public class BumpVelocity extends Command {
     @Override
     public void execute(){
         spindex.spin(-.8);
-        shoot.plusVelocity();
+        shoot.minusVelocity();
     }
 
     @Override 
