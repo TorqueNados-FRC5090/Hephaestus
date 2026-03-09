@@ -1,22 +1,17 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Constants.HoodConstants.HoodPosition;
 import frc.robot.subsystems.Hood;
 
 public class MoveHoodVision extends Command {
     Hood hood;
-    HoodPosition target;
-     public MoveHoodVision(Hood hood, HoodPosition targetPos){
+     public MoveHoodVision(Hood hood){
         this.hood = hood;
-        this.target = targetPos;
-
-        addRequirements(hood);
     }
   
     @Override
     public void initialize(){
-        hood.setTarget(target);
+        hood.setTarget(2);
     }
 
     @Override
