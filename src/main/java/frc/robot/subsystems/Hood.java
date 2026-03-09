@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class Hood extends SubsystemBase {
     TalonFX hood;
 
-    private double pos = 0.0;
+    private double setpoint = 0.0;
 
     public Hood(){
         hood = new TalonFX(20, "Upper");
@@ -24,34 +24,28 @@ public class Hood extends SubsystemBase {
         Slot0Configs hoodPID = new Slot0Configs();
         hoodPID.kP = 0.5;
         hood.getConfigurator().apply(hoodPID);
-        // -------------------------------
-
     }
 
     public boolean atSetpoint(){
-        return Math.abs(getAngle() - pos) <= .5;
+        return Math.abs(getAngle() - setpoint) <= .5;
     }
 
-    //gets hood position
+    /** @return hood position */
     public double getAngle(){
        return hood.getPosition().getValueAsDouble();
     }
 
-    //hood go go!
-    public void setTarget(double target){
-        pos = target;
-        PositionVoltage hoodRequest = new PositionVoltage(pos).withSlot(0);
+    // hood go go!
+    public void goTo(double position){
+        setpoint = position;
+        PositionVoltage hoodRequest = new PositionVoltage(setpoint).withSlot(0);
         hood.setControl(hoodRequest);
     }
     
-    //gets angle of target (NOT HOOD ANGEL)
-    public double getTarget(double target){
-        return target;
-    }
-    
-    //move hood to any position
-    public void goHood(){
-        hood.set(.1);
+    public void incrementPositionBy(double revolutions) {
+        setpoint += revolutions;
+        PositionVoltage hoodRequest = new PositionVoltage(setpoint).withSlot(0);
+        hood.setControl(hoodRequest);
     }
 
     public void stop(){
@@ -61,7 +55,7 @@ public class Hood extends SubsystemBase {
     @Override
     public void periodic(){
         SmartDashboard.putNumber("Hood Angle", hood.getPosition().getValueAsDouble());
-        SmartDashboard.putNumber("Target Angle", pos);
+        SmartDashboard.putNumber("Target Angle", setpoint);
     }
 
 

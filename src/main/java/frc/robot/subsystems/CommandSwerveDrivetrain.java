@@ -1,8 +1,8 @@
 package frc.robot.subsystems;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Second;
+import static edu.wpi.first.units.Units.Volts;
 
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
@@ -26,7 +26,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import frc.robot.Constants;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 
 /**
@@ -73,6 +72,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     );
 
     /* SysId routine for characterizing steer. This is used to find PID gains for the steer motors. */
+    @SuppressWarnings("unused")
     private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
         new SysIdRoutine.Config(
             null,        // Use default ramp rate (1 V/s)
@@ -93,6 +93,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * This is used to find PID gains for the FieldCentricFacingAngle HeadingController.
      * See the documentation of SwerveRequest.SysIdSwerveRotation for info on importing the log to SysId.
      */
+    @SuppressWarnings("unused")
     private final SysIdRoutine m_sysIdRoutineRotation = new SysIdRoutine(
         new SysIdRoutine.Config(
             /* This is in radians per second², but SysId only supports "volts per second" */

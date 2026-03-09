@@ -5,9 +5,11 @@ import frc.robot.subsystems.Shooter;
 
 public class Shoot extends Command {
     Shooter shooter;
+    double RPS;
     
-    public Shoot(Shooter shooter){
+    public Shoot(Shooter shooter, double RPS){
         this.shooter = shooter;
+        this.RPS = RPS;
     }
   
     @Override
@@ -17,12 +19,12 @@ public class Shoot extends Command {
 
     @Override
     public void execute(){
-        shooter.goShoot();
+        shooter.goShoot(RPS);
     }
 
    @Override 
     public void end(boolean interrupted){
-   shooter.stop();
+        shooter.stop();
     }
 
     @Override

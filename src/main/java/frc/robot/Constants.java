@@ -109,20 +109,8 @@ public class Constants {
         }
     }
    //shooter setpoints
-    public static final class ShooterConstants{
-        public enum ShooterPosition{
-            zero(0),
-            middle(-2),
-            far(-3.04);
-
-            private double setpoint;
-            ShooterPosition(double setpoint){
-                this.setpoint = setpoint;
-            };
-              public double getAngle() {
-                return setpoint;
-            }
-        }
+    public static final class ShooterConstants {
+        
     }
 
 }

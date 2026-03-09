@@ -1,44 +1,37 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Constants.ShooterConstants.ShooterPosition;
-import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.Spindex;
+import frc.robot.subsystems.Hood;
 
 public class BumpHood extends Command {
-    Shooter shoot;
-    ShooterPosition target;
-    Spindex spindex;
-    //double down;
-     public BumpHood(Shooter shoot, Spindex spinner){
-        this.shoot = shoot;
-        this.spindex = spinner;
-       //  down = shoot.getAngle();
-        
+    Hood hood;
+    double revolutions;
 
-        addRequirements(shoot);
+    /** Increments the hood's current setpoint position by n revolutions. 
+     *  Provide a negative number to decrement */
+    public BumpHood(Hood hood, double revolutions){
+        this.hood = hood;
+
+        addRequirements(hood);
     }
   
     @Override
     public void initialize(){
-       // down = shoot.getAngle() - 1;
+        hood.incrementPositionBy(revolutions);
     }
 
     @Override
     public void execute(){
-        
-         shoot.plusAngle();
+
     }
 
     @Override 
     public void end(boolean interrupted){
     
-        
     }
 
     @Override
     public boolean isFinished(){
-      return false;
-      
+      return hood.atSetpoint();
     }
 }

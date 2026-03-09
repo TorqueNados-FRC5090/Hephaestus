@@ -12,7 +12,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-//import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
@@ -20,17 +20,15 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 
 import frc.robot.subsystems.Turret; 
-import frc.robot.subsystems.Limelight;
+import frc.robot.wrappers.Limelight;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
-import frc.robot.subsystems.Flywheel;
+import frc.robot.subsystems.Hood;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Spindex;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.BumpHood;
 import frc.robot.commands.BumpVelocity;
-import frc.robot.commands.VeloDown;
-import frc.robot.commands.MoveFlywheel;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -47,7 +45,7 @@ public class RobotContainer {
 
     private final CommandXboxController joystick = new CommandXboxController(0);
 
-    public final Limelight m_ll = new Limelight();
+    public final Limelight limelight = new Limelight("limelight");
 
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
@@ -55,11 +53,11 @@ public class RobotContainer {
     private AprilTagFieldLayout m_fieldLayout;
     public final Turret m_turret;
 
-    private final AutonContainer auton = new AutonContainer(this);
-    private final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
-    public final Shooter shooter = new Shooter();
-    private final Spindex spindex = new Spindex();
-    public final Flywheel flywheel = new Flywheel();
+    final AutonContainer auton = new AutonContainer(this);
+    final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
+    final Shooter shooter = new Shooter();
+    final Spindex spindex = new Spindex();
+    final Hood hood = new Hood();
 
     public RobotContainer() {
        
@@ -99,15 +97,10 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
-      /*   joystick.a().onTrue(new MoveHood(shooter, ShooterPosition.zero));
-       joystick.b().whileTrue(new Shoot(shooter));
-       joystick.x().onTrue(new MoveHood(shooter, ShooterPosition.middle));
-       joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far)); */
-
-       //joystick.a().whileTrue(new BumpHood(shooter, spindex));
-       joystick.b().whileTrue(new BumpVelocity(shooter, spindex));
-       joystick.x().whileTrue(new VeloDown(shooter, spindex));
-       joystick.a().whileTrue(new MoveFlywheel(flywheel));
+       joystick.y().onTrue(new BumpHood(hood, 1));
+       joystick.a().onTrue(new BumpHood(hood, -1));
+       joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
+       joystick.x().whileTrue(new BumpVelocity(shooter, spindex, -2));
 
 
         // Run SysId routines when holding back/start and X/Y.
@@ -152,5 +145,33 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle) 
             */
         //);
+    }
+
+    /** This will coordinate all necessary subsystems and only shoot when they all report readiness */
+    public Command fullShootCommand() {
+        /* A parallel command group will run all of its subcommands
+         * at the same time, and only end when all subcommands have finished.
+         * Therefore, it is important to ensure that each subcommand has a working 
+         * isFinished() function in it. If for some reason you can't get a command 
+         * to end correctly, you can force it to last for exactly n seconds by 
+         * changing the isFinished() to return false and adding a timeout like so:
+         * new Shoot(shooter, 25).withTimeout(n)
+         */
+        /* The andThen() that follows our parallel does exactly what it sounds like.
+         * To be more specific, it establishes a Sequential command group containing 
+         * the parallel command, followed by whatever command you provide.
+         */
+        /* To algorithmically decide how your robot should act, the preferred way
+         * is to set up the command such that it takes a value as input (e.g. speed),
+         * and then instead of passing a plain number as input, you simply type in your equation.
+         * This also applies for using functions like those that come out of the limelight.
+         * Example: Commanding the shooter using the squared height of a target
+         * new Shoot(shooter, Math.pow(limelight.getTY(), 2))
+         */
+        return new ParallelCommandGroup(
+            /* Command A: Rev the shooter */ 
+            /* Command B: Move the hood */
+            /* Command C: Aim the turret */
+        ).andThen(/* Command D: Shoot */);
     }
 }
