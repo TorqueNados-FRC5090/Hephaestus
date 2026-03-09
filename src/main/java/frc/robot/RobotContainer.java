@@ -23,12 +23,14 @@ import frc.robot.subsystems.Turret;
 import frc.robot.subsystems.Limelight;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.Flywheel;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Spindex;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.BumpHood;
 import frc.robot.commands.BumpVelocity;
 import frc.robot.commands.VeloDown;
+import frc.robot.commands.MoveFlywheel;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -57,6 +59,7 @@ public class RobotContainer {
     private final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
     public final Shooter shooter = new Shooter();
     private final Spindex spindex = new Spindex();
+    public final Flywheel flywheel = new Flywheel();
 
     public RobotContainer() {
        
@@ -101,9 +104,10 @@ public class RobotContainer {
        joystick.x().onTrue(new MoveHood(shooter, ShooterPosition.middle));
        joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far)); */
 
-       joystick.a().whileTrue(new BumpHood(shooter, spindex));
+       //joystick.a().whileTrue(new BumpHood(shooter, spindex));
        joystick.b().whileTrue(new BumpVelocity(shooter, spindex));
        joystick.x().whileTrue(new VeloDown(shooter, spindex));
+       joystick.a().whileTrue(new MoveFlywheel(flywheel));
 
 
         // Run SysId routines when holding back/start and X/Y.

@@ -66,7 +66,8 @@ public class Flywheel extends SubsystemBase {
     }
 
     //shoots using the stored targetRPS variable
-    public void goShoot(){
+    public void goShoot(double targetRPS){
+        targetShooterRPS = targetRPS;
         VelocityVoltage velocityRequest = new VelocityVoltage(targetShooterRPS).withSlot(0);
         leadShoot.setControl(velocityRequest);
     }

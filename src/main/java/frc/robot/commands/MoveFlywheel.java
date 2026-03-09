@@ -17,7 +17,7 @@ public class MoveFlywheel extends Command {
 
     @Override
     public void execute(){
-        flywheel.goShoot();
+        flywheel.goShoot(50);
     }
 
    @Override 
