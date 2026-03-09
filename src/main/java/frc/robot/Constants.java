@@ -124,4 +124,19 @@ public class Constants {
             }
         }
     }
+
+    //Hood setpoints
+    public static final class HoodConstants{
+        public enum HoodPosition{
+            zero(0);
+            
+            private double setpoint;
+            HoodPosition(double setpoint){
+                this.setpoint = setpoint;
+            };
+              public double getAngle() {
+                return setpoint;
+            }
+        }
+    }
 }
