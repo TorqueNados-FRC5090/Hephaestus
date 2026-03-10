@@ -27,7 +27,7 @@ public class Hood extends SubsystemBase {
     }
 
     public boolean atSetpoint(){
-        return Math.abs(getAngle() - setpoint) <= .5;
+        return Math.abs(getAngle() - setpoint) <= 0.5;
     }
 
     /** @return hood position */

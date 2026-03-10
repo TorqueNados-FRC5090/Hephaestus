@@ -95,6 +95,26 @@ public class Turret extends SubsystemBase {
         m_turretMotor.setControl(m_motionMagic.withPosition(m_targetMotorRotations));
     }
 
+    //Command that returns the Turret to the zero point when not in use
+    public void gotozero() {
+        m_turretMotor.setControl(m_motionMagic.withPosition(0));
+    }
+
+    /** Checks the turret if it is a the setpoint */
+    public boolean isTurretReady(){
+        // If we aren't trying to shoot, the shooter isn't "ready"
+        if (m_targetMotorRotations == 0.0) {
+            return false;
+        }
+
+        // Get the current speed
+        double currentpos = m_turretMotor.getPosition().refresh().getValueAsDouble();
+
+        //check the postion to 0.2 of a rotation
+        return Math.abs(currentpos - m_targetMotorRotations) <= 0.2;
+    }
+
+
     /**
      * Call this when pressing the shoot button! 
      * It intelligently decides to pass if past midfield, or shoot at the hub if close.

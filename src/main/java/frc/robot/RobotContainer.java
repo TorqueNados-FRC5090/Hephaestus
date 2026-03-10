@@ -30,6 +30,7 @@ import frc.robot.commands.AutonContainer;
 import frc.robot.commands.BumpHood;
 import frc.robot.commands.BumpVelocity;
 import frc.robot.commands.MoveHood;
+import frc.robot.commands.MoveTurret;
 import frc.robot.commands.Shoot;
 import frc.robot.commands.SpindexYappy;
 
@@ -171,12 +172,15 @@ public class RobotContainer {
          * Example: Commanding the shooter using the squared height of a target
          * new Shoot(shooter, Math.pow(limelight.getTY(), 2))
          */
+        
         return new ParallelCommandGroup(
             /* Command A: Rev the shooter */
-            new Shoot(shooter,20),
+            new Shoot(shooter,m_turret.getDistanceToHubMeters()*2.692913+19.6),
             /* Command B: Move the hood */
-            new MoveHood(hood, 1)
+            new MoveHood(hood, 0),
             /* Command C: Aim the turret */
+            new MoveTurret(m_turret)
+
         ).andThen(/* Command D: Shoot */new SpindexYappy(spindex));
     }
 }
