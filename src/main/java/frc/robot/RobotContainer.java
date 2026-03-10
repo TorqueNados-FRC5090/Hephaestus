@@ -99,8 +99,8 @@ public class RobotContainer {
 
        joystick.y().onTrue(new BumpHood(hood, 1));
        joystick.a().onTrue(new BumpHood(hood, -1));
-       joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
-       joystick.x().whileTrue(new BumpVelocity(shooter, spindex, -2));
+       joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 1)); 
+       joystick.x().whileTrue(new BumpVelocity(shooter, spindex, -1));
 
 
         // Run SysId routines when holding back/start and X/Y.
