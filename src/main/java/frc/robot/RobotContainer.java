@@ -33,6 +33,7 @@ import frc.robot.commands.MoveHood;
 import frc.robot.commands.MoveTurret;
 import frc.robot.commands.Shoot;
 import frc.robot.commands.SpindexYappy;
+import frc.robot.commands.Zero;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -62,6 +63,7 @@ public class RobotContainer {
     final Shooter shooter = new Shooter();
     final Spindex spindex = new Spindex();
     final Hood hood = new Hood();
+
 
     public RobotContainer() {
        
@@ -105,6 +107,7 @@ public class RobotContainer {
        joystick.a().onTrue(new BumpHood(hood, -1));
        joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
        joystick.x().whileTrue(new BumpVelocity(shooter, spindex, -2));
+       joystick.rightTrigger().whileTrue(fullShootCommand()).onFalse(new Zero(shooter, 0));
 
 
         // Run SysId routines when holding back/start and X/Y.
@@ -177,7 +180,7 @@ public class RobotContainer {
             /* Command A: Rev the shooter */
             new Shoot(shooter,m_turret.getDistanceToHubMeters()*2.692913+19.6),
             /* Command B: Move the hood */
-            new MoveHood(hood, 0),
+            //new MoveHood(hood, 0),
             /* Command C: Aim the turret */
             new MoveTurret(m_turret)
 
