@@ -34,6 +34,25 @@ public class Constants {
         public static final double MAX_ROTATION_SPEED = RotationsPerSecond.of(0.75).in(RadiansPerSecond);
     }
 
+    // INTAKE CONSTANTS YIPPPIEEEEE!!!
+     public static final class IntakeConstants {
+        public enum IntakePosition {
+            //climber setpoints
+            zero(0),
+            out(-4.4);
+
+            private double setpoint;
+            IntakePosition(double setpoint) {
+                this.setpoint = setpoint;
+            };
+
+            //gets the angle of setpoint
+            public double getAngle() {
+                return setpoint;
+            }
+        }
+    }
+
     public static final class PathPlannerConfigs {
         private static final DCMotor DRIVE_MOTOR = 
             new DCMotor(12.6, 5, 40, 20, 5, 1);
