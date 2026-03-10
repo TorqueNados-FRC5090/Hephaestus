@@ -29,6 +29,9 @@ import frc.robot.subsystems.Spindex;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.BumpHood;
 import frc.robot.commands.BumpVelocity;
+import frc.robot.commands.MoveHood;
+import frc.robot.commands.Shoot;
+import frc.robot.commands.SpindexYappy;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -99,8 +102,8 @@ public class RobotContainer {
 
        joystick.y().onTrue(new BumpHood(hood, 1));
        joystick.a().onTrue(new BumpHood(hood, -1));
-       joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 1)); 
-       joystick.x().whileTrue(new BumpVelocity(shooter, spindex, -1));
+       joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
+       joystick.x().whileTrue(new BumpVelocity(shooter, spindex, -2));
 
 
         // Run SysId routines when holding back/start and X/Y.
@@ -169,9 +172,11 @@ public class RobotContainer {
          * new Shoot(shooter, Math.pow(limelight.getTY(), 2))
          */
         return new ParallelCommandGroup(
-            /* Command A: Rev the shooter */ 
+            /* Command A: Rev the shooter */
+            new Shoot(shooter,20),
             /* Command B: Move the hood */
+            new MoveHood(hood, 1)
             /* Command C: Aim the turret */
-        ).andThen(/* Command D: Shoot */);
+        ).andThen(/* Command D: Shoot */new SpindexYappy(spindex));
     }
 }

@@ -24,12 +24,14 @@ public class Shoot extends Command {
 
    @Override 
     public void end(boolean interrupted){
-        shooter.stop();
+        if(interrupted){
+            shooter.stop();
+        }
     }
 
     @Override
     public boolean isFinished(){
-        return false;
+        return shooter.isShooterReady();
     }
 
 }

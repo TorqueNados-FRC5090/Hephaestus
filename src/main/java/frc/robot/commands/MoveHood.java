@@ -24,10 +24,12 @@ public class MoveHood extends Command {
         hood.goTo(target);
     }
 
-    //@Override 
-    //public void end(boolean interrupted){
-    //    hood.stop();
-    //}
+    @Override 
+    public void end(boolean interrupted){
+        if(interrupted){
+            hood.goTo(0);
+        }
+    }
 
     @Override
     public boolean isFinished(){
