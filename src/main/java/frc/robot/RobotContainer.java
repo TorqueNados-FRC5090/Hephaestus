@@ -184,7 +184,7 @@ public class RobotContainer {
             //new Shoot(shooter,(shootdistance()*2.692913+19.6)),
             new Shoot(shooter, () -> shootdistance()),
             /* Command B: Move the hood */
-            new MoveHood(hood, -1.5),
+            //new MoveHood(hood, 0),
             /* Command C: Aim the turret */
             new MoveTurret(m_turret)
 
