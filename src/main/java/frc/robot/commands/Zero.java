@@ -1,19 +1,25 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.subsystems.Hood;
 import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Turret;
 
 public class Zero extends Command {
     Shooter shooter;
-    double RPS;
+    Hood hood;
+    Turret turret;
     
-    public Zero(Shooter shooter, double RPS){
+    public Zero(Shooter shooter, Hood hood, Turret turret){
         this.shooter = shooter;
-        this.RPS = RPS;
+        this.hood = hood;
+        this.turret = turret;
     }
   
     @Override
     public void initialize(){
+        hood.goTo(0);
+        turret.gotozero();
         
     }
 
@@ -28,10 +34,10 @@ public class Zero extends Command {
             shooter.stop();
         }
     }
-
+/* 
     @Override
     public boolean isFinished(){
         return shooter.isShooterReady();
     }
-
+*/
 }

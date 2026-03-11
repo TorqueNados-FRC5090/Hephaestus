@@ -106,7 +106,7 @@ public class RobotContainer {
        joystick.y().onTrue(new BumpHood(hood, 1));
        joystick.a().onTrue(new BumpHood(hood, -1));
        joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
-       joystick.x().whileTrue(new Zero(shooter, 0));
+       joystick.x().whileTrue(new Zero(shooter, hood, m_turret));
        joystick.rightTrigger().whileTrue(fullShootCommand());
 
 
