@@ -35,9 +35,9 @@ public class Shooter extends SubsystemBase {
         Slot0Configs shooterPID = new Slot0Configs();
         shooterPID.kP = 0.4; // Changed to 2.0 for smoother recovery
         shooterPID.kI = 0.0;
-        shooterPID.kD = 0.0;
+        shooterPID.kD = 0.0005;
         shooterPID.kV = 0.16;
-        shooterPID.kS = 0.1;
+        shooterPID.kS = 0;
         //shooterPID.kA = 1.0;
         
         leadShoot.getConfigurator().apply(shooterPID);
@@ -61,7 +61,7 @@ public class Shooter extends SubsystemBase {
 
         // Check if the current speed is within 2 RPS of our target
         // 2 RPS is 120 RPM
-        return Math.abs(currentRPS - setpoint) <= 0.3;
+        return Math.abs(currentRPS - setpoint) <= 1.5;
     }
 
     /** Updates the targetRPS and sends it to the shooter */

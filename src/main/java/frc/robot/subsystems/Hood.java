@@ -22,7 +22,7 @@ public class Hood extends SubsystemBase {
         hood.getConfigurator().apply(hoodConfig);
 
         Slot0Configs hoodPID = new Slot0Configs();
-        hoodPID.kP = 0.5;
+        hoodPID.kP = 2;
         hood.getConfigurator().apply(hoodPID);
     }
 

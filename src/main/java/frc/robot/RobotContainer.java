@@ -106,8 +106,8 @@ public class RobotContainer {
        joystick.y().onTrue(new BumpHood(hood, 1));
        joystick.a().onTrue(new BumpHood(hood, -1));
        joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
-       joystick.x().whileTrue(new BumpVelocity(shooter, spindex, -2));
-       joystick.rightTrigger().whileTrue(fullShootCommand()).onFalse(new Zero(shooter, 0));
+       joystick.x().whileTrue(new Zero(shooter, 0));
+       joystick.rightTrigger().whileTrue(fullShootCommand());
 
 
         // Run SysId routines when holding back/start and X/Y.
@@ -178,12 +178,18 @@ public class RobotContainer {
         
         return new ParallelCommandGroup(
             /* Command A: Rev the shooter */
-            new Shoot(shooter,m_turret.getDistanceToHubMeters()*2.692913+19.6),
+            //new Shoot(shooter,(shootdistance()*2.692913+19.6)),
+            new Shoot(shooter, () -> shootdistance()),
             /* Command B: Move the hood */
-            //new MoveHood(hood, 0),
+            new MoveHood(hood, -1.5),
             /* Command C: Aim the turret */
             new MoveTurret(m_turret)
 
         ).andThen(/* Command D: Shoot */new SpindexYappy(spindex));
+    }
+
+    public double shootdistance(){
+        
+        return (m_turret.m_distanceToHubMeters*2.692913+19.6);
     }
 }

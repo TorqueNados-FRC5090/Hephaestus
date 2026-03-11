@@ -43,7 +43,7 @@ public class Turret extends SubsystemBase {
 
     // --- HUB OFFSET CORRECTION ---
     // Tune these to push the target coordinate from the Tag face to the True Center of the Hub.
-    private final double kHubCenterOffsetXInches = 12.0; // Start with 12 inches, tune until centered
+    private final double kHubCenterOffsetXInches = 3.0; // Start with 12 inches, tune until centered
     private final double kHubCenterOffsetYInches = 0.0;  // Tune if tags are physically off-center left/right
 
     // --- Mechanical Constants ---
@@ -53,7 +53,7 @@ public class Turret extends SubsystemBase {
     private final double kMaxTurretRotations = 0.48; 
 
     // --- LIVE STATE VARIABLES ---
-    private double m_distanceToHubMeters = 0.0;
+    public double m_distanceToHubMeters = 0.0;
     private double m_targetMotorRotations = 0.0;
     private boolean m_canSeeTarget = false;
 
@@ -68,9 +68,9 @@ public class Turret extends SubsystemBase {
         TalonFXSConfiguration config = new TalonFXSConfiguration();
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         config.Commutation.MotorArrangement = MotorArrangementValue.Minion_JST;
-        config.Slot0.kP = 0.8; 
-        config.Slot0.kD = 0.003;
-        config.Slot0.kS = 0.1;
+        config.Slot0.kP = 6; 
+        config.Slot0.kD = 0;
+        config.Slot0.kS = 0;
         
         config.MotionMagic.MotionMagicCruiseVelocity = 600.0; 
         config.MotionMagic.MotionMagicAcceleration = 60.0;   
@@ -87,6 +87,7 @@ public class Turret extends SubsystemBase {
     public double getDistanceToHubMeters() {
         return m_distanceToHubMeters;
     }
+
 
     /**
      * Commands the motor to snap to the target. 
