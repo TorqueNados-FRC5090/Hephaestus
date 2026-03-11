@@ -113,4 +113,23 @@ public class Constants {
         
     }
 
+    // INTAKE CONSTANTS YIPPPIEEEEE!!!
+     public static final class IntakeConstants {
+        public enum IntakePosition {
+            //climber setpoints
+            zero(0),
+            out(-4.4);
+
+            private double setpoint;
+            IntakePosition(double setpoint) {
+                this.setpoint = setpoint;
+            };
+
+            //gets the angle of setpoint
+            public double getAngle() {
+                return setpoint;
+            }
+        }
+    }
+
 }

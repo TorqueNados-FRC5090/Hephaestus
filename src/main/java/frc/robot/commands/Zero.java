@@ -14,6 +14,8 @@ public class Zero extends Command {
         this.shooter = shooter;
         this.hood = hood;
         this.turret = turret;
+
+        addRequirements(hood, turret);
     }
   
     @Override

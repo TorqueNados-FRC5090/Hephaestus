@@ -109,6 +109,9 @@ public class RobotContainer {
        joystick.x().whileTrue(new Zero(shooter, hood, m_turret));
        joystick.rightTrigger().whileTrue(fullShootCommand());
 
+       // joystick.a().whileTrue(new IntakePiece(intake, IntakePosition.out));
+        // joystick.b().whileTrue(new IntakePiece(intake, IntakePosition.zero));
+
 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.

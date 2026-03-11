@@ -8,6 +8,8 @@ public class MoveTurret extends Command {
     
     public MoveTurret(Turret turret){
         this.turret = turret;
+
+        addRequirements(turret);
     }
   
     @Override
