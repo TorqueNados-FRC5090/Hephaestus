@@ -15,31 +15,27 @@ public class Zero extends Command {
         this.hood = hood;
         this.turret = turret;
 
-        addRequirements(hood, turret);
+        addRequirements(shooter, hood, turret);
     }
   
     @Override
     public void initialize(){
         hood.goTo(0);
-        turret.gotozero();
-        
+        turret.goToZero();
+        shooter.stop();
     }
 
     @Override
     public void execute(){
-        shooter.stop();
     }
 
    @Override 
     public void end(boolean interrupted){
-        if(interrupted){
-            shooter.stop();
-        }
     }
-/* 
+
     @Override
     public boolean isFinished(){
-        return shooter.isShooterReady();
+        return true;
     }
-*/
+
 }

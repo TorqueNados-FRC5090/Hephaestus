@@ -10,6 +10,8 @@ public class IntakePiece extends Command{
     public IntakePiece(Intake intake, IntakePosition pos){
         this.intake = intake;
         this.target = pos;
+
+        addRequirements(intake);
     }
     
     @Override

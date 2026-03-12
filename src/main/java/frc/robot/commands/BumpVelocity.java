@@ -14,7 +14,7 @@ public class BumpVelocity extends Command {
         this.spindex = spindex;
         this.RPS = RPS;
 
-        addRequirements(shoot);
+        addRequirements(shoot, spindex);
     }
   
     @Override
@@ -34,6 +34,6 @@ public class BumpVelocity extends Command {
 
     @Override
     public boolean isFinished(){
-        return shooter.isShooterReady();
+        return shooter.isShooterReady(2);
     }
 }

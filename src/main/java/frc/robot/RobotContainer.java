@@ -4,10 +4,15 @@
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -16,27 +21,20 @@ import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
-import edu.wpi.first.apriltag.AprilTagFieldLayout;
-import edu.wpi.first.apriltag.AprilTagFields;
-
-import frc.robot.subsystems.Turret; 
-import frc.robot.wrappers.Limelight;
+import frc.robot.Constants.IntakeConstants.IntakePosition;
+import frc.robot.commands.AutonContainer;
+import frc.robot.commands.IntakePiece;
+import frc.robot.commands.MoveTurret;
+import frc.robot.commands.SpindexYappy;
+import frc.robot.commands.Zero;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Hood;
+import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Spindex;
-import frc.robot.Constants.IntakeConstants.IntakePosition;
-import frc.robot.commands.AutonContainer;
-import frc.robot.commands.BumpHood;
-import frc.robot.commands.BumpVelocity;
-import frc.robot.commands.IntakePiece;
-import frc.robot.commands.MoveHood;
-import frc.robot.commands.MoveTurret;
-import frc.robot.commands.Shoot;
-import frc.robot.commands.SpindexYappy;
-import frc.robot.commands.Zero;
-import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Turret;
+import frc.robot.wrappers.Limelight;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -59,7 +57,7 @@ public class RobotContainer {
 
     // --- NEW TURRET VARIABLES ---
     private AprilTagFieldLayout m_fieldLayout;
-    public final Turret m_turret;
+    public final Turret turret;
 
     final AutonContainer auton = new AutonContainer(this);
     final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
@@ -77,7 +75,7 @@ public class RobotContainer {
 
         // --- NEW: INSTANTIATE TURRET ---
         // Passing in your "drivetrain" variable's Pose2d, and the layout we just loaded
-        m_turret = new Turret(() -> drivetrain.getState().Pose, m_fieldLayout);
+        turret = new Turret(() -> drivetrain.getState().Pose, m_fieldLayout);
        
         SmartDashboard.putData("Auton Selector", autonChooser);
         configureBindings();
@@ -108,11 +106,12 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
-     //  joystick.y().onTrue(new BumpHood(hood, 1));
-      // joystick.a().onTrue(new BumpHood(hood, -1));
-      // joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
-        joystick.x().whileTrue(new Zero(shooter, hood, m_turret));
-         joystick.rightTrigger().whileTrue(fullShootCommand());
+        // joystick.y().onTrue(new BumpHood(hood, 1));
+        // joystick.a().onTrue(new BumpHood(hood, -1));
+        // joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
+        joystick.x().onTrue(new Zero(shooter, hood, turret));
+        joystick.rightTrigger().whileTrue(fullShootCommand());
+
 
         joystick.leftBumper().whileTrue(new IntakePiece(intaker, IntakePosition.out));
         joystick.b().whileTrue(new IntakePiece(intaker, IntakePosition.zero));
@@ -131,7 +130,7 @@ public class RobotContainer {
                 // --- NEW: BIND TURRET AIM TO RIGHT BUMPER ---
         // While the driver holds the Right Bumper, the Turret will continuously calculate and track the hub
         joystick.rightBumper().whileTrue(
-            m_turret.run(() -> m_turret.alignToHub())
+            turret.run(() -> turret.alignToHub())
         );
         // --------------------------------------------
 
@@ -172,10 +171,6 @@ public class RobotContainer {
          * changing the isFinished() to return false and adding a timeout like so:
          * new Shoot(shooter, 25).withTimeout(n)
          */
-        /* The andThen() that follows our parallel does exactly what it sounds like.
-         * To be more specific, it establishes a Sequential command group containing 
-         * the parallel command, followed by whatever command you provide.
-         */
         /* To algorithmically decide how your robot should act, the preferred way
          * is to set up the command such that it takes a value as input (e.g. speed),
          * and then instead of passing a plain number as input, you simply type in your equation.
@@ -183,21 +178,25 @@ public class RobotContainer {
          * Example: Commanding the shooter using the squared height of a target
          * new Shoot(shooter, Math.pow(limelight.getTY(), 2))
          */
-        
         return new ParallelCommandGroup(
             /* Command A: Rev the shooter */
-            //new Shoot(shooter,(shootdistance()*2.692913+19.6)),
-            new Shoot(shooter, () -> shootdistance()),
+            shooter.shoot(() -> calculateOptimalShooterRPS()),
             /* Command B: Move the hood */
             //new MoveHood(hood, 0),
             /* Command C: Aim the turret */
-            new MoveTurret(m_turret)
-
-        ).andThen(/* Command D: Shoot */new SpindexYappy(spindex));
+            new MoveTurret(turret),
+            /* Command D: Shoot only when the other subsystems are ready */
+            new SpindexYappy(spindex, () -> readyToShoot())
+        );
     }
 
-    public double shootdistance(){
-        
-        return (m_turret.m_distanceToHubMeters*2.692913+19.6);
+    public double calculateOptimalShooterRPS() {
+        return turret.m_distanceToHubMeters * 2.692913 + 19.6;
+    }
+
+    public boolean readyToShoot() {
+        return shooter.isShooterReady(2) &&
+            turret.isTurretReady() &&
+            hood.atSetpoint();
     }
 }
