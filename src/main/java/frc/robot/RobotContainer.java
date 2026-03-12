@@ -26,14 +26,17 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Hood;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Spindex;
+import frc.robot.Constants.IntakeConstants.IntakePosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.BumpHood;
 import frc.robot.commands.BumpVelocity;
+import frc.robot.commands.IntakePiece;
 import frc.robot.commands.MoveHood;
 import frc.robot.commands.MoveTurret;
 import frc.robot.commands.Shoot;
 import frc.robot.commands.SpindexYappy;
 import frc.robot.commands.Zero;
+import frc.robot.subsystems.Intake;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -63,6 +66,8 @@ public class RobotContainer {
     final Shooter shooter = new Shooter();
     final Spindex spindex = new Spindex();
     final Hood hood = new Hood();
+
+    final Intake intaker = new Intake();
 
 
     public RobotContainer() {
@@ -103,15 +108,15 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
-       joystick.y().onTrue(new BumpHood(hood, 1));
-       joystick.a().onTrue(new BumpHood(hood, -1));
-       joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
-       joystick.x().whileTrue(new Zero(shooter, hood, m_turret));
-       joystick.rightTrigger().whileTrue(fullShootCommand());
+     //  joystick.y().onTrue(new BumpHood(hood, 1));
+      // joystick.a().onTrue(new BumpHood(hood, -1));
+      // joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
+        joystick.x().whileTrue(new Zero(shooter, hood, m_turret));
+         joystick.rightTrigger().whileTrue(fullShootCommand());
 
-       // joystick.a().whileTrue(new IntakePiece(intake, IntakePosition.out));
-        // joystick.b().whileTrue(new IntakePiece(intake, IntakePosition.zero));
-
+        joystick.leftBumper().whileTrue(new IntakePiece(intaker, IntakePosition.out));
+        joystick.b().whileTrue(new IntakePiece(intaker, IntakePosition.zero));
+    
 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.

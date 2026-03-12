@@ -12,16 +12,18 @@ public class Intake extends SubsystemBase{
      TalonFX intakeMotor;
      TalonFX rotationMotor;
      IntakePosition pos;
+     int intakeID = 12;
+     int rotateID = 11;
 
     /** Constructs an Intake
      *  @param intakeID The ID of the intake motor
      *  @param rotateID The ID of the rotate motor
      */
-    public Intake(int intakeID, int rotateID){
+    public Intake(/*int intakeID, int rotateID*/){
         intakeMotor = new TalonFX(intakeID, "Upper");        
         rotationMotor = new TalonFX(rotateID, "Upper");
         Slot0Configs intakePIDConfig = new Slot0Configs();
-        intakePIDConfig.kP = 1.2;
+        intakePIDConfig.kP = 1.6;
         intakePIDConfig.kD = .0;
         intakePIDConfig.kV = 0;
         rotationMotor.getConfigurator().apply(intakePIDConfig);
@@ -30,7 +32,7 @@ public class Intake extends SubsystemBase{
     
     // Go-go Gadget Move (Makes the Intake Move)
     public void yummy(){
-        intakeMotor.set(-.8);
+        intakeMotor.set(.8);
     }
     
     // Go-go Gadget Rotate (Makes Intake Rotate)

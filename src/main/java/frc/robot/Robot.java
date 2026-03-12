@@ -57,13 +57,18 @@ public class Robot extends TimedRobot {
       var llMeasurement = Limelighthelpers.getBotPoseEstimate_wpiBlue("limelight");
       if (llMeasurement != null && llMeasurement.tagCount > 0 && Math.abs(omegaRps) < 2.0) {
         m_robotContainer.drivetrain.addVisionMeasurement(llMeasurement.pose, llMeasurement.timestampSeconds);
+
+             Limelighthelpers.SetRobotOrientation("limelight-left",m_robotContainer.drivetrain.getgyroyaw().getDegrees(), 0, 0, 0, 0, 0);
+      var llMeasurementleft = Limelighthelpers.getBotPoseEstimate_wpiBlue("limelight-left");
+      if (llMeasurementleft != null && llMeasurementleft.tagCount > 0 && Math.abs(omegaRps) < 2.0) {
+        m_robotContainer.drivetrain.addVisionMeasurement(llMeasurementleft.pose, llMeasurementleft.timestampSeconds);
         
       }
       
       SmartDashboard.putNumber("111 drive pose X", m_robotContainer.drivetrain.getState().Pose.getX());
       SmartDashboard.putNumber("111 drive pose Y",  m_robotContainer.drivetrain.getState().Pose.getY());
-    } 
-      
+    }
+}
   }
 
     //@Override
