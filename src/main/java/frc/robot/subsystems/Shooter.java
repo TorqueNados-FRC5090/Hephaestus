@@ -1,5 +1,7 @@
 package frc.robot.subsystems;
 
+import java.util.function.DoubleSupplier;
+
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
@@ -9,6 +11,7 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Shooter extends SubsystemBase {
@@ -50,7 +53,7 @@ public class Shooter extends SubsystemBase {
     }
 
     /** Checks if the shooter is up to speed and ready to fire */
-    public boolean isShooterReady(){
+    public boolean isShooterReady(double range){
         // If we aren't trying to shoot, the shooter isn't "ready"
         if (setpoint == 0.0) {
             return false;
@@ -61,7 +64,7 @@ public class Shooter extends SubsystemBase {
 
         // Check if the current speed is within 2 RPS of our target
         // 2 RPS is 120 RPM
-        return Math.abs(currentRPS - setpoint) <= 1.5;
+        return Math.abs(currentRPS - setpoint) <= range;
     }
 
     /** Updates the targetRPS and sends it to the shooter */
@@ -83,10 +86,18 @@ public class Shooter extends SubsystemBase {
         leadShoot.set(0); // Stop the wheels
     }
 
+    /** Returns a command that drives the shooter, then stops it at command end */
+    public Command shoot(DoubleSupplier RPS) {
+        return this.runEnd(
+            () -> goShoot(RPS.getAsDouble()),
+            () -> stop()
+        );
+    }
+
     @Override
     public void periodic(){
         SmartDashboard.putNumber("Velocity", leadShoot.getVelocity().getValueAsDouble());
         SmartDashboard.putNumber("Target Velocity", setpoint); 
-        SmartDashboard.putBoolean("shooter Ready", isShooterReady()); // Added this so you can see it on the dash!
+        SmartDashboard.putBoolean("shooter Ready", isShooterReady(2)); // Added this so you can see it on the dash!
     }   
 }

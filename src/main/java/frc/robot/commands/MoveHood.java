@@ -33,6 +33,6 @@ public class MoveHood extends Command {
 
     @Override
     public boolean isFinished(){
-        return hood.atSetpoint(); 
+        return false;
     }
 }

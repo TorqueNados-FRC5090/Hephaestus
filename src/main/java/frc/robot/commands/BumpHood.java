@@ -11,6 +11,7 @@ public class BumpHood extends Command {
      *  Provide a negative number to decrement */
     public BumpHood(Hood hood, double revolutions){
         this.hood = hood;
+        this.revolutions = revolutions;
 
         addRequirements(hood);
     }

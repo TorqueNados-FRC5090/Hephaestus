@@ -98,7 +98,7 @@ public class Turret extends SubsystemBase {
     }
 
     //Command that returns the Turret to the zero point when not in use
-    public void gotozero() {
+    public void goToZero() {
         m_turretMotor.setControl(m_motionMagic.withPosition(0));
     }
 

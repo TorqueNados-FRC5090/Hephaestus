@@ -25,13 +25,13 @@ public class MoveTurret extends Command {
    @Override 
     public void end(boolean interrupted){
         if(interrupted){
-            turret.gotozero();
+            turret.goToZero();
         }
     }
 
     @Override
     public boolean isFinished(){
-        return turret.isTurretReady();
+        return false;
     }
 
 }
