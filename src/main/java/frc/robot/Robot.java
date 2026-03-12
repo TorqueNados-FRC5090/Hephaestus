@@ -12,13 +12,17 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.subsystems.CANdleLight;
 
 public class Robot extends TimedRobot {
     private Command m_autonomousCommand;
 
     private final RobotContainer m_robotContainer;
 
-      private final boolean kUseLimelight = true;
+    private final boolean kUseLimelight = true;
+
+    public final CANdleLight candle = new CANdleLight();
+
 
     /* log and replay timestamp and joystick data */
     private final HootAutoReplay m_timeAndJoystickReplay = new HootAutoReplay()
@@ -46,7 +50,7 @@ public class Robot extends TimedRobot {
      * This example is sufficient to show that vision integration is possible, though exact implementation
      * of how to use vision should be tuned per-robot and to the team's specification.
      */
-    if (kUseLimelight) {
+        if (kUseLimelight) {
       var driveState = m_robotContainer.drivetrain.getState();
       
       double omegaRps = Units.radiansToRotations(driveState.Speeds.omegaRadiansPerSecond);
@@ -64,7 +68,9 @@ public class Robot extends TimedRobot {
       SmartDashboard.putNumber("111 drive pose Y",  m_robotContainer.drivetrain.getState().Pose.getY());
     } 
       
-  }
+        // light code
+        candle.isHubActive();
+    }
 
     //@Override
     //public void disabledInit() {}
