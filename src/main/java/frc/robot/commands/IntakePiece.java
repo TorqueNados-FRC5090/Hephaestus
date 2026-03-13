@@ -16,13 +16,13 @@ public class IntakePiece extends Command{
     
     @Override
     public void initialize() {
+        intake.rotate(target);
         intake.yummy();
     }
 
     // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
-        intake.rotate(target);
     }
 
     // Called once the command ends or is interrupted.
