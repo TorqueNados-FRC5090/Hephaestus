@@ -7,13 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Left to Fuel"
+            "pathName": "Right Trench to Ballpit"
           }
         },
         {
-          "type": "wait",
+          "type": "path",
           "data": {
-            "waitTime": 2.0
+            "pathName": "Right Ballpit to shoot"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "Auto Align"
           }
         },
         {
@@ -23,21 +29,27 @@
           }
         },
         {
-          "type": "path",
+          "type": "wait",
           "data": {
-            "pathName": "Left Fuel to Latter"
+            "waitTime": 3.0
           }
         },
         {
-          "type": "named",
+          "type": "path",
           "data": {
-            "name": null
+            "pathName": "Shoot to Right trench"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Right Ballpit to shoot"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Left",
+  "folder": null,
   "choreoAuto": false
 }

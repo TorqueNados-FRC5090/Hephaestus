@@ -7,37 +7,25 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Left to Fuel"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 2.0
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Shoot"
+            "pathName": "Left Trench to Ballpit"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Left Fuel to Latter"
+            "pathName": "Left Ballpit to Shoot"
           }
         },
         {
-          "type": "named",
+          "type": "path",
           "data": {
-            "name": null
+            "pathName": "Shoot to Depot"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Left",
+  "folder": null,
   "choreoAuto": false
 }
