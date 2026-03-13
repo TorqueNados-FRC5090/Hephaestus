@@ -4,6 +4,7 @@ import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
+import com.ctre.phoenix6.signals.RGBWColor;
 import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.RobotConfig;
 
@@ -132,4 +133,52 @@ public class Constants {
         }
     }
 
+    public static final class LEDConstants {
+        public static enum LEDColor {
+            RED(255, 0, 0),
+            GREEN(25, 255, 0),
+            BLUE(0, 10, 181),
+            YELLOW(255, 100, 0),
+            PURPLE(162, 18, 184),
+            PINK(255, 166, 238),
+            LIGHT_BLUE(125, 212, 255),
+            ORANGE(180, 20, 0),
+            WHITE(255, 255, 255);
+
+            private int red;
+            private int green;
+            private int blue;
+             
+            LEDColor(int red, int green, int blue) {
+                this.red = red;
+                this.green = green;
+                this.blue = blue;
+            }
+
+            public int getRed() { return red; }
+            public int getGreen() { return green; }
+            public int getBlue() { return blue; }
+            public RGBWColor getAsCTREColor() { 
+                return new RGBWColor(getRed(), getGreen(), getBlue()); 
+            }
+        }
+
+        public static enum LEDStrip {
+            CANDLE(0, 8),
+            SHOOTER(8, 60),
+            INTAKE(68, 31);
+
+            private int startingIndex;
+            private int stripLength;
+
+            LEDStrip(int startingIndex, int stripLength){
+                this.startingIndex = startingIndex;
+                this.stripLength = stripLength;
+            }
+
+            public int getStartingIndex() { return startingIndex; }
+            public int getStripLength() { return stripLength; }
+            public int getEndingIndex() { return getStartingIndex() + getStripLength(); }
+        }
+    }
 }
