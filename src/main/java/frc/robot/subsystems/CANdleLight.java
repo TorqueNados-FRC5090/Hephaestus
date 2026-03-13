@@ -18,15 +18,15 @@ public class CANdleLight extends SubsystemBase {
     boolean shoottime;
     LarsonAnimation time2shoot;
     FireAnimation time2hub;
-    LarsonAnimation shootoff;
-    LarsonAnimation huboff;
+    SolidColor shootoff;
+    SolidColor huboff;
     public CANdleLight(){
         candle = new CANdle(999);
         shoottime = false;
         time2shoot = new LarsonAnimation(0, 3);
         time2hub = new FireAnimation(4, 7);
-        shootoff = new LarsonAnimation(0, 3);
-        huboff = new LarsonAnimation(4, 7);
+        shootoff = new SolidColor(0, 3);
+        huboff = new SolidColor(4, 7);
         CANdleConfiguration candleconfig = new CANdleConfiguration();
     }
 
