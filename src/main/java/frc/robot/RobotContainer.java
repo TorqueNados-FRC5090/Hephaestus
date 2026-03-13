@@ -55,16 +55,14 @@ public class RobotContainer {
 
     // --- NEW TURRET VARIABLES ---
     private AprilTagFieldLayout m_fieldLayout;
-    public final Turret turret;
 
     final AutonContainer auton = new AutonContainer(this);
     final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
-    final Shooter shooter = new Shooter();
-    final Spindex spindex = new Spindex();
-    final Hood hood = new Hood();
-
-    final Intake intaker = new Intake();
-
+    public final Hood hood = new Hood();
+    public final Intake intake = new Intake();
+    public final Shooter shooter = new Shooter();
+    public final Spindex spindex = new Spindex();
+    public final Turret turret;
 
     public RobotContainer() {
        
@@ -112,9 +110,9 @@ public class RobotContainer {
         joystick.rightTrigger().whileTrue(fullShootCommand());
 
 
-        joystick.leftBumper().whileTrue(new IntakePiece(intaker, IntakePosition.out));
-        joystick.b().whileTrue(new IntakePiece(intaker, IntakePosition.zero));
-        joystick.leftBumper().whileTrue(new IntakePiece(intaker, IntakePosition.out));
+        joystick.leftBumper().whileTrue(new IntakePiece(intake, IntakePosition.out));
+        joystick.b().whileTrue(new IntakePiece(intake, IntakePosition.zero));
+        joystick.leftBumper().whileTrue(new IntakePiece(intake, IntakePosition.out));
 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.
