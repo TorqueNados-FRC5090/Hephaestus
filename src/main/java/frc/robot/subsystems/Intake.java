@@ -5,10 +5,11 @@ import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.IntakeConstants.IntakePosition;
 
-public class Intake extends SubsystemBase{
+public class Intake extends SubsystemBase {
      TalonFX intakeMotor;
      TalonFX rotationMotor;
      IntakePosition pos;
@@ -42,13 +43,18 @@ public class Intake extends SubsystemBase{
         rotationMotor.setControl(rotationRequest);
     }
 
+    // Go-go Gadget Rotate (Makes Intake Rotate)
+    public Command rotateCommand(IntakePosition pos){
+        return runOnce(() -> rotate(pos));
+    }
+
     // Go-go Gadget Stop (Stops the Intake)
     public void full(){
         intakeMotor.set(0);
     }
     
     // Go-go Gadget Rotate-No-More
-    public void rotatestop(){
+    public void rotateStop(){
         rotationMotor.set(0);
     }
 
@@ -65,7 +71,5 @@ public class Intake extends SubsystemBase{
         SmartDashboard.putNumber("Intake Position Degrees", rotationMotor.getPosition().getValueAsDouble());
         SmartDashboard.putNumber("Intake RPM", intakeMotor.getVelocity().getValueAsDouble());
     }
-
-    
 }
 
