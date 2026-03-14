@@ -19,7 +19,7 @@ public class BumpVelocity extends Command {
   
     @Override
     public void initialize(){
-        spindex.spin(-.8);
+        spindex.spin(-.4,-.8);
         shooter.incrementVelocityBy(RPS);
     }
 
