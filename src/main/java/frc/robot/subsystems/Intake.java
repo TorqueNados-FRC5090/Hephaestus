@@ -1,8 +1,16 @@
     package frc.robot.subsystems;
 
-import com.ctre.phoenix6.configs.Slot0Configs;
+import static edu.wpi.first.units.Units.Amps;
+
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.hardware.TalonFXS;
+import com.ctre.phoenix6.signals.GravityTypeValue;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorArrangementValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -10,9 +18,9 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.IntakeConstants.IntakePosition;
 
 public class Intake extends SubsystemBase {
-     TalonFX intakeMotor;
+     TalonFXS intakeMotor;
      TalonFX rotationMotor;
-     IntakePosition pos;
+     IntakePosition pos = IntakePosition.up;
      int intakeID = 12;
      int rotateID = 11;
 
@@ -21,19 +29,32 @@ public class Intake extends SubsystemBase {
      *  @param rotateID The ID of the rotate motor
      */
     public Intake(/*int intakeID, int rotateID*/){
-        intakeMotor = new TalonFX(intakeID, "Upper");        
+        intakeMotor = new TalonFXS(intakeID, "Upper");        
         rotationMotor = new TalonFX(rotateID, "Upper");
-        Slot0Configs intakePIDConfig = new Slot0Configs();
-        intakePIDConfig.kP = 1.6;
-        intakePIDConfig.kD = .0;
-        intakePIDConfig.kV = 0;
-        rotationMotor.getConfigurator().apply(intakePIDConfig);
-        intakeMotor.getConfigurator().apply(intakePIDConfig);
+
+        TalonFXSConfiguration config = new TalonFXSConfiguration();
+        config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+        config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+        config.Commutation.MotorArrangement = MotorArrangementValue.Minion_JST;
+        intakeMotor.getConfigurator().apply(config);
+
+        TalonFXConfiguration pivotConfig = new TalonFXConfiguration();
+        pivotConfig.CurrentLimits.withSupplyCurrentLimit(Amps.of(20));
+        pivotConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        pivotConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
+        pivotConfig.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
+        pivotConfig.Feedback.SensorToMechanismRatio = 18;
+        pivotConfig.Slot0.kP = 200;
+        pivotConfig.Slot0.kD = 0;
+        pivotConfig.Slot0.kV = 0;
+        pivotConfig.Slot0.kG = 5;
+        pivotConfig.Slot0.kA = 0;
+        rotationMotor.getConfigurator().apply(pivotConfig);
      }
     
     // Go-go Gadget Move (Makes the Intake Move)
     public void yummy(){
-        intakeMotor.set(.8);
+        intakeMotor.set(-.8);
     }
     
     // Go-go Gadget Rotate (Makes Intake Rotate)
@@ -45,7 +66,7 @@ public class Intake extends SubsystemBase {
 
     // Go-go Gadget Rotate (Makes Intake Rotate)
     public Command rotateCommand(IntakePosition pos){
-        return runOnce(() -> rotate(pos));
+        return run(() -> rotate(pos));
     }
 
     // Go-go Gadget Stop (Stops the Intake)
@@ -60,6 +81,7 @@ public class Intake extends SubsystemBase {
 
     public double getAngle(){
         return rotationMotor.getPosition().getValueAsDouble();
+
     }
 
     public boolean setpointCheck(){
@@ -68,7 +90,9 @@ public class Intake extends SubsystemBase {
     
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Intake Position Degrees", rotationMotor.getPosition().getValueAsDouble());
+        SmartDashboard.putNumber("Intake Position Degrees", getAngle());
+        SmartDashboard.putString("Intake Target Position", pos.name());
+        SmartDashboard.putNumber("Intake Target Revolutions", pos.getAngle());
         SmartDashboard.putNumber("Intake RPM", intakeMotor.getVelocity().getValueAsDouble());
     }
 }

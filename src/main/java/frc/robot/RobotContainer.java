@@ -55,25 +55,24 @@ public class RobotContainer {
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
     // --- NEW TURRET VARIABLES ---
-    private AprilTagFieldLayout m_fieldLayout;
+    private AprilTagFieldLayout m_fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
+;
 
-    final AutonContainer auton = new AutonContainer(this);
-    final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
     public final Hood hood = new Hood();
     public final Intake intake = new Intake();
     public final Shooter shooter = new Shooter();
     public final Spindex spindex = new Spindex();
-    public final Turret turret;
+    public final Turret turret = new Turret(() -> drivetrain.getState().Pose, m_fieldLayout);
+;
+    final AutonContainer auton = new AutonContainer(this);
+    final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
 
     public RobotContainer() {
        
                // NOTE: Make sure this is the right game year for whatever field you are testing on! 
-        m_fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
 
         // --- NEW: INSTANTIATE TURRET ---
-        // Passing in your "drivetrain" variable's Pose2d, and the layout we just loaded
-        turret = new Turret(() -> drivetrain.getState().Pose, m_fieldLayout);
-       
+        // Passing in your "drivetrain" variable's Pose2d, and the layout we just loaded       
         SmartDashboard.putData("Auton Selector", autonChooser);
         configureBindings();
     
@@ -109,11 +108,8 @@ public class RobotContainer {
         joystick.a().onTrue(new Zero(shooter, hood, turret));
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
         joystick.rightTrigger().whileTrue(fullShootCommand());
-
-
         joystick.leftBumper().whileTrue(new IntakePiece(intake, IntakePosition.out));
-        joystick.b().whileTrue(new IntakePiece(intake, IntakePosition.zero));
-        joystick.leftBumper().whileTrue(new IntakePiece(intake, IntakePosition.out));
+        joystick.rightBumper().whileTrue(spindex.unjam());
 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.

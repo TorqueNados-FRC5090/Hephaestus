@@ -5,7 +5,6 @@
 package frc.robot;
 
 import com.ctre.phoenix6.HootAutoReplay;
-import edu.wpi.first.cameraserver.CameraServer;
 
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -26,10 +25,8 @@ public class Robot extends TimedRobot {
         .withJoystickReplay();
 
     @Override
-    public void robotInit(){
-        CameraServer.startAutomaticCapture();
-
-    }
+    public void robotInit(){}
+    
     public Robot() {
         m_robotContainer = new RobotContainer();
     }

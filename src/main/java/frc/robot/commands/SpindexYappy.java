@@ -25,7 +25,7 @@ public class SpindexYappy extends Command{
     @Override
     public void execute() {
         if (runCondition.getAsBoolean())
-            spinner.spin(-.4, -.8);
+            spinner.spin(-.1, -.8);
         else spinner.spindexStop();
     }
 
