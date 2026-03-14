@@ -23,8 +23,10 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.Constants.IntakeConstants.IntakePosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.IntakePiece;
+import frc.robot.commands.MoveHood;
 import frc.robot.commands.MoveTurret;
 import frc.robot.commands.SpindexYappy;
+import frc.robot.commands.Zero;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Hood;
@@ -107,7 +109,7 @@ public class RobotContainer {
         // joystick.y().onTrue(new BumpHood(hood, 1));
         // joystick.a().onTrue(new BumpHood(hood, -1));
         // joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
-        //joystick.x().onTrue(new Zero(shooter, hood, turret));
+        joystick.a().onTrue(new Zero(shooter, hood, turret));
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
         joystick.rightTrigger().whileTrue(fullShootCommand());
 
@@ -182,6 +184,7 @@ public class RobotContainer {
             shooter.shoot(() -> calculateOptimalShooterRPS()),
             /* Command B: Move the hood */
             //new MoveHood(hood, 0),
+            //new MoveHood(hood, calculateOptimalHoodAngle()),
             /* Command C: Aim the turret */
             new MoveTurret(turret),
             /* Command D: Shoot only when the other subsystems are ready */
@@ -191,6 +194,16 @@ public class RobotContainer {
 
     public double calculateOptimalShooterRPS() {
         return turret.m_distanceToHubMeters * 2.692913 + 19.6;
+        //return (turret.m_distanceToHubMeters * 135 + 1192)/60;
+    }
+
+    public double calculateOptimalHoodAngle() {
+        if(turret.m_distanceToHubMeters <= 1.74){
+            return 0;
+        }
+        else{
+            return (-1*(turret.m_distanceToHubMeters*16.2-22.1-1.88*turret.m_distanceToHubMeters*turret.m_distanceToHubMeters)/13.58086153);
+        }
     }
 
     public boolean readyToShoot() {
