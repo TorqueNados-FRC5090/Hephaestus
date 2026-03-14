@@ -18,18 +18,17 @@ public class Spindex extends SubsystemBase {
         spinConfig.kP = .1;
         accelterator.getConfigurator().apply(spinConfig);
         spindex.getConfigurator().apply(spinConfig);
-        
-        
-        accelterator.setControl(new Follower(13, MotorAlignmentValue.Aligned));
     }
 //Set Speed and Acceleration
-    public void spin(double spinspeed){
+    public void spin(double spinspeed, double accelspeed){
         spindex.set(spinspeed);
+        accelterator.set(accelspeed);
 
     }
 //Sets Speed and Acceleration to
     public void spindexStop(){
         spindex.set(0);
+        accelterator.set(0);
     } 
      @Override
     public void periodic() {
