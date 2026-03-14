@@ -36,7 +36,7 @@
         "y": 5.045
       },
       "prevControl": {
-        "x": 0.7001968008525503,
+        "x": 0.7001968008525502,
         "y": 5.268606897613637
       },
       "nextControl": null,
@@ -66,7 +66,7 @@
       "command": null
     },
     {
-      "name": "Pick up Fuel",
+      "name": "DropIntake",
       "waypointRelativePos": 0.8773903262092293,
       "endWaypointRelativePos": 1.2643419572553416,
       "command": null

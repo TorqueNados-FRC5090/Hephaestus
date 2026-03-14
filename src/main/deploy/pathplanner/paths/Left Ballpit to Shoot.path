@@ -16,44 +16,44 @@
     },
     {
       "anchor": {
-        "x": 7.24908767772512,
+        "x": 7.273674242424242,
+        "y": 6.966717171717172
+      },
+      "prevControl": {
+        "x": 7.673659876605074,
+        "y": 6.8032010319577125
+      },
+      "nextControl": {
+        "x": 5.45280303030303,
+        "y": 7.711098484848485
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 2.944810606060606,
         "y": 7.205201421800948
       },
       "prevControl": {
-        "x": 7.775663507109005,
-        "y": 7.119229857819906
+        "x": 3.746452020202021,
+        "y": 7.47060606060606
       },
       "nextControl": {
-        "x": 5.27280724331351,
-        "y": 7.527859451908964
+        "x": 2.51820721326842,
+        "y": 7.0639630608832915
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 3.2299170616113746,
-        "y": 7.387890995260664
+        "x": 2.174,
+        "y": 6.13
       },
       "prevControl": {
-        "x": 3.0186187056999363,
-        "y": 7.521506132087009
-      },
-      "nextControl": {
-        "x": 3.441215417522813,
-        "y": 7.254275858434318
-      },
-      "isLocked": false,
-      "linkedName": null
-    },
-    {
-      "anchor": {
-        "x": 3.2514099526066347,
-        "y": 7.355651658767772
-      },
-      "prevControl": {
-        "x": 3.471927610436299,
-        "y": 7.237872362686843
+        "x": 2.039643735274219,
+        "y": 6.5433042025334185
       },
       "nextControl": null,
       "isLocked": false,
@@ -65,8 +65,8 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "Pick up Fuel",
-      "waypointRelativePos": 0.0,
+      "name": "Shoot",
+      "waypointRelativePos": 3.0,
       "endWaypointRelativePos": null,
       "command": null
     }

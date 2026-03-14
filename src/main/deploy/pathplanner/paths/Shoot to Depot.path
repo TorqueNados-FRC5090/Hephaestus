@@ -3,13 +3,13 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.122,
-        "y": 7.431
+        "x": 2.174,
+        "y": 6.13
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.8524218009478695,
-        "y": 7.495180094786729
+        "x": 2.9044218009478695,
+        "y": 6.194180094786729
       },
       "isLocked": false,
       "linkedName": null
@@ -33,7 +33,7 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "Pick up Fuel",
+      "name": "DropIntake",
       "waypointRelativePos": 0.0,
       "endWaypointRelativePos": null,
       "command": null

@@ -24,7 +24,7 @@
         "y": 4.49378300087051
       },
       "nextControl": {
-        "x": 0.5323652980303416,
+        "x": 0.5323652980303417,
         "y": 5.796827748638561
       },
       "isLocked": false,
@@ -76,7 +76,7 @@
       "command": null
     },
     {
-      "name": "Pick up Fuel",
+      "name": "DropIntake",
       "waypointRelativePos": 1.1743532058492647,
       "endWaypointRelativePos": 1.4780652418447706,
       "command": null
@@ -92,7 +92,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": -42.65842455834974
+    "rotation": -42.65842455834975
   },
   "reversed": false,
   "folder": "Left",
