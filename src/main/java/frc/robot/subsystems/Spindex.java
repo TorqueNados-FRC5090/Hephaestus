@@ -10,8 +10,8 @@ public class Spindex extends SubsystemBase {
     TalonFX spindex; 
     TalonFX accelterator; 
     public Spindex(){
-        spindex = new TalonFX(13, "Upper");
-        accelterator = new TalonFX(14, "Upper");
+        spindex = new TalonFX(14, "Upper");
+        accelterator = new TalonFX(13, "Upper");
         
         Slot0Configs spinConfig = new Slot0Configs();
         spinConfig.kP = .1;

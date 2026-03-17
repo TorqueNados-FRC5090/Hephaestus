@@ -3,25 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.4945075757575763,
-        "y": 3.977739898989899
+        "x": 3.517411616161616,
+        "y": 0.6222979797979815
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.8990025252525253,
-        "y": 3.989191919191919
+        "x": 2.7959343434343435,
+        "y": 0.4047095959595958
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 1.9484848484848492,
-        "y": 3.977739898989899
+        "x": 2.463825757575758,
+        "y": 2.775277777777778
       },
       "prevControl": {
-        "x": 2.6470580808080815,
-        "y": 3.9433838383838387
+        "x": 1.3415277777777785,
+        "y": 2.4088131313131327
       },
       "nextControl": null,
       "isLocked": false,
@@ -33,15 +33,10 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "DropIntake",
-      "waypointRelativePos": 0.4717607973421923,
+      "name": "DriveIntake",
+      "waypointRelativePos": 0.3698781838316723,
       "endWaypointRelativePos": null,
-      "command": {
-        "type": "named",
-        "data": {
-          "name": "DriveIntake"
-        }
-      }
+      "command": null
     }
   ],
   "globalConstraints": {
@@ -60,7 +55,7 @@
   "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 178.8308606720926
+    "rotation": 180.0
   },
   "useDefaultConstraints": true
 }

@@ -43,11 +43,11 @@ public class Intake extends SubsystemBase {
         pivotConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         pivotConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
         pivotConfig.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
-        pivotConfig.Feedback.SensorToMechanismRatio = 18;
-        pivotConfig.Slot0.kP = 200;
+        pivotConfig.Feedback.SensorToMechanismRatio = 50;
+        pivotConfig.Slot0.kP = 72;
         pivotConfig.Slot0.kD = 0;
         pivotConfig.Slot0.kV = 0;
-        pivotConfig.Slot0.kG = 5;
+        pivotConfig.Slot0.kG = 1.8;
         pivotConfig.Slot0.kA = 0;
         rotationMotor.getConfigurator().apply(pivotConfig);
      }
@@ -94,6 +94,9 @@ public class Intake extends SubsystemBase {
         SmartDashboard.putString("Intake Target Position", pos.name());
         SmartDashboard.putNumber("Intake Target Revolutions", pos.getAngle());
         SmartDashboard.putNumber("Intake RPM", intakeMotor.getVelocity().getValueAsDouble());
+        SmartDashboard.putNumber("stator current", rotationMotor.getStatorCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("supply current", rotationMotor.getSupplyCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("torque current", rotationMotor.getTorqueCurrent().getValueAsDouble());
     }
 }
 

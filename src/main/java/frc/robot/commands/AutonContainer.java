@@ -51,16 +51,21 @@ public class AutonContainer{
     private void registerNamedCommands() {
         NamedCommands.registerCommand("DropIntake", robot.intake.rotateCommand(IntakePosition.out));
         NamedCommands.registerCommand("RaiseIntake", robot.intake.rotateCommand(IntakePosition.stow));
-        NamedCommands.registerCommand("DriveIntake", new IntakePiece(robot.intake, IntakePosition.out).withTimeout(5));
+        NamedCommands.registerCommand("DriveIntake", new IntakePiece(robot.intake, IntakePosition.out));
         NamedCommands.registerCommand("Shoot", robot.fullShootCommand().withTimeout(5));
     }
 
     public SendableChooser<Command> buildAutonChooser() {
         SendableChooser<Command> chooser = new SendableChooser<Command>();
         chooser.setDefaultOption("Do Nothing", doNothing());
-        chooser.addOption("Left double", AutoBuilder.buildAuto("Left Trench Double"));
-        chooser.addOption("Right double", AutoBuilder.buildAuto("Right Trench Double"));
-        chooser.addOption("Center Shoot Preload", AutoBuilder.buildAuto("Simple Center"));
+        chooser.addOption("Left Single", AutoBuilder.buildAuto("Left Trench Center"));
+         chooser.addOption("Right Single", AutoBuilder.buildAuto("Right Trench Center"));
+        chooser.addOption("Left Double", AutoBuilder.buildAuto("Left Trench Double"));
+        chooser.addOption("Right Double", AutoBuilder.buildAuto("Right Trench Double"));
+         chooser.addOption("Center Preload", AutoBuilder.buildAuto("Simple Center"));
+          chooser.addOption("Left Preload", AutoBuilder.buildAuto("Trench Preload Left"));
+           chooser.addOption("Right Preload", AutoBuilder.buildAuto("Trench Preload Right"));
+
         return chooser;
     }
 

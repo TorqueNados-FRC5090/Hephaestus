@@ -106,6 +106,7 @@ public class RobotContainer {
         // joystick.a().onTrue(new BumpHood(hood, -1));
         // joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
         joystick.a().onTrue(new Zero(shooter, hood, turret));
+        joystick.b().whileTrue(failSafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
         joystick.rightTrigger().whileTrue(fullShootCommand());
         joystick.leftBumper().whileTrue(new IntakePiece(intake, IntakePosition.out));
@@ -185,8 +186,24 @@ public class RobotContainer {
         );
     }
 
+/** failsafe shooting */
+    public Command failSafeShoot() {
+        return new ParallelCommandGroup(
+            /* Command A: Rev the shooter */
+            shooter.shoot(() -> 23), // baseline is 19, 22 or above is good
+            /* Command B: Move the hood */
+            //new MoveHood(hood, 0),
+            //new MoveHood(hood, calculateOptimalHoodAngle()),
+            /* Command C: Aim the turret */
+            turret.run(() -> turret.goToZero()),
+            /* Command D: Shoot only when the other subsystems are ready */
+            new SpindexYappy(spindex, () -> shooter.isShooterReady(2))
+        );
+    }
+
+
     public double calculateOptimalShooterRPS() {
-        return turret.m_distanceToHubMeters * 2.692913 + 19.6;
+        return turret.m_distanceToHubMeters * 2.692913 + 18;
         //return (turret.m_distanceToHubMeters * 135 + 1192)/60;
     }
 
@@ -200,7 +217,7 @@ public class RobotContainer {
     }
 
     public boolean readyToShoot() {
-        return shooter.isShooterReady(2) &&
+        return shooter.isShooterReady(1.5) &&
             turret.isTurretReady() &&
             hood.atSetpoint();
     }

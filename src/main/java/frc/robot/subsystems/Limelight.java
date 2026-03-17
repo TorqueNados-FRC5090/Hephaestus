@@ -9,7 +9,7 @@ public class Limelight extends SubsystemBase {
 
     // It's good practice to make these public or provide getters so your commands can access them
     public final NetworkTable limelightLeft = NetworkTableInstance.getDefault().getTable("limelight-left");
-    public final NetworkTable limelightRight = NetworkTableInstance.getDefault().getTable("limelight-right");
+     public final NetworkTable limelightRight = NetworkTableInstance.getDefault().getTable("limelight-right");
     public final NetworkTable limelight = NetworkTableInstance.getDefault().getTable("limelight");
 
     public Limelight() {

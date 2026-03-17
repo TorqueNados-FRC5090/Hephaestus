@@ -13,12 +13,6 @@
         {
           "type": "named",
           "data": {
-            "name": "DropIntake"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
             "name": "Shoot"
           }
         }

@@ -5,9 +5,15 @@
     "data": {
       "commands": [
         {
+          "type": "named",
+          "data": {
+            "name": "DriveIntake"
+          }
+        },
+        {
           "type": "path",
           "data": {
-            "pathName": "Center back"
+            "pathName": "Right Trench to Center"
           }
         },
         {
