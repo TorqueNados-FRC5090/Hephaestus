@@ -22,7 +22,10 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.Constants.IntakeConstants.IntakePosition;
 import frc.robot.commands.AutonContainer;
+import frc.robot.commands.BumpHood;
+import frc.robot.commands.BumpVelocity;
 import frc.robot.commands.IntakePiece;
+import frc.robot.commands.MoveHood;
 import frc.robot.commands.MoveTurret;
 import frc.robot.commands.SpindexYappy;
 import frc.robot.commands.Zero;
@@ -102,13 +105,15 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
-        // joystick.y().onTrue(new BumpHood(hood, 1));
-        // joystick.a().onTrue(new BumpHood(hood, -1));
-        // joystick.b().whileTrue(new BumpVelocity(shooter, spindex, 2)); 
-        joystick.a().onTrue(new Zero(shooter, hood, turret));
-        joystick.b().whileTrue(failSafeShoot());
-        joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
-        joystick.rightTrigger().whileTrue(fullShootCommand());
+        joystick.y().onTrue(new BumpHood(hood, .1));
+        joystick.b().onTrue(new BumpHood(hood, (-.1)));
+        joystick.x().whileTrue(new BumpVelocity(shooter, 0.5)); 
+        joystick.leftTrigger().onTrue(new Zero(shooter, hood, turret));
+        joystick.a().whileTrue(new BumpVelocity(shooter, -0.5));
+        joystick.rightTrigger().whileTrue(new SpindexYappy(spindex, () -> true));
+        //joystick.b().whileTrue(failSafeShoot());
+        //joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
+        //joystick.rightTrigger().whileTrue(fullShootCommand());
         joystick.leftBumper().whileTrue(new IntakePiece(intake, IntakePosition.out));
         joystick.rightBumper().whileTrue(spindex.unjam());
 
@@ -178,7 +183,7 @@ public class RobotContainer {
             shooter.shoot(() -> calculateOptimalShooterRPS()),
             /* Command B: Move the hood */
             //new MoveHood(hood, 0),
-            //new MoveHood(hood, calculateOptimalHoodAngle()),
+            new MoveHood(hood,() -> calculateOptimalHoodAngle()),
             /* Command C: Aim the turret */
             new MoveTurret(turret),
             /* Command D: Shoot only when the other subsystems are ready */
@@ -203,8 +208,8 @@ public class RobotContainer {
 
 
     public double calculateOptimalShooterRPS() {
-        return turret.m_distanceToHubMeters * 2.692913 + 18;
-        //return (turret.m_distanceToHubMeters * 135 + 1192)/60;
+        //return turret.m_distanceToHubMeters * 2.692913 + 18;
+        return (turret.m_distanceToHubMeters * 135 + 1100)/60;
     }
 
     public double calculateOptimalHoodAngle() {

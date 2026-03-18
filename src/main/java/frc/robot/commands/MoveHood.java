@@ -1,13 +1,15 @@
 package frc.robot.commands;
 
+import java.util.function.DoubleSupplier;
+
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Hood;
 
 public class MoveHood extends Command {
     Hood hood;
-    double target;
+    DoubleSupplier target;
 
-     public MoveHood(Hood hood, double target){
+     public MoveHood(Hood hood, DoubleSupplier target){
         this.hood = hood;
         this.target = target;
 
@@ -21,7 +23,7 @@ public class MoveHood extends Command {
 
     @Override
     public void execute(){
-        hood.goTo(target);
+        hood.goTo(target.getAsDouble());
     }
 
     @Override 

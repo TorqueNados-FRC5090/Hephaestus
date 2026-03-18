@@ -1,5 +1,7 @@
 package frc.robot.subsystems;
 
+import java.util.function.DoubleSupplier;
+
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionVoltage;
@@ -43,7 +45,7 @@ public class Hood extends SubsystemBase {
     }
     
     public void incrementPositionBy(double revolutions) {
-        setpoint += revolutions;
+        setpoint -= revolutions;
         PositionVoltage hoodRequest = new PositionVoltage(setpoint).withSlot(0);
         hood.setControl(hoodRequest);
     }
