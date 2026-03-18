@@ -22,15 +22,14 @@ public class MoveHood extends Command {
     @Override
     public void execute(){
         hood.goTo(target);
-    }
-
+    }/* 
     @Override 
     public void end(boolean interrupted){
         if(interrupted){
             hood.goTo(0);
         }
     }
-
+*/
     @Override
     public boolean isFinished(){
         return false;

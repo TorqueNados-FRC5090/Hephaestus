@@ -1,6 +1,7 @@
 // Copyright (c) FIRST and other WPILib contributors.
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
+// TorqueNados - FRC 5090
 
 package frc.robot;
 
@@ -23,6 +24,7 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.Constants.IntakeConstants.IntakePosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.IntakePiece;
+import frc.robot.commands.MoveHood;
 import frc.robot.commands.MoveTurret;
 import frc.robot.commands.SpindexYappy;
 import frc.robot.commands.Zero;
@@ -36,36 +38,37 @@ import frc.robot.subsystems.Turret;
 import frc.robot.wrappers.Limelight;
 
 public class RobotContainer {
-    private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-    private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+    // Extra variables.
+    private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed.
+    private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity.
 
-    /* Setting up bindings for necessary control of the swerve drive platform */
+    // --- SWERVE DRIVE VARIABLES START ---
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-            .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
-   // private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
-  //  private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
-
+     .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband.
+     .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors.
     private final Telemetry logger = new Telemetry(MaxSpeed);
-
     private final CommandXboxController joystick = new CommandXboxController(0);
-
     public final Limelight limelight = new Limelight("limelight");
-
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
+    // --- SWERVE DRIVE VARIABLES END ---
 
-    // --- NEW TURRET VARIABLES ---
+    // --- TURRET VARIABLES START ---
     private AprilTagFieldLayout m_fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
-;
 
     public final Hood hood = new Hood();
     public final Intake intake = new Intake();
     public final Shooter shooter = new Shooter();
     public final Spindex spindex = new Spindex();
     public final Turret turret = new Turret(() -> drivetrain.getState().Pose, m_fieldLayout);
-;
-    final AutonContainer auton = new AutonContainer(this);
+
+    final AutonContainer auton = new AutonContainer(this); // These two need to be down here or else turret throws a fit.
     final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
+    // --- TURRET VARIABLES END ---
+
+    /* --- UNUSED LINES START ---
+     * private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
+     * private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
+     --- UNUSED LINES END --- */
 
     public RobotContainer() {
        
@@ -177,8 +180,8 @@ public class RobotContainer {
             /* Command A: Rev the shooter */
             shooter.shoot(() -> calculateOptimalShooterRPS()),
             /* Command B: Move the hood */
-            //new MoveHood(hood, 0),
-            //new MoveHood(hood, calculateOptimalHoodAngle()),
+            //new MoveHood(hood, -1),
+            new MoveHood(hood, calculateOptimalHoodAngle()),
             /* Command C: Aim the turret */
             new MoveTurret(turret),
             /* Command D: Shoot only when the other subsystems are ready */
@@ -203,11 +206,12 @@ public class RobotContainer {
 
 
     public double calculateOptimalShooterRPS() {
-        return turret.m_distanceToHubMeters * 2.692913 + 18;
-        //return (turret.m_distanceToHubMeters * 135 + 1192)/60;
+        //return turret.m_distanceToHubMeters * 2.692913 + 18;
+        return (turret.m_distanceToHubMeters * 135 + 1192)/60;
     }
 
     public double calculateOptimalHoodAngle() {
+<<<<<<< Updated upstream
         double hubDist = turret.m_distanceToHubMeters;
         double optimal = 0;
         if(hubDist >= 1.74)
@@ -215,6 +219,18 @@ public class RobotContainer {
 
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
         return optimal;
+=======
+        double value = 0;
+        if(turret.m_distanceToHubMeters <= 1.74){
+            value = 0;
+        }
+        else if(1.74 < turret.m_distanceToHubMeters){
+            value = -1;
+            //value = (-1*(turret.m_distanceToHubMeters*16.2-22.1-1.88*turret.m_distanceToHubMeters*turret.m_distanceToHubMeters)/13.58086153);
+        }
+
+        return value;
+>>>>>>> Stashed changes
     }
 
     public boolean readyToShoot() {
