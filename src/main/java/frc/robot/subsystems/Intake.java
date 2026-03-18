@@ -99,4 +99,3 @@ public class Intake extends SubsystemBase {
         SmartDashboard.putNumber("torque current", rotationMotor.getTorqueCurrent().getValueAsDouble());
     }
 }
-
