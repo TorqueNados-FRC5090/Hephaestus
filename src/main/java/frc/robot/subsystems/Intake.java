@@ -85,7 +85,7 @@ public class Intake extends SubsystemBase {
     }
 
     public boolean setpointCheck(){
-        return Math.abs(getAngle() - pos.getAngle()) <= .5;
+        return Math.abs(getAngle() - pos.getAngle()) <= .02;
     }
     
     @Override

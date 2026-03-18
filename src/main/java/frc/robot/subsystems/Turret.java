@@ -221,5 +221,6 @@ public class Turret extends SubsystemBase {
 
         SmartDashboard.putNumber("Turret/Target_Motor_Rots", m_targetMotorRotations);
         SmartDashboard.putNumber("Turret/Target_Turret_Rots", desiredTurretRotations);
+        SmartDashboard.putNumber("Distance to Hub Meters", m_distanceToHubMeters);
     }
 }

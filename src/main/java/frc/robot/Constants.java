@@ -118,7 +118,7 @@ public class Constants {
         public enum IntakePosition {
             //climber setpoints
             up(.217),
-            stow(.105),
+            stow(.076),
             out(-.025);
 
             private double setpoint;
