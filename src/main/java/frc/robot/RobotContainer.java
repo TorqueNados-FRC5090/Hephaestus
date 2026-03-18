@@ -130,6 +130,7 @@ public class RobotContainer {
         --- UNUSUED LINES END --- */
     }
 
+    // plz explain!
     public Command getAutonomousCommand() {
         return autonChooser.getSelected();
         /* // Simple drive forward auton
@@ -166,55 +167,56 @@ public class RobotContainer {
          * Example: Commanding the shooter using the squared height of a target
          * new Shoot(shooter, Math.pow(limelight.getTY(), 2)) */
         return new ParallelCommandGroup(
-            // Command A: Rev the shooter
+            // Command A: Rev the shooter.
             shooter.shoot(() -> calculateOptimalShooterRPS()),
-            // Command B: Aim the turret
+            // Command B: Aim the turret.
             new MoveTurret(turret),
-            // Command C: Shoot only when the other subsystems are ready
+            // Command C: Shoot only when the other subsystems are ready.
             new SpindexYappy(spindex, () -> readyToShoot())
         );
         /* --- UNUSED LINES START ---
          * // This was between Command A and Command B as the old Command B.
-         * // Command B: Move the hood
+         * // Command B: Move the hood.
          * new MoveHood(hood, 0),
          * new MoveHood(hood, calculateOptimalHoodAngle()),
         --- UNUSED LINES END --- */
     }
 
-    /** Failsafe shoot that does not coordinate and instead sets everything to the minimum it really can to shoot without an Apriltag.  */
+    /** Failsafe shoot that does not coordinate and instead sets everything to the minimum it can to shoot without an Apriltag. Should just shoot forward.  */
     public Command failsafeShoot() {
         return new ParallelCommandGroup(
-            /* Command A: Rev the shooter */
-            shooter.shoot(() -> 23), // baseline is 19, 22 or above is good
-            /* Command C: Aim the turret */
+            // Command A: Rev the shooter.
+            shooter.shoot(() -> 23), // Baseline is 19, 22 or above is good.
+            // Command B: Aim the turret.
             turret.run(() -> turret.goToZero()),
-            /* Command D: Shoot only when the other subsystems are ready */
+            // Command C: Shoot only when the other subsystems are ready.
             new SpindexYappy(spindex, () -> shooter.isShooterReady(2))
         );
         /* --- UNUSED LINES START ---
          * // This was between Command A and Command B as the old Command B.
-         * // Command B: Move the hood
+         * // Command B: Move the hood.
          * new MoveHood(hood, 0),
          * new MoveHood(hood, calculateOptimalHoodAngle()),
         --- UNUSED LINES END --- */
     }
 
-
+    // plz explain!
     public double calculateOptimalShooterRPS() {
         return turret.m_distanceToHubMeters * 2.692913 + 18;
-        //return (turret.m_distanceToHubMeters * 135 + 1192)/60;
+        /* Old equation used.
+         return (turret.m_distanceToHubMeters * 135 + 1192)/60; */
     }
 
+    // plz explain!
     public double calculateOptimalHoodAngle() {
         double hubDist = turret.m_distanceToHubMeters;
         double optimal = 0;
-        if(hubDist >= 1.74)
-            optimal = -1 * (hubDist * 16.2 - 22.1 - 1.88 * Math.pow(hubDist, 2)) / 13.58086153;
-
+        if(hubDist >= 1.74){optimal = -1 * (hubDist * 16.2 - 22.1 - 1.88 * Math.pow(hubDist, 2)) / 13.58086153;}
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
         return optimal;
     }
 
+    /** @return If the whole shooter is ready to shoot or not. */
     public boolean readyToShoot() {
         return shooter.isShooterReady(1.5) &&
             turret.isTurretReady() &&
