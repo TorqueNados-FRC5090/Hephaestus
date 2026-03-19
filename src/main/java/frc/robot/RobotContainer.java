@@ -59,7 +59,11 @@ public class RobotContainer {
     public final Intake intake = new Intake();
     public final Shooter shooter = new Shooter();
     public final Spindex spindex = new Spindex();
-    public final Turret turret = new Turret(() -> drivetrain.getState().Pose, m_fieldLayout);
+    public final Turret turret = new Turret(
+            () -> drivetrain.getState().Pose, 
+            () -> drivetrain.getState().Speeds, 
+            m_fieldLayout
+        );
 
     final AutonContainer auton = new AutonContainer(this); // These two need to be down here or else turret throws a fit.
     final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
