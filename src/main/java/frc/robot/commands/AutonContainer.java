@@ -49,10 +49,10 @@ public class AutonContainer{
     }
 
     private void registerNamedCommands() {
-        NamedCommands.registerCommand("DropIntake", robot.intake.rotateCommand(IntakePosition.out));
-        NamedCommands.registerCommand("RaiseIntake", robot.intake.rotateCommand(IntakePosition.zero));
-        NamedCommands.registerCommand("DriveIntake", new IntakePiece(robot.intake, IntakePosition.out).withTimeout(5));
-        NamedCommands.registerCommand("Shoot", robot.fullShootCommand().withTimeout(5));
+       // NamedCommands.registerCommand("DropIntake", robot.intake.rotateCommand(IntakePosition.out));
+      //  NamedCommands.registerCommand("RaiseIntake", robot.intake.rotateCommand(IntakePosition.zero));
+       // NamedCommands.registerCommand("DriveIntake", new IntakePiece(robot.intake, IntakePosition.out).withTimeout(5));
+      //  NamedCommands.registerCommand("Shoot", robot.fullShootCommand().withTimeout(5));
     }
 
     public SendableChooser<Command> buildAutonChooser() {
