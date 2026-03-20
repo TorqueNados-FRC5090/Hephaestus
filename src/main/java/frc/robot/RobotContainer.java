@@ -206,17 +206,28 @@ public class RobotContainer {
 
     // plz explain!
     public double calculateOptimalShooterRPS() {
-        return turret.m_distanceToHubMeters * 2.692913 + 18;
+        double hubDist = turret.m_distanceToHubMeters;
+        //return turret.m_distanceToHubMeters * 2.692913 + 18;
         /* Old equation used.
          return (turret.m_distanceToHubMeters * 135 + 1192)/60; */
+
+        //New Equation 3/20/26 - New PIDs as well
+        return (20.9 + 0.697 * hubDist + 0.243*Math.pow(hubDist, 2));
     }
 
     // plz explain!
     public double calculateOptimalHoodAngle() {
         double hubDist = turret.m_distanceToHubMeters;
         double optimal = 0;
+        /* Old Equation
         if(hubDist >= 1.74){optimal = -1 * (hubDist * 16.2 - 22.1 - 1.88 * Math.pow(hubDist, 2)) / 13.58086153;}
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
+        */
+
+        //New Equation
+        if(hubDist >= 2.2){optimal = 1 - 0.463*hubDist;}
+        SmartDashboard.putNumber("Optimal Hood Angle", optimal);
+
         return optimal;
     }
 
