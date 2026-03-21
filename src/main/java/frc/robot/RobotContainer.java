@@ -24,9 +24,9 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.Constants.IntakeConstants.IntakePosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.IntakePiece;
+import frc.robot.commands.IntakeToggle;
 import frc.robot.commands.MoveTurret;
 import frc.robot.commands.SpindexYappy;
-import frc.robot.commands.Zero;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Hood;
@@ -106,8 +106,10 @@ public class RobotContainer {
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
         joystick.rightTrigger().whileTrue(fullShootCommand());
-        joystick.leftBumper().whileTrue(new IntakePiece(intake, IntakePosition.out));
+        joystick.leftTrigger().whileTrue(new IntakePiece(intake, IntakePosition.out));
+        joystick.leftBumper().whileTrue(new IntakeToggle(intake));
         joystick.start().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric)); // Reset the field-centric heading on left bumper press.
+
 
         drivetrain.registerTelemetry(logger::telemeterize);
 

@@ -36,10 +36,10 @@ public class Shooter extends SubsystemBase {
 
         // --- SHOOTER CONFIG ---
         Slot0Configs shooterPID = new Slot0Configs();
-        shooterPID.kP = 0.4; // Changed to 2.0 for smoother recovery
+        shooterPID.kP = .8; // Changed to 2.0 for smoother recovery
         shooterPID.kI = 0.0;
-        shooterPID.kD = 0.0005;
-        shooterPID.kV = 0.16;
+        shooterPID.kD = 0; //.0005
+        shooterPID.kV = 0.145; // .16
         shooterPID.kS = 0;
         //shooterPID.kA = 1.0;
         
