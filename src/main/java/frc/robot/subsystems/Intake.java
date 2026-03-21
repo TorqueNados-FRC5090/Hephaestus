@@ -62,6 +62,7 @@ public class Intake extends SubsystemBase {
         this.pos = pos;
         PositionVoltage rotationRequest = new PositionVoltage(pos.getAngle()).withSlot(0);
         rotationMotor.setControl(rotationRequest);
+        
     }
 
     // Go-go Gadget Rotate (Makes Intake Rotate)

@@ -1,6 +1,7 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.Constants.IntakeConstants.IntakePosition;
 import frc.robot.subsystems.Intake;
 
@@ -17,6 +18,7 @@ public class IntakePiece extends Command{
     @Override
     public void initialize() {
         intake.rotate(target);
+        new WaitCommand(.125);   
         intake.yummy();
     }
 
