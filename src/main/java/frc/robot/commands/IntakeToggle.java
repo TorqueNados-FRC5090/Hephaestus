@@ -5,39 +5,44 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.Constants.IntakeConstants.IntakePosition;
 import frc.robot.subsystems.Intake;
 
-public class IntakePiece extends Command{
- Intake intake;
- IntakePosition target;
-    public IntakePiece(Intake intake, IntakePosition pos){
-        this.intake = intake;
-        this.target = pos;
+public class IntakeToggle extends Command{
+    Intake intake;
+    IntakePosition target;
+    boolean down = true;
 
-        addRequirements(intake);
-    }
-    
-    @Override
-    public void initialize() {
-        intake.rotate(target);
-        new WaitCommand(.125);   
-        intake.yummy();
-    }
+        public IntakeToggle(Intake intake){
+            this.intake = intake;
 
-    // Called every time the scheduler runs while the command is scheduled.
-    @Override
-    public void execute() {
-    }
+            addRequirements(intake);
+        }
+        
+        @Override
+        public void initialize() {
+            if (down = false){
+                intake.rotate(IntakePosition.out);
+                new WaitCommand(.125);   
+                intake.yummy();
+                down = true;
+            }
+            else {
+                intake.full();
+                intake.rotate(IntakePosition.stow);
+                down = false;
+            }
+        }
 
-    // Called once the command ends or is interrupted.
-     @Override
-    public void end(boolean interrupted) {
-        intake.rotate(IntakePosition.stow);
-        intake.full();
-    } 
+        // Called every time the scheduler runs while the command is scheduled.
+        @Override
+        public void execute() {
+        }
 
-    // Returns true when the command should end.
-    @Override
-    public boolean isFinished() {
-        return false; // Has no end condition
-    }
-    
+        // Called once the command ends or is interrupted.
+        @Override
+        public void end(boolean interrupted){} 
+
+        // Returns true when the command should end.
+        @Override
+        public boolean isFinished() {
+            return false; // Has no end condition
+        }
 }
