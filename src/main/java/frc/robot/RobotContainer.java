@@ -143,6 +143,7 @@ public class RobotContainer {
 
     // EXPLANATION: Calculates wheel speed based on SOTM distance.
     public double calculateOptimalShooterRPS() {
+<<<<<<< HEAD
         // 1. Get Virtual SOTM Distance
         double targetDist = turret.getShootingDistance();
 
@@ -153,6 +154,15 @@ public class RobotContainer {
 
         // 3. New Equation 3/20/26 (For Hub Shooting)
         return (20.9 + 0.697 * targetDist + 0.243 * Math.pow(targetDist, 2));
+=======
+        double hubDist = turret.m_distanceToHubMeters;
+        //return turret.m_distanceToHubMeters * 2.692913 + 18;
+        /* Old equation used.
+         return (turret.m_distanceToHubMeters * 135 + 1192)/60; */
+
+        //New Equation 3/20/26 - New PIDs as well
+        return (20.9 + 0.697 * hubDist + 0.243*Math.pow(hubDist, 2));
+>>>>>>> 8457acf19dc0c35c1f9e500cac6bd85f9fa73fe0
     }
 
     // EXPLANATION: Calculates hood deflection based on SOTM distance.
@@ -160,6 +170,7 @@ public class RobotContainer {
         // 1. Get Virtual SOTM Distance
         double targetDist = turret.getShootingDistance();
         double optimal = 0;
+<<<<<<< HEAD
 
         // 2. Override if Passing
         if (SmartDashboard.getString("Turret/Mode", "SHOOTING").equals("PASSING")) {
@@ -176,7 +187,17 @@ public class RobotContainer {
             }
         }
 
+=======
+        /* Old Equation
+        if(hubDist >= 1.74){optimal = -1 * (hubDist * 16.2 - 22.1 - 1.88 * Math.pow(hubDist, 2)) / 13.58086153;}
+>>>>>>> 8457acf19dc0c35c1f9e500cac6bd85f9fa73fe0
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
+        */
+
+        //New Equation
+        if(hubDist >= 2.2){optimal = 1 - 0.463*hubDist;}
+        SmartDashboard.putNumber("Optimal Hood Angle", optimal);
+
         return optimal;
     }
 
