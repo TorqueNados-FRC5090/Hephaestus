@@ -211,7 +211,7 @@ public class RobotContainer {
          return (turret.m_distanceToHubMeters * 135 + 1192)/60; */
 
         //New Equation 3/20/26 - New PIDs as well
-        return (21.9 + 0.697 * hubDist + 0.243*Math.pow(hubDist, 2));
+        return (20.8 + 0.697 * hubDist + 0.243*Math.pow(hubDist, 2));
     }
 
     // plz explain!
