@@ -1,6 +1,8 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.Slot1Configs;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -14,13 +16,19 @@ public class Spindex extends SubsystemBase {
         accelterator = new TalonFX(13, "Upper");
         
         Slot0Configs spinConfig = new Slot0Configs();
-        spinConfig.kP = .1;
+        spinConfig.kP = 2;
         accelterator.getConfigurator().apply(spinConfig);
         spindex.getConfigurator().apply(spinConfig);
-    }
+
+        Slot1Configs accelConfig = new Slot1Configs();
+        spinConfig.kP = .1;
+        accelterator.getConfigurator().apply(accelConfig);
+    } 
 //Set Speed and Acceleration
     public void spin(double spinspeed, double accelspeed){
-        spindex.set(spinspeed);
+         VelocityVoltage velocityRequest = new VelocityVoltage(spinspeed).withSlot(0);
+
+        spindex.setControl(velocityRequest);
         accelterator.set(accelspeed);
     }
 //Sets Speed and Acceleration to
@@ -31,7 +39,7 @@ public class Spindex extends SubsystemBase {
 
     public Command unjam() {
         return runEnd(
-            () -> spin(0, .5), 
+            () -> spin(0, .9), 
             () -> spindexStop()
         );
     }

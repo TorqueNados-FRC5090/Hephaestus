@@ -25,8 +25,8 @@ public class Intake extends SubsystemBase {
      int rotateID = 11;
 
     /** Constructs an Intake
-     *  @param intakeID The ID of the intake motor
-     *  @param rotateID The ID of the rotate motor
+     *  @param intakeID The ID of the pivot motor
+     *  @param rotateID The ID of the spinny motor
      */
     public Intake(/*int intakeID, int rotateID*/){
         intakeMotor = new TalonFXS(intakeID, "Upper");        
@@ -35,7 +35,6 @@ public class Intake extends SubsystemBase {
         TalonFXSConfiguration config = new TalonFXSConfiguration();
         config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
         config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
-        config.Commutation.MotorArrangement = MotorArrangementValue.Minion_JST;
         intakeMotor.getConfigurator().apply(config);
 
         TalonFXConfiguration pivotConfig = new TalonFXConfiguration();
@@ -54,7 +53,7 @@ public class Intake extends SubsystemBase {
     
     // Go-go Gadget Move (Makes the Intake Move)
     public void yummy(){
-        intakeMotor.set(-.8);
+        intakeMotor.set(1);
     }
     
     // Go-go Gadget Rotate (Makes Intake Rotate)

@@ -174,7 +174,8 @@ public class RobotContainer {
             // Command B: Aim the turret.
             new MoveTurret(turret),
             // Command C: Shoot only when the other subsystems are ready.
-            new SpindexYappy(spindex, () -> readyToShoot())
+            new SpindexYappy(spindex, () -> readyToShoot()),
+            hood.hoodgo(() -> calculateOptimalHoodAngle())
         );
         /* --- UNUSED LINES START ---
          * // This was between Command A and Command B as the old Command B.
@@ -210,7 +211,7 @@ public class RobotContainer {
          return (turret.m_distanceToHubMeters * 135 + 1192)/60; */
 
         //New Equation 3/20/26 - New PIDs as well
-        return (20.9 + 0.697 * hubDist + 0.243*Math.pow(hubDist, 2));
+        return (21.9 + 0.697 * hubDist + 0.243*Math.pow(hubDist, 2));
     }
 
     // plz explain!
@@ -223,7 +224,7 @@ public class RobotContainer {
         */
 
         //New Equation
-        if(hubDist >= 2.2){optimal = 1 - 0.463*hubDist;}
+        if(hubDist >= 2.2){optimal = (1 - 0.463*hubDist);}
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
 
         return optimal;
