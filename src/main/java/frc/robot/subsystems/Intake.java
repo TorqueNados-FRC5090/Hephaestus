@@ -54,7 +54,7 @@ public class Intake extends SubsystemBase {
     
     // Go-go Gadget Move (Makes the Intake Move)
     public void yummy(){
-        intakeMotor.set(-.8);
+        intakeMotor.set(1);
     }
     
     // Go-go Gadget Rotate (Makes Intake Rotate)
