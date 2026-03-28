@@ -31,7 +31,7 @@ public class Spindex extends SubsystemBase {
 
     public Command unjam() {
         return runEnd(
-            () -> spin(0, .5), 
+            () -> spin(1, .9), 
             () -> spindexStop()
         );
     }

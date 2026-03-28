@@ -87,6 +87,14 @@ public class Intake extends SubsystemBase {
     public boolean setpointCheck(){
         return Math.abs(getAngle() - pos.getAngle()) <= .02;
     }
+
+    public void intakeCoast(){
+        rotationMotor.setNeutralMode(NeutralModeValue.Coast);
+    }
+
+    public void intakeBrake(){
+        rotationMotor.setNeutralMode(NeutralModeValue.Brake);
+    }
     
     @Override
     public void periodic() {

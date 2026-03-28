@@ -8,6 +8,7 @@ package frc.robot;
 import com.ctre.phoenix6.HootAutoReplay;
 
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -26,7 +27,13 @@ public class Robot extends TimedRobot {
         .withJoystickReplay();
 
     @Override
-    public void robotInit(){}
+    public void robotInit(){
+     /*  if (RobotController.getUserButton()) {
+            m_robotContainer.intake.intakeCoast();
+        } else {
+            m_robotContainer.intake.intakeBrake();
+        } */
+    }
     
     public Robot() {
         m_robotContainer = new RobotContainer();

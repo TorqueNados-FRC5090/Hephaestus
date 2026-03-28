@@ -46,7 +46,7 @@ public class Turret extends SubsystemBase {
     // --- HUB OFFSET CORRECTION ---
     // Tune these to push the target coordinate from the Tag face to the True Center of the Hub.
     private final double kHubCenterOffsetXInches = 0.0; // Start with 12 inches, tune until centered
-    private final double kHubCenterOffsetYInches = 0.0;  // Tune if tags are physically off-center left/right
+    private final double kHubCenterOffsetYInches = -2.0;  // Tune if tags are physically off-center left/right
 
     // --- Mechanical Constants ---
     private final double kTurretRingTeeth = 200.0; 
