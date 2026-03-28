@@ -12,11 +12,8 @@ import static edu.wpi.first.units.Units.RotationsPerSecond;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
-import edu.wpi.first.apriltag.AprilTagFieldLayout;
-import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap; // Added for Passing
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -28,7 +25,6 @@ import frc.robot.commands.AutonContainer;
 import frc.robot.commands.IntakePiece;
 import frc.robot.commands.MoveTurret;
 import frc.robot.commands.SpindexYappy;
-import frc.robot.commands.Zero;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Hood;
@@ -42,7 +38,6 @@ public class RobotContainer {
     // --- EXTRA VARIABLES START ---
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); 
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); 
-    private double hubDist = 0;
     // --- EXTRA VARIABLES END ---
 
     // --- SWERVE DRIVE VARIABLES START ---
@@ -56,18 +51,15 @@ public class RobotContainer {
     // --- SWERVE DRIVE VARIABLES END ---
 
     // --- TURRET VARIABLES START ---
-    private AprilTagFieldLayout m_fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField); 
-
     public final Hood hood = new Hood();
     public final Intake intake = new Intake();
     public final Shooter shooter = new Shooter();
     public final Spindex spindex = new Spindex();
     
-    // SOTM UPDATE: Passing Pose, Speeds, and FieldLayout
+    // SOTM UPDATE: Passing Pose and Speeds (Removed FieldLayout)
     public final Turret turret = new Turret(
             () -> drivetrain.getState().Pose, 
-            () -> drivetrain.getState().Speeds, 
-            m_fieldLayout
+            () -> drivetrain.getState().Speeds
         );
 
     final AutonContainer auton = new AutonContainer(this); 
@@ -78,7 +70,6 @@ public class RobotContainer {
     private final InterpolatingDoubleTreeMap m_passRpmMap = new InterpolatingDoubleTreeMap();
     private final InterpolatingDoubleTreeMap m_passHoodMap = new InterpolatingDoubleTreeMap();
 
-    // i have no idea what this does can someone who does explain it
     // EXPLANATION: This is the Constructor. It runs once when the robot boots up.
     public RobotContainer() {
         SmartDashboard.putData("Auton Selector", autonChooser);
@@ -87,8 +78,8 @@ public class RobotContainer {
         // Populate the passing maps with your field-length data
         m_passRpmMap.put(8.27, 45.0);
         m_passRpmMap.put(16.54, 60.0);
-        m_passHoodMap.put(8.27, -1.5);
-        m_passHoodMap.put(16.54, -1.5);
+        m_passHoodMap.put(8.27, -2.2);
+        m_passHoodMap.put(16.54, -2.2);
     }
 
     /** @return Whether the robot is on the red alliance or not. */
@@ -96,7 +87,6 @@ public class RobotContainer {
         return DriverStation.getAlliance().get().equals(DriverStation.Alliance.Red);
     }
 
-    // another explanation of what this does as a whole would be nice!
     // EXPLANATION: This wires your physical Xbox controller to your robot's code commands.
     private void configureBindings() {
         drivetrain.setDefaultCommand(
@@ -117,7 +107,6 @@ public class RobotContainer {
         drivetrain.registerTelemetry(logger::telemeterize);
     }
 
-    // plz explain!
     // EXPLANATION: The FMS calls this right before Auto starts to ask what sequence to run.
     public Command getAutonomousCommand() {
         return autonChooser.getSelected();
@@ -151,7 +140,7 @@ public class RobotContainer {
         if (SmartDashboard.getString("Turret/Mode", "SHOOTING").equals("PASSING")) {
             return m_passRpmMap.get(targetDist);
         }
-        hubDist = turret.m_distanceToHubMeters;
+        
         // 3. New Equation 3/20/26 (For Hub Shooting)
         return (20.9 + 0.697 * targetDist + 0.243 * Math.pow(targetDist, 2));
     }
@@ -164,25 +153,18 @@ public class RobotContainer {
 
         // 2. Override if Passing
         if (SmartDashboard.getString("Turret/Mode", "SHOOTING").equals("PASSING")) {
-            //optimal = m_passHoodMap.get(targetDist);
-            optimal = -2.2;
+            optimal = m_passHoodMap.get(targetDist);
         } 
         // 3. New Equation 3/20/26 (For Hub Shooting)
         else {
             if (targetDist >= 2.2) {
                 optimal = (1 - (0.463 * targetDist));
-            }
-            else{
+            } else {
                 optimal = 0;
             }
         }
 
-        //SmartDashboard.putNumber("Optimal Hood Angle", optimal);
-       
-        //New Equation
-        if(hubDist >= 2.2){optimal = 1 - 0.463*hubDist;}
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
-
         return optimal;
     }
 
