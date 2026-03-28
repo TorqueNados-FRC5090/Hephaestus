@@ -73,13 +73,13 @@ public class Turret extends SubsystemBase {
         TalonFXSConfiguration config = new TalonFXSConfiguration();
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         config.Commutation.MotorArrangement = MotorArrangementValue.Minion_JST;
-        config.Slot0.kP = 8; 
+        config.Slot0.kP = 2; 
         config.Slot0.kD = 0;
         config.Slot0.kS = 0;
         
-        config.MotionMagic.MotionMagicCruiseVelocity = 600.0; 
-        config.MotionMagic.MotionMagicAcceleration = 60.0;   
-        config.MotionMagic.MotionMagicJerk = 1600.0;          
+        config.MotionMagic.MotionMagicCruiseVelocity = 300.0; 
+        config.MotionMagic.MotionMagicAcceleration = 40.0;   
+        config.MotionMagic.MotionMagicJerk = 500.0;          
 
         m_turretMotor.getConfigurator().apply(config);
         m_turretMotor.setPosition(0);

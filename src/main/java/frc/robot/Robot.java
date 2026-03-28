@@ -27,13 +27,7 @@ public class Robot extends TimedRobot {
         .withJoystickReplay();
 
     @Override
-    public void robotInit(){
-     /*  if (RobotController.getUserButton()) {
-            m_robotContainer.intake.intakeCoast();
-        } else {
-            m_robotContainer.intake.intakeBrake();
-        } */
-    }
+    public void robotInit(){}
     
     public Robot() {
         m_robotContainer = new RobotContainer();
@@ -75,7 +69,13 @@ public class Robot extends TimedRobot {
      * public void disabledInit(){} */
 
     @Override
-    public void disabledPeriodic(){}
+    public void disabledPeriodic(){
+        if (RobotController.getUserButton()) {
+            m_robotContainer.intake.intakeCoast();
+        } else {
+            m_robotContainer.intake.intakeBrake();
+        }
+    }
 
     @Override
     public void disabledExit(){}
