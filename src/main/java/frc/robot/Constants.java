@@ -120,4 +120,17 @@ public class Constants {
             }
         }
     }
+
+    public static final class IntakeConstants{
+        public enum EvilIntakePosition {
+            // evil intake setpoints
+            in(0),
+            out(1);
+
+            private double evilsetpoint;
+            EvilIntakePosition(double evilsetpoint){
+                this.evilsetpoint = evilsetpoint;
+            };
+        }
+    }
 }
