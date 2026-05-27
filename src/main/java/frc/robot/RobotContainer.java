@@ -6,6 +6,8 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.time.Year;
+
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
@@ -23,11 +25,13 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.EvilIntake;
 import frc.robot.subsystems.Shooter;
 import frc.robot.Constants.ShooterConstants.ShooterPosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.MoveHood;
-import frc.robot.commands.Shoot; 
+import frc.robot.commands.Shoot;
+import frc.robot.commands.ok; 
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -45,6 +49,8 @@ public class RobotContainer {
     private final CommandXboxController joystick = new CommandXboxController(0);
 
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
+
+    public final EvilIntake evilintake = new EvilIntake(11, 13);
 
     private final AutonContainer auton = new AutonContainer(this);
     private final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
@@ -79,10 +85,12 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
-        joystick.a().onTrue(new MoveHood(shooter, ShooterPosition.zero));
-       joystick.b().whileTrue(new Shoot(shooter));
-       joystick.x().onTrue(new MoveHood(shooter, ShooterPosition.middle));
-       joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far));
+        // joystick.a().onTrue(new ok(evilintake));
+
+        /*joystick.a().onTrue(new MoveHood(shooter, ShooterPosition.zero));
+        joystick.b().whileTrue(new Shoot(shooter));
+        joystick.x().onTrue(new MoveHood(shooter, ShooterPosition.middle));
+        joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far));*/
 
 
         // Run SysId routines when holding back/start and X/Y.

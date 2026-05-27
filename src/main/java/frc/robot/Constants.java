@@ -125,12 +125,16 @@ public class Constants {
         public enum EvilIntakePosition {
             // evil intake setpoints
             in(0),
-            out(1);
+            out(10);
 
             private double evilsetpoint;
             EvilIntakePosition(double evilsetpoint){
                 this.evilsetpoint = evilsetpoint;
-            };
+            }
+            //gets the angle of setpoint
+            public double getAngle() {
+                return evilsetpoint;
+            }
         }
     }
 }
