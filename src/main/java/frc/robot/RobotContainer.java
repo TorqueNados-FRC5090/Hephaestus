@@ -7,6 +7,7 @@ package frc.robot;
 import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveRequest.Idle;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -14,6 +15,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 //import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -27,7 +29,7 @@ import frc.robot.subsystems.Shooter;
 import frc.robot.Constants.ShooterConstants.ShooterPosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.MoveHood;
-import frc.robot.commands.Shoot; 
+//import frc.robot.commands.Shoot; 
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -74,13 +76,14 @@ public class RobotContainer {
 
         // Idle while the robot is disabled. This ensures the configured
         // neutral mode is applied to the drive motors while disabled.
+        // please? -brady
         final var idle = new SwerveRequest.Idle();
         RobotModeTriggers.disabled().whileTrue(
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
         joystick.a().onTrue(new MoveHood(shooter, ShooterPosition.zero));
-       joystick.b().whileTrue(new Shoot(shooter));
+       //joystick.b().whileTrue(new Shoot(shooter));
        joystick.x().onTrue(new MoveHood(shooter, ShooterPosition.middle));
        joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far));
 
@@ -102,23 +105,23 @@ public class RobotContainer {
 
         return autonChooser.getSelected();
         // Simple drive forward auton
-        //final var idle = new SwerveRequest.Idle();
-        //return Commands.sequence(
+       // final var idle = new SwerveRequest.Idle();
+        return Commands.sequence(
             // Reset our field centric heading to match the robot
             // facing away from our alliance station wall (0 deg).
-           // drivetrain.runOnce(() -> drivetrain.seedFieldCentric(Rotation2d.kZero)),
+            drivetrain.runOnce(() -> drivetrain.seedFieldCentric(Rotation2d.kZero)),
             // Then slowly drive forward (away from us) for 5 seconds.
             
-            /* 
+             
             drivetrain.applyRequest(() ->
-                drive.withVelocityX(0.5)
+                drive.withVelocityX(0.6)
                     .withVelocityY(0)
                     .withRotationalRate(0)
             )
             .withTimeout(5.0),
             // Finally idle for the rest of auton
             drivetrain.applyRequest(() -> idle) 
-            */
-        //);
-    }
-}
+            
+        ); 
+  }
+ }
