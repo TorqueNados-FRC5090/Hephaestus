@@ -131,9 +131,7 @@ public class Constants {
                 return setpoint;
             }
         }
-    }
 
-    public static final class IntakeConstants{
         public enum EvilIntakePosition {
             // evil intake setpoints
             in(0),

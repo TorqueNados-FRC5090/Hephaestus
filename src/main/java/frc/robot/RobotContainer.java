@@ -41,10 +41,10 @@ import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Spindex;
 import frc.robot.subsystems.Turret;
 import frc.robot.wrappers.Limelight;
-import frc.robot.Constants.ShooterConstants.ShooterPosition;
+//import frc.robot.Constants.ShooterConstants.ShooterPosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.MoveHood;
-import frc.robot.commands.Shoot;
+//import frc.robot.commands.Shoot;
 import frc.robot.commands.ok; 
 
 public class RobotContainer {
@@ -125,10 +125,10 @@ public class RobotContainer {
 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.
-        joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
-        joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
-        joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
-        joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
+        //joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
+        //joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
+        //joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
+        //joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
 
         // Reset the field-centric heading on left bumper press.
         joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
@@ -139,24 +139,79 @@ public class RobotContainer {
     // EXPLANATION: The FMS calls this right before Auto starts to ask what sequence to run.
     public Command getAutonomousCommand() {
         return autonChooser.getSelected();
-        // Simple drive forward auton
-       // final var idle = new SwerveRequest.Idle();
-        return Commands.sequence(
-            // Reset our field centric heading to match the robot
-            // facing away from our alliance station wall (0 deg).
-            drivetrain.runOnce(() -> drivetrain.seedFieldCentric(Rotation2d.kZero)),
-            // Then slowly drive forward (away from us) for 5 seconds.
-            
-             
-            drivetrain.applyRequest(() ->
-                drive.withVelocityX(0.6)
-                    .withVelocityY(0)
-                    .withRotationalRate(0)
-            )
-            .withTimeout(5.0),
-            // Finally idle for the rest of auton
-            drivetrain.applyRequest(() -> idle) 
-            
-        ); 
-  }
- }
+    }
+
+    /** This will coordinate all necessary subsystems and only shoot when they all report readiness */
+    public Command fullShootCommand() {
+        return new ParallelCommandGroup(
+            shooter.shoot(() -> calculateOptimalShooterRPS()),
+            new MoveTurret(turret),
+            // Command C: Shoot only when the other subsystems are ready.
+            new SpindexYappy(spindex, () -> readyToShoot()),
+            hood.hoodgo(() -> calculateOptimalHoodAngle())
+        );
+        /* --- UNUSED LINES START ---
+         * // This was between Command A and Command B as the old Command B.
+         * // Command B: Move the hood.
+         * new MoveHood(hood, 0),
+         * new MoveHood(hood, calculateOptimalHoodAngle()),
+        --- UNUSED LINES END --- */
+    }
+
+    /** Failsafe shoot that does not coordinate and instead sets everything to the minimum it can to shoot without an Apriltag. Should just shoot forward.  */
+    public Command failsafeShoot() {
+        return new ParallelCommandGroup(
+            shooter.shoot(() -> 23), 
+            turret.run(() -> turret.goToZero()),
+            new SpindexYappy(spindex, () -> shooter.isShooterReady(2))
+        );
+    }
+
+    // EXPLANATION: Calculates wheel speed based on SOTM distance.
+    public double calculateOptimalShooterRPS() {
+        // 1. Get Virtual SOTM Distance
+        double targetDist = turret.getShootingDistance();
+
+        // 2. Override if Passing
+        if (SmartDashboard.getString("Turret/Mode", "SHOOTING").equals("PASSING")) {
+            return m_passRpmMap.get(targetDist);
+        }
+        
+        // 3. New Equation 3/20/26 (For Hub Shooting)
+        return (20.9 + 0.697 * targetDist + 0.243 * Math.pow(targetDist, 2));
+    }
+
+    // EXPLANATION: Calculates hood deflection based on SOTM distance.
+    public double calculateOptimalHoodAngle() {
+        // 1. Get Virtual SOTM Distance
+        double targetDist = turret.getShootingDistance();
+        double optimal = 0;
+
+        // 2. Override if Passing
+        if (SmartDashboard.getString("Turret/Mode", "SHOOTING").equals("PASSING")) {
+            optimal = m_passHoodMap.get(targetDist);
+        } 
+        // 3. New Equation 3/20/26 (For Hub Shooting)
+        else {
+            if (targetDist >= 2.2) {
+                optimal = (1 - (0.463 * targetDist));
+            } else {
+                optimal = 0;
+            }
+        }
+
+        SmartDashboard.putNumber("Optimal Hood Angle", optimal);
+        //New Equation
+        if(targetDist >= 2.2){optimal = (1 - 0.463*targetDist);}
+        SmartDashboard.putNumber("Optimal Hood Angle", optimal);
+
+        return optimal;
+    }
+
+    /** @return If the whole shooter is ready to shoot or not. */
+    public boolean readyToShoot() {
+        return shooter.isShooterReady(1.5) &&
+            turret.isTurretReady() &&
+            hood.atSetpoint();
+    }
+}

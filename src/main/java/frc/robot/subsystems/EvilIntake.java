@@ -60,7 +60,7 @@ public class EvilIntake extends SubsystemBase {
     
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Intake POS", intakeMotor.getPosition().getValueAsDouble());
+        SmartDashboard.putNumber("Intake Position", intakeMotor.getPosition().getValueAsDouble());
         /* SmartDashboard.putNumber("Intake Position Degrees", getAngle());
         SmartDashboard.putString("Intake Target Position", pos.name());
         SmartDashboard.putNumber("Intake Target Revolutions", pos.getAngle());
