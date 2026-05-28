@@ -3,35 +3,36 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Hood;
 
-public class MoveHood extends Command {
+public class BumpHood extends Command {
     Hood hood;
-    double target;
+    double revolutions;
 
-     public MoveHood(Hood hood, double target){
+    /** Increments the hood's current setpoint position by n revolutions. 
+     *  Provide a negative number to decrement */
+    public BumpHood(Hood hood, double revolutions){
         this.hood = hood;
-        this.target = target;
+        this.revolutions = revolutions;
 
         addRequirements(hood);
     }
   
     @Override
     public void initialize(){
-        
+        hood.incrementPositionBy(revolutions);
     }
 
     @Override
     public void execute(){
-        hood.goTo(target);
-    }/* 
+
+    }
+
     @Override 
     public void end(boolean interrupted){
-        if(interrupted){
-            hood.goTo(0);
-        }
+    
     }
-*/
+
     @Override
     public boolean isFinished(){
-        return false;
+      return hood.atSetpoint();
     }
 }

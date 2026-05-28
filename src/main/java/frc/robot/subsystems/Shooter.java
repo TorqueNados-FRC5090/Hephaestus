@@ -1,91 +1,112 @@
 package frc.robot.subsystems;
 
+import java.util.function.DoubleSupplier;
+
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.Follower;
-import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 
-import edu.wpi.first.wpilibj.motorcontrol.Talon;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants.ShooterConstants.ShooterPosition;
 
 public class Shooter extends SubsystemBase {
-  TalonFX hood;
-  TalonFX leadShoot;
-  TalonFX followShoot;
-  ShooterPosition pos = ShooterPosition.zero;
-    public Shooter(){
-        hood = new TalonFX(20, "rio");
-        leadShoot = new TalonFX(27, "rio");
-        followShoot = new TalonFX(15,"rio");
+    // Shooter has 2 motors that runs the shooters, they are opposed - we have one follow the other
+    private final TalonFX leadShoot;
+    private final TalonFX followShoot;
+
+    /** We store the target RPS here so the plus/minus buttons work correctly */
+    private double setpoint = 0.0; 
+
+    // Configs for the 2 motors and their PID settings
+    public Shooter() {
+        // On the Canbus UPPER
+        leadShoot = new TalonFX(27, "Upper");
+        followShoot = new TalonFX(15,"Upper");
     
-
-        TalonFXConfiguration hoodConfig = new TalonFXConfiguration();
+        // --- LEAD SHOOTER CONFIG ---
+        TalonFXConfiguration shooterConfig = new TalonFXConfiguration();
+        shooterConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast; // Coast is safer for heavy flywheels
         
-        hood.getConfigurator().apply(hoodConfig);
+        // PID Configuration
+        shooterConfig.Slot0.kP = 0.4; 
+        shooterConfig.Slot0.kI = 0.0;
+        shooterConfig.Slot0.kD = 0.0005;
+        shooterConfig.Slot0.kV = 0.16;
+        shooterConfig.Slot0.kS = 0.0;
         
+        leadShoot.getConfigurator().apply(shooterConfig);
 
-        Slot0Configs PIDconfig = new Slot0Configs();
-        PIDconfig.kP = .5;
-        hood.getConfigurator().apply(PIDconfig);
-        leadShoot.getConfigurator().apply(PIDconfig);
-        followShoot.getConfigurator().apply(PIDconfig);
-
+        // --- SHOOTER CONFIG ---
+        Slot0Configs shooterPID = new Slot0Configs();
+        shooterPID.kP = .8; // Changed to 2.0 for smoother recovery
+        shooterPID.kI = 0.0;
+        shooterPID.kD = 0; //.0005
+        shooterPID.kV = 0.145; // .16
+        shooterPID.kS = 0;
+        //shooterPID.kA = 1.0;
         
+        leadShoot.getConfigurator().apply(shooterPID);
+        //followShoot.getConfigurator().apply(shooterPID);
+
+        TalonFXConfiguration shooterfollowConfig = new TalonFXConfiguration();
+        shooterfollowConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+        followShoot.getConfigurator().apply(shooterfollowConfig);
         followShoot.setControl(new Follower(27, MotorAlignmentValue.Opposed));
-        
-
-
     }
 
-    public boolean atSetpoint(){
-        return Math.abs(getAngle() - pos.getAngle()) <= .5;
+    /** Checks if the shooter is up to speed and ready to fire */
+    public boolean isShooterReady(double range) {
+        // If we aren't trying to shoot, the shooter isn't "ready"
+        if (setpoint == 0.0) {
+            return false;
+        }
+
+        // Get the current speed
+        double currentRPS = leadShoot.getVelocity().getValueAsDouble();
+
+        // Check if the current speed is within the given RPS range of our target
+        return Math.abs(currentRPS - setpoint) <= range;
     }
 
-    //gets hood position
-
-    public double getAngle(){
-       return hood.getPosition().getValueAsDouble();
-    }
-
-    //hood go go!
-    public void setTarget(ShooterPosition target){
-        pos = target;
-        PositionVoltage hoodRequest = new PositionVoltage(target.getAngle()).withSlot(0);
-        hood.setControl(hoodRequest);
-    }
-    //shoots
-    public void goShoot(){
-        VelocityVoltage velocityRequest = new VelocityVoltage(200).withSlot(0);
+    /** Updates the targetRPS and sends it to the shooter */
+    public void goShoot(double RPS) {
+        this.setpoint = RPS;
+        VelocityVoltage velocityRequest = new VelocityVoltage(setpoint).withSlot(0);
         leadShoot.setControl(velocityRequest);
     }
-    //gets angle of target (NOT HOOD ANGEL)
-    public double getTarget(ShooterPosition target){
-        return target.getAngle();
+
+    /** Adds the given RPS to the shooter's current setpoint. */
+    public void incrementVelocityBy(double RPS) {
+        this.setpoint += RPS;
+        VelocityVoltage velocityRequest = new VelocityVoltage(setpoint).withSlot(0);
+        leadShoot.setControl(velocityRequest);
     }
-    //move hood to any position
-    public void goHood(){
-        hood.set(.1);
-        
+
+    public void stop() {
+        setpoint = 0.0; // Reset target speed
+        leadShoot.stopMotor(); // Safely cuts power to the motor rather than commanding 0 RPS closed-loop
     }
-//
-    public void stop(){
-        hood.set(0);
+
+    /** * Returns a command that drives the shooter, then stops it at command end.
+     * SOTM MAGIC: Because RPS is a DoubleSupplier, it will constantly recalculate
+     * the optimal speed based on robot velocity while the button is held down!
+     */
+    public Command shoot(DoubleSupplier RPS) {
+        return this.runEnd(
+            () -> goShoot(RPS.getAsDouble()), 
+            () -> stop()
+        );
     }
 
     @Override
-    public void periodic(){
-        SmartDashboard.putNumber("Hood Angle", hood.getPosition().getValueAsDouble());
-        SmartDashboard.putNumber("Target Angle", pos.getAngle());
-        SmartDashboard.putNumber("Velocity", leadShoot.getVelocity().getValueAsDouble());
-    }
-
-
-    
+    public void periodic() {
+        SmartDashboard.putNumber("Shooter/Velocity_RPS", leadShoot.getVelocity().getValueAsDouble());
+        SmartDashboard.putNumber("Shooter/Target_Velocity_RPS", setpoint); 
+        SmartDashboard.putBoolean("Shooter/Ready", isShooterReady(2)); 
+    }   
 }

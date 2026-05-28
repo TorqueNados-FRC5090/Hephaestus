@@ -1,13 +1,15 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Turret;
 
-public class Shoot extends Command {
-    Shooter shooter;
+public class MoveTurret extends Command {
+    Turret turret;
     
-    public Shoot(Shooter shooter){
-        this.shooter = shooter;
+    public MoveTurret(Turret turret){
+        this.turret = turret;
+
+        addRequirements(turret);
     }
   
     @Override
@@ -17,12 +19,14 @@ public class Shoot extends Command {
 
     @Override
     public void execute(){
-        shooter.goShoot();
+        turret.alignToHub();
     }
 
    @Override 
     public void end(boolean interrupted){
-   shooter.stop();
+        if(interrupted){
+            turret.goToZero();
+        }
     }
 
     @Override

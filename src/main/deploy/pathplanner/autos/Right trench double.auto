@@ -5,15 +5,21 @@
     "data": {
       "commands": [
         {
-          "type": "path",
+          "type": "named",
           "data": {
-            "pathName": "Left to Fuel"
+            "name": "DropIntake"
           }
         },
         {
-          "type": "wait",
+          "type": "path",
           "data": {
-            "waitTime": 2.0
+            "pathName": "Right Trench to Ballpit"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Right Ballpit to shoot"
           }
         },
         {
@@ -25,19 +31,25 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Left Fuel to Latter"
+            "pathName": "Shoot to Right trench"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Right Ballpit to shoot"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": null
+            "name": "Shoot"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Left",
+  "folder": null,
   "choreoAuto": false
 }

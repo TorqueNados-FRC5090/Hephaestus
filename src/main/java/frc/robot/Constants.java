@@ -15,6 +15,10 @@ import edu.wpi.first.math.util.Units;
 import frc.robot.generated.TunerConstants;
 
 public class Constants {
+
+            public static final String Jarvis = "Jarvis";
+            public static final String Upper = "Upper";
+
 /* -------------- DRIVETRAIN CONSTANTS -------------- */
 
     public static final class DriveConstants {
@@ -105,17 +109,25 @@ public class Constants {
         }
     }
    //shooter setpoints
-    public static final class ShooterConstants{
-        public enum ShooterPosition{
-            zero(0),
-            middle(-2),
-            far(-3.04);
+    public static final class ShooterConstants {
+        
+    }
+
+    // INTAKE CONSTANTS YIPPPIEEEEE!!!
+     public static final class IntakeConstants {
+        public enum IntakePosition {
+            //climber setpoints
+            up(.217),
+            stow(.076),
+            out(-.025);
 
             private double setpoint;
-            ShooterPosition(double setpoint){
+            IntakePosition(double setpoint) {
                 this.setpoint = setpoint;
             };
-              public double getAngle() {
+
+            //gets the angle of setpoint
+            public double getAngle() {
                 return setpoint;
             }
         }

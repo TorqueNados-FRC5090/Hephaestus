@@ -80,7 +80,7 @@
       "command": null
     },
     {
-      "name": "Pick up Fuel",
+      "name": "DropIntake",
       "waypointRelativePos": 1.242524916943517,
       "endWaypointRelativePos": 1.6877076411960075,
       "command": null
