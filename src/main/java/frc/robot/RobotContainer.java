@@ -1,21 +1,16 @@
 // Copyright (c) FIRST and other WPILib contributors.
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
-// TorqueNados - FRC 5090
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.MetersPerSecond;
-import static edu.wpi.first.units.Units.RadiansPerSecond;
-import static edu.wpi.first.units.Units.RotationsPerSecond;
-
-import java.time.Year;
+import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveRequest.Idle;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
-import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap; // Added for Passing
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -23,195 +18,130 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 //import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
-import frc.robot.Constants.IntakeConstants.IntakePosition;
-import frc.robot.commands.AutonContainer;
-import frc.robot.commands.IntakePiece;
-import frc.robot.commands.IntakeToggle;
-import frc.robot.commands.MoveTurret;
-import frc.robot.commands.SpindexYappy;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+
+
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
-import frc.robot.subsystems.EvilIntake;
-import frc.robot.subsystems.Hood;
-import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.Spindex;
-import frc.robot.subsystems.Turret;
-import frc.robot.wrappers.Limelight;
-//import frc.robot.Constants.ShooterConstants.ShooterPosition;
+import frc.robot.Constants.ShooterConstants.ShooterPosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.MoveHood;
-//import frc.robot.commands.Shoot;
-import frc.robot.commands.ok; 
+import frc.robot.subsystems.EvilIntake;
+//import frc.robot.commands.Shoot; 
 
 public class RobotContainer {
-    // --- EXTRA VARIABLES START ---
-    private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); 
-    private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); 
-    // --- EXTRA VARIABLES END ---
+    private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
+    private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
-    // --- SWERVE DRIVE VARIABLES START ---
+    /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-     .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) 
-     .withDriveRequestType(DriveRequestType.OpenLoopVoltage); 
+            .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
+    private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
+    private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
+
     private final Telemetry logger = new Telemetry(MaxSpeed);
+
     private final CommandXboxController joystick = new CommandXboxController(0);
-    public final Limelight limelight = new Limelight("limelight");
+
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
-    public final EvilIntake evilintake = new EvilIntake(11, 13);
-
-    // --- TURRET VARIABLES START ---
-    public final Hood hood = new Hood();
-    public final Intake intake = new Intake();
+    private final AutonContainer auton = new AutonContainer(this);
+    private final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
     public final Shooter shooter = new Shooter();
-    public final Spindex spindex = new Spindex();
-    
-    // SOTM UPDATE: Passing Pose and Speeds (Removed FieldLayout)
-    public final Turret turret = new Turret(
-            () -> drivetrain.getState().Pose, 
-            () -> drivetrain.getState().Speeds
-        );
-
-    final AutonContainer auton = new AutonContainer(this); 
-    final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
-    // --- TURRET VARIABLES END ---
-
-    // --- PASSING INTERPOLATION MAPS ---
-    private final InterpolatingDoubleTreeMap m_passRpmMap = new InterpolatingDoubleTreeMap();
-    private final InterpolatingDoubleTreeMap m_passHoodMap = new InterpolatingDoubleTreeMap();
-
-    // EXPLANATION: This is the Constructor. It runs once when the robot boots up.
     public RobotContainer() {
         SmartDashboard.putData("Auton Selector", autonChooser);
         configureBindings();
-        
-        // Populate the passing maps with your field-length data
-        m_passRpmMap.put(8.27, 45.0);
-        m_passRpmMap.put(16.54, 60.0);
-        m_passHoodMap.put(8.27, -2.2);
-        m_passHoodMap.put(16.54, -2.2);
+    
     }
 
-    /** @return Whether the robot is on the red alliance or not. */
+    /** @return Whether the robot is on the red alliance or not */
     public boolean onRedAlliance() { 
         return DriverStation.getAlliance().get().equals(DriverStation.Alliance.Red);
     }
 
-    // EXPLANATION: This wires your physical Xbox controller to your robot's code commands.
     private void configureBindings() {
+        // Note that X is defined as forward according to WPILib convention,
+        // and Y is defined as to the left according to WPILib convention.
         drivetrain.setDefaultCommand(
-         drivetrain.applyRequest(() -> drive.withVelocityX(-joystick.getLeftY() * MaxSpeed) 
-          .withVelocityY(-joystick.getLeftX() * MaxSpeed) 
-          .withRotationalRate(-joystick.getRightX() * MaxAngularRate) 
-         )
+            // Drivetrain will execute this command periodically
+            drivetrain.applyRequest(() ->
+                drive.withVelocityX(-joystick.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
+                    .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
+                    .withRotationalRate(-joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+            )
         );
 
+        // Idle while the robot is disabled. This ensures the configured
+        // neutral mode is applied to the drive motors while disabled.
         // please? -brady
-        // you aren't a programmer keep quiet - sam
         final var idle = new SwerveRequest.Idle();
-        RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
+        RobotModeTriggers.disabled().whileTrue(
+            drivetrain.applyRequest(() -> idle).ignoringDisable(true)
+        );
 
-        joystick.a().onTrue(new ok(evilintake));
-
-        /*joystick.a().onTrue(new MoveHood(shooter, ShooterPosition.zero));
-        joystick.b().whileTrue(new Shoot(shooter));
-        joystick.x().onTrue(new MoveHood(shooter, ShooterPosition.middle));
-        joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far));*/
+        //joystick.a().onTrue(new MoveHood(shooter, ShooterPosition.zero));
+       //joystick.b().whileTrue(new Shoot(shooter));
+       //joystick.x().onTrue(new MoveHood(shooter, ShooterPosition.middle));
+      //joystick.y().onTrue(new MoveHood(shooter, ShooterPosition.far));
 
 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.
-        //joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
-        //joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
-        //joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
-        //joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
+        joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
+        joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
+        joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
+        joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
 
         // Reset the field-centric heading on left bumper press.
         joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
 
         drivetrain.registerTelemetry(logger::telemeterize);
-    }
 
-    // EXPLANATION: The FMS calls this right before Auto starts to ask what sequence to run.
-    public Command getAutonomousCommand() {
-        return autonChooser.getSelected();
-    }
+// --- UPDATED DEFAULT DRIVE COMMAND WITH 40% SLOW MODE ---
+drivetrain.setDefaultCommand(
+drivetrain.applyRequest(() -> {
+// Check right trigger axis. If pulled more than 50%, set multiplier to 40% (0.4). Otherwise 100% (1.0).
+double slowModeMultiplier = joystick.getRightTriggerAxis() > 0.5 ? 0.4 : 1.0;
 
-    /** This will coordinate all necessary subsystems and only shoot when they all report readiness */
-    public Command fullShootCommand() {
-        return new ParallelCommandGroup(
-            shooter.shoot(() -> calculateOptimalShooterRPS()),
-            new MoveTurret(turret),
-            // Command C: Shoot only when the other subsystems are ready.
-            new SpindexYappy(spindex, () -> readyToShoot()),
-            hood.hoodgo(() -> calculateOptimalHoodAngle())
-        );
-        /* --- UNUSED LINES START ---
-         * // This was between Command A and Command B as the old Command B.
-         * // Command B: Move the hood.
-         * new MoveHood(hood, 0),
-         * new MoveHood(hood, calculateOptimalHoodAngle()),
-        --- UNUSED LINES END --- */
-    }
+return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * slowModeMultiplier)
+.withVelocityY(-joystick.getLeftX() * MaxSpeed * slowModeMultiplier)
+.withRotationalRate(-joystick.getRightX() * MaxAngularRate * slowModeMultiplier);
+})
+);
 
-    /** Failsafe shoot that does not coordinate and instead sets everything to the minimum it can to shoot without an Apriltag. Should just shoot forward.  */
-    public Command failsafeShoot() {
-        return new ParallelCommandGroup(
-            shooter.shoot(() -> 23), 
-            turret.run(() -> turret.goToZero()),
-            new SpindexYappy(spindex, () -> shooter.isShooterReady(2))
-        );
-    }
+//joystick.b().whileTrue(failsafeShoot());
+joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
 
-    // EXPLANATION: Calculates wheel speed based on SOTM distance.
-    public double calculateOptimalShooterRPS() {
-        // 1. Get Virtual SOTM Distance
-        double targetDist = turret.getShootingDistance();
-
-        // 2. Override if Passing
-        if (SmartDashboard.getString("Turret/Mode", "SHOOTING").equals("PASSING")) {
-            return m_passRpmMap.get(targetDist);
-        }
-        
-        // 3. New Equation 3/20/26 (For Hub Shooting)
-        return (20.9 + 0.697 * targetDist + 0.243 * Math.pow(targetDist, 2));
-    }
-
-    // EXPLANATION: Calculates hood deflection based on SOTM distance.
-    public double calculateOptimalHoodAngle() {
-        // 1. Get Virtual SOTM Distance
-        double targetDist = turret.getShootingDistance();
-        double optimal = 0;
-
-        // 2. Override if Passing
-        if (SmartDashboard.getString("Turret/Mode", "SHOOTING").equals("PASSING")) {
-            optimal = m_passHoodMap.get(targetDist);
-        } 
-        // 3. New Equation 3/20/26 (For Hub Shooting)
-        else {
-            if (targetDist >= 2.2) {
-                optimal = (1 - (0.463 * targetDist));
-            } else {
-                optimal = 0;
-            }
-        }
-
-        SmartDashboard.putNumber("Optimal Hood Angle", optimal);
-        //New Equation
-        if(targetDist >= 2.2){optimal = (1 - 0.463*targetDist);}
-        SmartDashboard.putNumber("Optimal Hood Angle", optimal);
-
-        return optimal;
-    }
-
-    /** @return If the whole shooter is ready to shoot or not. */
-    public boolean readyToShoot() {
-        return shooter.isShooterReady(1.5) &&
-            turret.isTurretReady() &&
-            hood.atSetpoint();
-    }
+// This will still fire the shooter, but now the default drive command above will simultaneously slow the chassis
+//joystick.rightTrigger().whileTrue(fullShootCommand());
 }
+
+    public Command getAutonomousCommand() {
+
+        return autonChooser.getSelected();
+        // Simple drive forward auton
+       // final var idle = new SwerveRequest.Idle();
+        return Commands.sequence(
+            // Reset our field centric heading to match the robot
+            // facing away from our alliance station wall (0 deg).
+            drivetrain.runOnce(() -> drivetrain.seedFieldCentric(Rotation2d.kZero)),
+            // Then slowly drive forward (away from us) for 5 seconds.
+            
+             
+            drivetrain.applyRequest(() ->
+                drive.withVelocityX(0.6)
+                    .withVelocityY(0)
+                    .withRotationalRate(0)
+            )
+            .withTimeout(5.0),
+            // Finally idle for the rest of auton
+            drivetrain.applyRequest(() -> idle) 
+            
+        ); 
+  
+    }
+ }
