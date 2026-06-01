@@ -98,10 +98,28 @@ public class RobotContainer {
           .withVelocityY(-joystick.getLeftX() * MaxSpeed) 
           .withRotationalRate(-joystick.getRightX() * MaxAngularRate) 
          )
-        );
 
-        final var idle = new SwerveRequest.Idle();
-        RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
+            );
+            drivetrain.setDefaultCommand(
+    drivetrain.applyRequest(() -> {
+    // Check right trigger axis. If pulled more than 50%, set multiplier to 40% (0.4). Otherwise 100% (1.0).
+    double slowModeMultiplier = joystick.getRightTriggerAxis() > 0.5 ? 0.4 : 1.0;
+
+    return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * slowModeMultiplier)
+    .withVelocityY(-joystick.getLeftX() * MaxSpeed * slowModeMultiplier)
+    .withRotationalRate(-joystick.getRightX() * MaxAngularRate * slowModeMultiplier);
+    })
+    );
+
+    final var idle = new SwerveRequest.Idle();
+    RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
+
+    joystick.b().whileTrue(failsafeShoot());
+    joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
+
+    // This will still fire the shooter, but now the default drive command above will simultaneously slow the chassis
+    joystick.rightTrigger().whileTrue(fullShootCommand());
+
 
         joystick.a().onTrue(new ok(evilintake));
         joystick.b().whileTrue(failsafeShoot());
