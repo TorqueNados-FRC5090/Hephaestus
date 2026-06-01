@@ -3,17 +3,17 @@ import java.util.function.BooleanSupplier;
 
 import edu.wpi.first.wpilibj2.command.Command;
 
-import frc.robot.subsystems.Spindex;
+import frc.robot.subsystems.RollerSystem;
 
-public class SpindexYappy extends Command{
-    Spindex spinner;
+public class theYappy extends Command{
+    RollerSystem rollers;
     BooleanSupplier runCondition;
 
-    public SpindexYappy(Spindex spinner, BooleanSupplier runCondition){
-        this.spinner = spinner;
+    public theYappy(RollerSystem rollers, BooleanSupplier runCondition){
+        this.rollers = rollers;
         this.runCondition = runCondition;
 
-        addRequirements(spinner);
+        addRequirements(rollers);
     }
     
     @Override
@@ -24,14 +24,14 @@ public class SpindexYappy extends Command{
     @Override
     public void execute() {
         if (runCondition.getAsBoolean())
-            spinner.spin(-30, -.9);
-        else spinner.spindexStop();
+            rollers.roll(30);
+        else rollers.rollerStop();
     }
 
     // Called once the command ends or is interrupted.
     @Override
     public void end(boolean interrupted) {
-       spinner.spindexStop();
+       rollers.rollerStop();
     }
 
     // Returns true when the command should end.

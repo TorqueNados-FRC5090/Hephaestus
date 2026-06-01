@@ -25,7 +25,7 @@ import frc.robot.commands.AutonContainer;
 import frc.robot.commands.IntakePiece;
 import frc.robot.commands.IntakeToggle;
 import frc.robot.commands.MoveTurret;
-import frc.robot.commands.SpindexYappy;
+import frc.robot.commands.theYappy;
 import frc.robot.commands.ok;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
@@ -33,7 +33,7 @@ import frc.robot.subsystems.EvilIntake;
 import frc.robot.subsystems.Hood;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.Spindex;
+import frc.robot.subsystems.RollerSystem;
 import frc.robot.subsystems.Turret;
 import frc.robot.wrappers.Limelight;
 
@@ -58,7 +58,7 @@ public class RobotContainer {
     public final Hood hood = new Hood();
     public final Intake intake = new Intake();
     public final Shooter shooter = new Shooter();
-    public final Spindex spindex = new Spindex();
+    public final RollerSystem rollersystem = new RollerSystem();
     
     // SOTM UPDATE: Passing Pose and Speeds (Removed FieldLayout)
     public final Turret turret = new Turret(
@@ -123,7 +123,7 @@ public class RobotContainer {
             shooter.shoot(() -> calculateOptimalShooterRPS()),
             new MoveTurret(turret),
             // Command C: Shoot only when the other subsystems are ready.
-            new SpindexYappy(spindex, () -> readyToShoot()),
+            new theYappy(rollersystem, () -> readyToShoot()),
             hood.hoodgo(() -> calculateOptimalHoodAngle())
         );
         /* --- UNUSED LINES START ---
@@ -139,7 +139,7 @@ public class RobotContainer {
         return new ParallelCommandGroup(
             shooter.shoot(() -> 23), 
             turret.run(() -> turret.goToZero()),
-            new SpindexYappy(spindex, () -> shooter.isShooterReady(2))
+            new theYappy(rollersystem, () -> shooter.isShooterReady(2))
         );
     }
 
