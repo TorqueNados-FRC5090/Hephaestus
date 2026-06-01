@@ -6,20 +6,20 @@ import frc.robot.subsystems.RollerSystem;
 
 public class BumpVelocity extends Command {
     Shooter shooter;
-    RollerSystem spindex;
+    RollerSystem rollersystem;
     double RPS;
 
-     public BumpVelocity(Shooter shoot, RollerSystem spindex, double RPS){
+     public BumpVelocity(Shooter shoot, RollerSystem rollersystem, double RPS){
         this.shooter = shoot;
-        this.spindex = spindex;
+        this.rollersystem = rollersystem;
         this.RPS = RPS;
 
-        addRequirements(shoot, spindex);
+        addRequirements(shoot, rollersystem);
     }
   
     @Override
     public void initialize(){
-        spindex.spin(-.4,-.8);
+        rollersystem.roll(.4);
         shooter.incrementVelocityBy(RPS);
     }
 
