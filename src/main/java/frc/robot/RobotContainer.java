@@ -121,7 +121,7 @@ public class RobotContainer {
     joystick.rightTrigger().whileTrue(fullShootCommand());
 
 
-        joystick.a().onTrue(new ok(evilintake));
+        joystick.a().whileTrue(new ok(evilintake));
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
         joystick.rightTrigger().whileTrue(fullShootCommand());
