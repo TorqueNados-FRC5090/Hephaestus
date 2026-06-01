@@ -113,7 +113,7 @@ public class Constants {
         
     }
 
-    // INTAKE CONSTANTS YIPPPIEEEEE!!!
+    //  INTAKE CONSTANTS YIPPPIEEEEE!!!
      public static final class IntakeConstants {
         public enum IntakePosition {
             //climber setpoints
@@ -131,7 +131,7 @@ public class Constants {
                 return setpoint;
             }
         }
-
+        
         public enum EvilIntakePosition {
             // evil intake setpoints
             in(0),
@@ -147,4 +147,4 @@ public class Constants {
             }
         }
     }
-}
+}  
