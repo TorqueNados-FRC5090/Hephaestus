@@ -39,7 +39,7 @@ public class Intake extends SubsystemBase {
 
         TalonFXConfiguration pivotConfig = new TalonFXConfiguration();
         pivotConfig.CurrentLimits.withSupplyCurrentLimit(Amps.of(20));
-        pivotConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        pivotConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
         pivotConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
         pivotConfig.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
         pivotConfig.Feedback.SensorToMechanismRatio = 50;
