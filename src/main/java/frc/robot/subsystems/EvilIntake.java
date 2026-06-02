@@ -1,4 +1,5 @@
 // if this doesn't work i explode the robot. Ok?
+// (Please do not explode the robot)
 
 package frc.robot.subsystems;
 
@@ -18,26 +19,38 @@ public class EvilIntake extends SubsystemBase {
      EvilIntakePosition pos = EvilIntakePosition.in;
 
     /** Constructs an Intake
-     *  @param intakeID The ID of the intake motor
-     *  @param spinID The ID for the spinning part of the intake
+     * @param intakeID The ID of the intake motor
+     * @param spinID The ID for the spinning part of the intake
      */
     public EvilIntake(int intakeID, int spinID){
         intakeMotor = new TalonFX(intakeID, "Upper");
         spinMotor = new TalonFX(spinID, "Upper");       
-        intakeMotor.setNeutralMode(NeutralModeValue.Coast);
 
+        // --- INTAKE MOTOR CONFIGURATION ---
         TalonFXConfiguration intakeConfig = new TalonFXConfiguration();
+        
+        // 1. Set to Coast Mode
+        intakeConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+
+        // 2. Limit Torque to 5 Amps so it gives up when hit
+        intakeConfig.CurrentLimits.StatorCurrentLimit = 5.0;
+        intakeConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+
         /* config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
         config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; */
         // yeah idk will do research on if its inverted or not lol
+        
         /* config.Slot0.kP = 72;
         config.Slot0.kD = 0;
         config.Slot0.kV = 0;
         config.Slot0.kG = 1.8;
         config.Slot0.kA = 0; */
         // pdvga......................................................!!
+        
+        // Apply configs to the intake motor
         intakeMotor.getConfigurator().apply(intakeConfig);
 
+        // --- SPIN MOTOR CONFIGURATION ---
         TalonFXConfiguration spinConfig = new TalonFXConfiguration();
         spinMotor.getConfigurator().apply(spinConfig);
     }

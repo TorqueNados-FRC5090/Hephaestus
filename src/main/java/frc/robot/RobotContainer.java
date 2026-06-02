@@ -93,40 +93,36 @@ public class RobotContainer {
 
     // EXPLANATION: This wires your physical Xbox controller to your robot's code commands.
     private void configureBindings() {
+        
+        // DRIVETRAIN DEFAULT COMMAND (Includes Trigger Slow-Mode)
         drivetrain.setDefaultCommand(
-         drivetrain.applyRequest(() -> drive.withVelocityX(-joystick.getLeftY() * MaxSpeed) 
-          .withVelocityY(-joystick.getLeftX() * MaxSpeed) 
-          .withRotationalRate(-joystick.getRightX() * MaxAngularRate) 
-         )
+            drivetrain.applyRequest(() -> {
+                // Check right trigger axis. If pulled more than 50%, set multiplier to 40% (0.4). Otherwise 100% (1.0).
+                double slowModeMultiplier = joystick.getRightTriggerAxis() > 0.5 ? 0.4 : 1.0;
 
-            );
-            drivetrain.setDefaultCommand(
-    drivetrain.applyRequest(() -> {
-    // Check right trigger axis. If pulled more than 50%, set multiplier to 40% (0.4). Otherwise 100% (1.0).
-    double slowModeMultiplier = joystick.getRightTriggerAxis() > 0.5 ? 0.4 : 1.0;
+                return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * slowModeMultiplier)
+                            .withVelocityY(-joystick.getLeftX() * MaxSpeed * slowModeMultiplier)
+                            .withRotationalRate(-joystick.getRightX() * MaxAngularRate * slowModeMultiplier);
+            })
+        );
 
-    return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * slowModeMultiplier)
-    .withVelocityY(-joystick.getLeftX() * MaxSpeed * slowModeMultiplier)
-    .withRotationalRate(-joystick.getRightX() * MaxAngularRate * slowModeMultiplier);
-    })
-    );
+        // --- CONTINUOUS TRACKING ---
+        // This makes the turret run passOrShoot() continuously whenever no other command is using it.
+        turret.setDefaultCommand(turret.run(turret::passOrShoot));
 
-    final var idle = new SwerveRequest.Idle();
-    RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
+        final var idle = new SwerveRequest.Idle();
+        RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
-    joystick.b().whileTrue(failsafeShoot());
-    joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
-
-    // This will still fire the shooter, but now the default drive command above will simultaneously slow the chassis
-    joystick.rightTrigger().whileTrue(fullShootCommand());
-
-
+        // CONTROLLER BUTTONS
         joystick.a().whileTrue(new ok(evilintake));
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
-        joystick.rightTrigger().whileTrue(fullShootCommand());
         joystick.leftBumper().whileTrue(new IntakePiece(intake, IntakePosition.out));
         joystick.start().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric)); 
+        
+        // This will fire the shooter, move the hood, and slow the chassis
+        joystick.rightTrigger().whileTrue(fullShootCommand());
+
         drivetrain.registerTelemetry(logger::telemeterize);
     }
 
@@ -139,23 +135,19 @@ public class RobotContainer {
     public Command fullShootCommand() {
         return new ParallelCommandGroup(
             shooter.shoot(() -> calculateOptimalShooterRPS()),
-            new MoveTurret(turret),
+            // Notice MoveTurret is gone! The default command we set above handles aiming.
+            
             // Command C: Shoot only when the other subsystems are ready.
             new theYappy(rollersystem, () -> readyToShoot()),
             hood.hoodgo(() -> calculateOptimalHoodAngle())
         );
-        /* --- UNUSED LINES START ---
-         * // This was between Command A and Command B as the old Command B.
-         * // Command B: Move the hood.
-         * new MoveHood(hood, 0),
-         * new MoveHood(hood, calculateOptimalHoodAngle()),
-        --- UNUSED LINES END --- */
     }
 
     /** Failsafe shoot that does not coordinate and instead sets everything to the minimum it can to shoot without an Apriltag. Should just shoot forward.  */
     public Command failsafeShoot() {
         return new ParallelCommandGroup(
             shooter.shoot(() -> 23), 
+            // The failsafe safely interrupts the default command to zero the turret, then resumes tracking when released
             turret.run(() -> turret.goToZero()),
             new theYappy(rollersystem, () -> shooter.isShooterReady(2))
         );
@@ -195,10 +187,6 @@ public class RobotContainer {
         }
 
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
-        //New Equation
-        if(targetDist >= 2.2){optimal = (1 - 0.463*targetDist);}
-        SmartDashboard.putNumber("Optimal Hood Angle", optimal);
-
         return optimal;
     }
 
