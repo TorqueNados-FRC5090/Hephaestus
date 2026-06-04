@@ -113,38 +113,19 @@ public class Constants {
         
     }
 
-    //  INTAKE CONSTANTS YIPPPIEEEEE!!!
-     public static final class IntakeConstants {
-        public enum IntakePosition {
-            //climber setpoints
-            up(.217),
-            stow(.076),
-            out(-.025);
+    //  INTAKE CONSTANTS YIPPPIEEEEE!!!   
+    public enum EvilIntakePosition {
+        // evil intake setpoints
+        in(0),
+        out(.35);
 
-            private double setpoint;
-            IntakePosition(double setpoint) {
-                this.setpoint = setpoint;
-            };
-
-            //gets the angle of setpoint
-            public double getAngle() {
-                return setpoint;
-            }
+        private double evilsetpoint;
+        EvilIntakePosition(double evilsetpoint){
+            this.evilsetpoint = evilsetpoint;
         }
-        
-        public enum EvilIntakePosition {
-            // evil intake setpoints
-            in(0),
-            out(.35);
-
-            private double evilsetpoint;
-            EvilIntakePosition(double evilsetpoint){
-                this.evilsetpoint = evilsetpoint;
-            }
-            //gets the angle of setpoint
-            public double getAngle() {
-                return evilsetpoint;
-            }
+        //gets the angle of setpoint
+        public double getAngle() {
+            return evilsetpoint;
         }
     }
-}  
+}

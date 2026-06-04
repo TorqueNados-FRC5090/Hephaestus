@@ -2,7 +2,7 @@ package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.EvilIntake;
-import frc.robot.Constants.IntakeConstants.EvilIntakePosition;
+import frc.robot.Constants.EvilIntakePosition;
 
 public class ok extends Command {
     EvilIntake evilintake;

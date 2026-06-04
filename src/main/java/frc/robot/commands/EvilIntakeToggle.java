@@ -2,32 +2,32 @@ package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
-import frc.robot.Constants.IntakeConstants.IntakePosition;
-import frc.robot.subsystems.Intake;
+import frc.robot.Constants.EvilIntakePosition;
+import frc.robot.subsystems.EvilIntake;
 
-public class IntakeToggle extends Command{
-    Intake intake;
-    IntakePosition target;
-    boolean down = true;
+public class EvilIntakeToggle extends Command{
+    EvilIntake evilIntake;
+    EvilIntakePosition evilTarget;
+    boolean OutNow = true;
 
-        public IntakeToggle(Intake intake){
-            this.intake = intake;
+        public EvilIntakeToggle(EvilIntake evilIntake){
+            this.evilIntake = evilIntake;
 
-            addRequirements(intake);
+            addRequirements(evilIntake);
         }
         
         @Override
         public void initialize() {
-            if (down = false){
-                intake.rotate(IntakePosition.out);
+            if (OutNow = false){
+                evilIntake.evilyummy(EvilIntakePosition.out);
                 new WaitCommand(.125);   
-                intake.yummy();
-                down = true;
+                evilIntake.evileryummy(1);
+                OutNow = true;
             }
             else {
-                intake.full();
-                intake.rotate(IntakePosition.stow);
-                down = false;
+                evilIntake.evileryummy(0);
+                evilIntake.evilyummy(EvilIntakePosition.in);
+                OutNow = false;
             }
         }
 

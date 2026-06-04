@@ -20,18 +20,15 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
-import frc.robot.Constants.IntakeConstants.IntakePosition;
+import frc.robot.Constants.EvilIntakePosition;
 import frc.robot.commands.AutonContainer;
-import frc.robot.commands.IntakePiece;
-import frc.robot.commands.IntakeToggle;
-import frc.robot.commands.MoveTurret;
+import frc.robot.commands.EvilIntakePiece;
 import frc.robot.commands.theYappy;
 import frc.robot.commands.ok;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.EvilIntake;
 import frc.robot.subsystems.Hood;
-import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.RollerSystem;
 import frc.robot.subsystems.Turret;
@@ -41,7 +38,6 @@ public class RobotContainer {
     // --- EXTRA VARIABLES START ---
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); 
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); 
-    public final EvilIntake evilintake = new EvilIntake(11, 13);
     // --- EXTRA VARIABLES END ---
 
     // --- SWERVE DRIVE VARIABLES START ---
@@ -56,7 +52,7 @@ public class RobotContainer {
 
     // --- TURRET VARIABLES START ---
     public final Hood hood = new Hood();
-    public final Intake intake = new Intake();
+    public final EvilIntake evilIntake = new EvilIntake(11, 13);
     public final Shooter shooter = new Shooter();
     public final RollerSystem rollersystem = new RollerSystem();
     
@@ -114,10 +110,11 @@ public class RobotContainer {
         RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
         // CONTROLLER BUTTONS
-        joystick.a().whileTrue(new ok(evilintake));
+        joystick.a().whileTrue(new ok(evilIntake));
+        joystick.y().whileTrue(fullShootCommand());
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
-        joystick.leftBumper().whileTrue(new IntakePiece(intake, IntakePosition.out));
+        joystick.leftBumper().whileTrue(new EvilIntakePiece(evilIntake, EvilIntakePosition.out));
         joystick.start().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric)); 
         
         // This will fire the shooter, move the hood, and slow the chassis

@@ -9,9 +9,10 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import frc.robot.Constants.IntakeConstants.EvilIntakePosition;
+import frc.robot.Constants.EvilIntakePosition;
 
 public class EvilIntake extends SubsystemBase {
      TalonFX intakeMotor;
@@ -64,6 +65,10 @@ public class EvilIntake extends SubsystemBase {
     
     public void evileryummy(double speed){
         spinMotor.set(speed);
+    }
+
+    public Command evilestyummy(EvilIntakePosition pos){
+        return run(() -> evilyummy(pos));
     }
     
     public double getAngle(){
