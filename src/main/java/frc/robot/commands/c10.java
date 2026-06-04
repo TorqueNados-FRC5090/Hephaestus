@@ -5,12 +5,12 @@ import frc.robot.subsystems.Hood;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Turret;
 
-public class Zero extends Command {
+public class c10 extends Command {
     Shooter shooter;
     Hood hood;
     Turret turret;
     
-    public Zero(Shooter shooter, Hood hood, Turret turret){
+    public c10(Shooter shooter, Hood hood, Turret turret){
         this.shooter = shooter;
         this.hood = hood;
         this.turret = turret;

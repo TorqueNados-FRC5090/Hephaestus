@@ -3,10 +3,10 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Turret;
 
-public class MoveTurret extends Command {
+public class c7 extends Command {
     Turret turret;
     
-    public MoveTurret(Turret turret){
+    public c7(Turret turret){
         this.turret = turret;
 
         addRequirements(turret);

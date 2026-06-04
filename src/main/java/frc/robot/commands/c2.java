@@ -3,13 +3,13 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Hood;
 
-public class BumpHood extends Command {
+public class c2 extends Command {
     Hood hood;
     double revolutions;
 
     /** Increments the hood's current setpoint position by n revolutions. 
      *  Provide a negative number to decrement */
-    public BumpHood(Hood hood, double revolutions){
+    public c2(Hood hood, double revolutions){
         this.hood = hood;
         this.revolutions = revolutions;
 

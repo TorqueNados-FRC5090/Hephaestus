@@ -21,10 +21,10 @@ import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.Constants.EvilIntakePosition;
-import frc.robot.commands.AutonContainer;
-import frc.robot.commands.EvilIntakePiece;
-import frc.robot.commands.theYappy;
-import frc.robot.commands.ok;
+import frc.robot.commands.c1;
+import frc.robot.commands.c4;
+import frc.robot.commands.c9;
+import frc.robot.commands.c8;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.EvilIntake;
@@ -62,7 +62,7 @@ public class RobotContainer {
             () -> drivetrain.getState().Speeds
         );
 
-    final AutonContainer auton = new AutonContainer(this); 
+    final c1 auton = new c1(this); 
     final SendableChooser<Command> autonChooser = auton.buildAutonChooser();
     // --- TURRET VARIABLES END ---
 
@@ -110,11 +110,11 @@ public class RobotContainer {
         RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
         // CONTROLLER BUTTONS
-        joystick.a().whileTrue(new ok(evilIntake));
+        joystick.a().whileTrue(new c8(evilIntake));
         joystick.y().whileTrue(fullShootCommand());
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
-        joystick.leftBumper().whileTrue(new EvilIntakePiece(evilIntake, EvilIntakePosition.out));
+        joystick.leftBumper().whileTrue(new c4(evilIntake, EvilIntakePosition.out));
         joystick.start().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric)); 
         
         // This will fire the shooter, move the hood, and slow the chassis
@@ -135,7 +135,7 @@ public class RobotContainer {
             // Notice MoveTurret is gone! The default command we set above handles aiming.
             
             // Command C: Shoot only when the other subsystems are ready.
-            new theYappy(rollersystem, () -> readyToShoot()),
+            new c9(rollersystem, () -> readyToShoot()),
             hood.hoodgo(() -> calculateOptimalHoodAngle())
         );
     }
@@ -146,7 +146,7 @@ public class RobotContainer {
             shooter.shoot(() -> 23), 
             // The failsafe safely interrupts the default command to zero the turret, then resumes tracking when released
             turret.run(() -> turret.goToZero()),
-            new theYappy(rollersystem, () -> shooter.isShooterReady(2))
+            new c9(rollersystem, () -> shooter.isShooterReady(2))
         );
     }
 

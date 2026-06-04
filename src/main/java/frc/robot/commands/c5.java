@@ -5,12 +5,12 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.Constants.EvilIntakePosition;
 import frc.robot.subsystems.EvilIntake;
 
-public class EvilIntakeToggle extends Command{
+public class c5 extends Command{
     EvilIntake evilIntake;
     EvilIntakePosition evilTarget;
     boolean OutNow = true;
 
-        public EvilIntakeToggle(EvilIntake evilIntake){
+        public c5(EvilIntake evilIntake){
             this.evilIntake = evilIntake;
 
             addRequirements(evilIntake);

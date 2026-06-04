@@ -4,12 +4,12 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.RollerSystem;
 
-public class BumpVelocity extends Command {
+public class c3 extends Command {
     Shooter shooter;
     RollerSystem rollersystem;
     double RPS;
 
-     public BumpVelocity(Shooter shoot, RollerSystem rollersystem, double RPS){
+     public c3(Shooter shoot, RollerSystem rollersystem, double RPS){
         this.shooter = shoot;
         this.rollersystem = rollersystem;
         this.RPS = RPS;

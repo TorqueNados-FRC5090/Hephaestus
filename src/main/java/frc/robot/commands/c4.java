@@ -5,10 +5,10 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.Constants.EvilIntakePosition;
 import frc.robot.subsystems.EvilIntake;
 
-public class EvilIntakePiece extends Command{
+public class c4 extends Command{
     EvilIntake evilIntake;
     EvilIntakePosition evilTarget;
-    public EvilIntakePiece(EvilIntake evilIntake, EvilIntakePosition evilPos){
+    public c4(EvilIntake evilIntake, EvilIntakePosition evilPos){
         this.evilIntake = evilIntake;
         this.evilTarget = evilPos;
 

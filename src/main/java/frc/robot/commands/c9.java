@@ -5,11 +5,11 @@ import edu.wpi.first.wpilibj2.command.Command;
 
 import frc.robot.subsystems.RollerSystem;
 
-public class theYappy extends Command{
+public class c9 extends Command{
     RollerSystem rollers;
     BooleanSupplier runCondition;
 
-    public theYappy(RollerSystem rollers, BooleanSupplier runCondition){
+    public c9(RollerSystem rollers, BooleanSupplier runCondition){
         this.rollers = rollers;
         this.runCondition = runCondition;
 

@@ -4,10 +4,10 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.EvilIntake;
 import frc.robot.Constants.EvilIntakePosition;
 
-public class ok extends Command {
+public class c8 extends Command {
     EvilIntake evilintake;
     
-    public ok(EvilIntake evilintake){
+    public c8(EvilIntake evilintake){
         this.evilintake = evilintake;
     }
   
