@@ -3,6 +3,7 @@
 
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -23,9 +24,9 @@ public class EvilIntake extends SubsystemBase {
      * @param intakeID The ID of the intake motor
      * @param spinID The ID for the spinning part of the intake
      */
-    public EvilIntake(int intakeID, int spinID){
-        intakeMotor = new TalonFX(intakeID, "Upper");
-        spinMotor = new TalonFX(spinID, "Upper");       
+    public EvilIntake(int intakeID, int spinID, CANBus canbus){
+        intakeMotor = new TalonFX(intakeID, canbus);
+        spinMotor = new TalonFX(spinID, canbus);       
 
         // --- INTAKE MOTOR CONFIGURATION ---
         TalonFXConfiguration intakeConfig = new TalonFXConfiguration();

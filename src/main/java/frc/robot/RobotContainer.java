@@ -9,6 +9,7 @@ import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
@@ -36,6 +37,7 @@ import frc.robot.wrappers.Limelight;
 
 public class RobotContainer {
     // --- EXTRA VARIABLES START ---
+    public final CANBus upper = new CANBus("Upper");
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); 
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); 
     // --- EXTRA VARIABLES END ---
@@ -51,15 +53,16 @@ public class RobotContainer {
     // --- SWERVE DRIVE VARIABLES END ---
 
     // --- TURRET VARIABLES START ---
-    public final Hood hood = new Hood();
-    public final EvilIntake evilIntake = new EvilIntake(11, 13);
-    public final Shooter shooter = new Shooter();
-    public final RollerSystem rollersystem = new RollerSystem();
+    public final Hood hood = new Hood(upper);
+    public final EvilIntake evilIntake = new EvilIntake(11, 13, upper);
+    public final Shooter shooter = new Shooter(upper);
+    public final RollerSystem rollersystem = new RollerSystem(upper);
     
     // SOTM UPDATE: Passing Pose and Speeds (Removed FieldLayout)
     public final Turret turret = new Turret(
             () -> drivetrain.getState().Pose, 
-            () -> drivetrain.getState().Speeds
+            () -> drivetrain.getState().Speeds,
+            upper
         );
 
     final AutonContainer auton = new AutonContainer(this); 

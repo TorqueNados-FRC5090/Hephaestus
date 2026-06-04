@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import java.util.function.DoubleSupplier;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
@@ -23,10 +24,10 @@ public class Shooter extends SubsystemBase {
     private double setpoint = 0.0; 
 
     // Configs for the 2 motors and their PID settings
-    public Shooter() {
+    public Shooter(CANBus canbus) {
         // On the Canbus UPPER
-        leadShoot = new TalonFX(27, "Upper");
-        followShoot = new TalonFX(15,"Upper");
+        leadShoot = new TalonFX(27, canbus);
+        followShoot = new TalonFX(15, canbus);
     
         // --- LEAD SHOOTER CONFIG ---
         TalonFXConfiguration shooterConfig = new TalonFXConfiguration();

@@ -2,7 +2,7 @@ package frc.robot.subsystems;
 
 import java.util.function.DoubleSupplier;
 
-
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionVoltage;
@@ -17,8 +17,8 @@ public class Hood extends SubsystemBase {
 
     private double setpoint = 0.0;
 
-    public Hood(){
-        hood = new TalonFX(20, "Upper");
+    public Hood(CANBus canbus){
+        hood = new TalonFX(20, canbus);
 
         // --- HOOD CONFIG ---
         TalonFXConfiguration hoodConfig = new TalonFXConfiguration();

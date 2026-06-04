@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import com.ctre.phoenix6.CANBus;
 // CTRE Phoenix 6 Imports
 import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
@@ -60,11 +61,11 @@ public class Turret extends SubsystemBase {
     public double m_virtualDistanceToHubMeters = 0.0; 
     private double m_targetMotorRotations = 0.0;
 
-    public Turret(Supplier<Pose2d> poseSupplier, Supplier<ChassisSpeeds> velocitySupplier) {
+    public Turret(Supplier<Pose2d> poseSupplier, Supplier<ChassisSpeeds> velocitySupplier, CANBus canbus) {
         this.m_robotPoseSupplier = poseSupplier;
         this.m_robotVelocitySupplier = velocitySupplier; 
 
-        m_turretMotor = new TalonFXS(16, "Upper"); 
+        m_turretMotor = new TalonFXS(16, canbus); 
         m_motionMagic = new MotionMagicVoltage(0);
 
         TalonFXSConfiguration config = new TalonFXSConfiguration();

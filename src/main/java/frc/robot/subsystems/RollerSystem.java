@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -12,10 +13,10 @@ public class RollerSystem extends SubsystemBase {
     TalonFX rollerFloor; 
     TalonFX lowerBelt; 
     TalonFX upperBelt;
-    public RollerSystem(){
-        rollerFloor = new TalonFX(13, "Upper");
-        lowerBelt = new TalonFX(21, "Upper");
-        upperBelt = new TalonFX(22, "Upper");
+    public RollerSystem(CANBus canbus){
+        rollerFloor = new TalonFX(13, canbus);
+        lowerBelt = new TalonFX(21, canbus);
+        upperBelt = new TalonFX(22, canbus);
 
         
         Slot0Configs rollerConfig = new Slot0Configs();
