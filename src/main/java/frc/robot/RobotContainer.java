@@ -54,7 +54,7 @@ public class RobotContainer {
 
     // --- TURRET VARIABLES START ---
     public final Hood hood = new Hood(upper);
-    public final EvilIntake evilIntake = new EvilIntake(11, 13, upper);
+    public final EvilIntake evilIntake = new EvilIntake(11, 12, upper);
     public final Shooter shooter = new Shooter(upper);
     public final RollerSystem rollersystem = new RollerSystem(upper);
     

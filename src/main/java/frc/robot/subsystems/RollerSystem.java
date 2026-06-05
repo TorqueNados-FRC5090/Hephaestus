@@ -25,8 +25,8 @@ public class RollerSystem extends SubsystemBase {
         lowerBelt.getConfigurator().apply(rollerConfig);
         upperBelt.getConfigurator().apply(rollerConfig);
 
-        lowerBelt.setControl(new Follower(13, MotorAlignmentValue.Aligned));
-        upperBelt.setControl(new Follower(13, MotorAlignmentValue.Aligned));
+        lowerBelt.setControl(new Follower(13, MotorAlignmentValue.Opposed));
+        upperBelt.setControl(new Follower(13, MotorAlignmentValue.Opposed)); //change to aligned if still broken
 
     } 
 
