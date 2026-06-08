@@ -53,7 +53,7 @@ public class Turret extends SubsystemBase {
     private final double kTurretRingTeeth = 200.0; 
     private final double kEncoderGearTeeth = 16.0; 
     private final double kTurretGearRatio = kTurretRingTeeth / kEncoderGearTeeth; 
-    private final double kMaxTurretRotations = 0.48; 
+    private final double kMaxTurretRotations = 0.30; //0.48
 
     // --- LIVE STATE VARIABLES ---
     public double m_distanceToHubMeters = 0.0;
