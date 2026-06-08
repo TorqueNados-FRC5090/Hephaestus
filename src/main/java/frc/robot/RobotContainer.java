@@ -157,7 +157,7 @@ public class RobotContainer {
     public Command testTheStupids() {
         return new ParallelCommandGroup(
             // Command C: Shoot only when the other subsystems are ready.
-            new theYappy(rollersystem, () -> readyToShoot()),
+            new theYappy(rollersystem, () -> readyToShoot())
         );
     }
 
