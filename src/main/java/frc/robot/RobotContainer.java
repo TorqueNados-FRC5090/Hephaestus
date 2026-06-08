@@ -153,6 +153,14 @@ public class RobotContainer {
         );
     }
 
+    /** This will coordinate all necessary subsystems and only shoot when they all report readiness */
+    public Command testTheStupids() {
+        return new ParallelCommandGroup(
+            // Command C: Shoot only when the other subsystems are ready.
+            new theYappy(rollersystem, () -> readyToShoot()),
+        );
+    }
+
     // EXPLANATION: Calculates wheel speed based on SOTM distance.
     public double calculateOptimalShooterRPS() {
         // 1. Get Virtual SOTM Distance
