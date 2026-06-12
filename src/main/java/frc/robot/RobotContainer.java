@@ -25,7 +25,6 @@ import frc.robot.Constants.EvilIntakePosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.EvilIntakePiece;
 import frc.robot.commands.theYappy;
-import frc.robot.commands.ok;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.EvilIntake;
@@ -54,7 +53,7 @@ public class RobotContainer {
 
     // --- TURRET VARIABLES START ---
     public final Hood hood = new Hood(upper);
-    public final EvilIntake evilIntake = new EvilIntake(11, 62, upper);//spin ID should be set to 12
+    public final EvilIntake evilIntake = new EvilIntake(11, 12, upper);//spin ID should be set to 12
     public final Shooter shooter = new Shooter(upper);
     public final RollerSystem rollersystem = new RollerSystem(upper);
     
@@ -113,7 +112,6 @@ public class RobotContainer {
         RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
         // CONTROLLER BUTTONS
-        joystick.a().whileTrue(new ok(evilIntake));
         joystick.y().whileTrue(fullShootCommand());
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
@@ -157,7 +155,7 @@ public class RobotContainer {
     public Command testTheStupids() {
         return new ParallelCommandGroup(
             // Command C: Shoot only when the other subsystems are ready.
-            new theYappy(rollersystem, () -> readyToShoot()),
+            new theYappy(rollersystem, () -> readyToShoot())
         );
     }
 

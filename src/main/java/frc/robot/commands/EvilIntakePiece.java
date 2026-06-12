@@ -19,7 +19,7 @@ public class EvilIntakePiece extends Command{
     public void initialize() {
         evilIntake.evilyummy(evilTarget);
         new WaitCommand(.125);   
-        evilIntake.evileryummy(1);
+        evilIntake.evileryummy(-1);
     }
 
     // Called every time the scheduler runs while the command is scheduled.
