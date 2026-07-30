@@ -116,8 +116,8 @@ public class Constants {
     //  INTAKE CONSTANTS YIPPPIEEEEE!!!   
     public enum EvilIntakePosition {
         // evil intake setpoints
-        in(0),
-        out(16.5);
+        in(.36),
+        out(17);
 
         private double evilsetpoint;
         EvilIntakePosition(double evilsetpoint){

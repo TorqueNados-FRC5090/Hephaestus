@@ -44,7 +44,7 @@ public class EvilIntake extends SubsystemBase {
         intakeConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 
         // 2. Limit Torque to 5 Amps so it gives up when hit
-        intakeConfig.CurrentLimits.StatorCurrentLimit = 30.0;
+        intakeConfig.CurrentLimits.StatorCurrentLimit = 40.0;
         intakeConfig.CurrentLimits.StatorCurrentLimitEnable = true;
 
         /* intakeConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
@@ -52,11 +52,11 @@ public class EvilIntake extends SubsystemBase {
         // yeah idk will do research on if its inverted or not lol
         
         // 3. PID Tuning (Uncommented and fixed variable name to intakeConfig)
-        intakeConfig.Slot0.kP = 4; // Note: 72 is high for Phoenix 6, get ready to tune!
-        intakeConfig.Slot0.kD = 0;
-        intakeConfig.Slot0.kV = 0;
-        //intakeConfig.Slot0.kG = 1.8;
-        intakeConfig.Slot0.kS = 3; 
+        intakeConfig.Slot0.kP = 3; 
+       // intakeConfig.Slot0.kD = 0;
+       // intakeConfig.Slot0.kV = 1;
+       // intakeConfig.Slot0.kG = 1.8;
+        intakeConfig.Slot0.kS = 15; 
         // pdvga......................................................!!
         
         // Apply configs to the intake motor
