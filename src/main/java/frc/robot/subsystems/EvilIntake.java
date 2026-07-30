@@ -1,7 +1,5 @@
 package frc.robot.subsystems;
 
-import org.ejml.equation.Variable;
-
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionVoltage;

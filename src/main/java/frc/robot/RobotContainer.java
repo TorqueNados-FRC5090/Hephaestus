@@ -13,6 +13,7 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import edu.wpi.first.math.MathUtil; // Added for safety clamp
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap; // Added for Passing
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -191,6 +192,15 @@ public class RobotContainer {
                 optimal = 0;
             }
         }
+
+        // --- NEW SAFETY LIMIT ---
+        // Replace -3.0 with the absolute maximum negative value your hood can physically go.
+        // Replace 0.0 with your resting/minimum position.
+        double maxExtension = -2.7734375; 
+        double minExtension = -0.12890625;  
+
+        // MathUtil.clamp ensures 'optimal' never goes below maxExtension or above minExtension
+        optimal = MathUtil.clamp(optimal, maxExtension, minExtension);
 
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
         return optimal;
