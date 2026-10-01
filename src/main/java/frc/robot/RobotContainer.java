@@ -13,6 +13,7 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import edu.wpi.first.math.MathUtil; // Added for safety clamp
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap; // Added for Passing
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -25,7 +26,6 @@ import frc.robot.Constants.EvilIntakePosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.EvilIntakePiece;
 import frc.robot.commands.theYappy;
-import frc.robot.commands.ok;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.EvilIntake;
@@ -54,7 +54,7 @@ public class RobotContainer {
 
     // --- TURRET VARIABLES START ---
     public final Hood hood = new Hood(upper);
-    public final EvilIntake evilIntake = new EvilIntake(11, 62, upper);//spin ID should be set to 12
+    public final EvilIntake evilIntake = new EvilIntake(11, 12, upper);//spin ID should be set to 12
     public final Shooter shooter = new Shooter(upper);
     public final RollerSystem rollersystem = new RollerSystem(upper);
     
@@ -113,7 +113,6 @@ public class RobotContainer {
         RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
         // CONTROLLER BUTTONS
-        joystick.a().whileTrue(new ok(evilIntake));
         joystick.y().whileTrue(fullShootCommand());
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
@@ -193,6 +192,15 @@ public class RobotContainer {
                 optimal = 0;
             }
         }
+
+        // --- NEW SAFETY LIMIT ---
+        // Replace -3.0 with the absolute maximum negative value your hood can physically go.
+        // Replace 0.0 with your resting/minimum position.
+        double maxExtension = -2.7734375; 
+        double minExtension = -0.12890625;  
+
+        // MathUtil.clamp ensures 'optimal' never goes below maxExtension or above minExtension
+        optimal = MathUtil.clamp(optimal, maxExtension, minExtension);
 
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
         return optimal;

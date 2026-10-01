@@ -21,7 +21,7 @@ public class EvilIntakeToggle extends Command{
             if (OutNow = false){
                 evilIntake.evilyummy(EvilIntakePosition.out);
                 new WaitCommand(.125);   
-                evilIntake.evileryummy(1);
+                evilIntake.evileryummy(-1);
                 OutNow = true;
             }
             else {

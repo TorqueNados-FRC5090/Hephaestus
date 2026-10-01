@@ -37,17 +37,24 @@ public class Turret extends SubsystemBase {
     private final Translation2d kRedTargetCenter = new Translation2d(16.54, 4.105); 
 
     // --- PHYSICAL TURRET OFFSET ---
-    private final double kTurretOffsetXInches = -4.5; // Backwards
-    private final double kTurretOffsetYInches = -3.375;  // Right
+    private final double kTurretOffsetXInches = -5; // Backwards
+    private final double kTurretOffsetYInches = -6;  // Right
 
     private final Translation2d m_robotRelativeTurretOffset = new Translation2d(
         Units.inchesToMeters(kTurretOffsetXInches), 
         Units.inchesToMeters(kTurretOffsetYInches)
     );
 
+    // NEW: Flips the direction if the turret is mirroring the target (turns left when target is right)
+    private final double kTurretDirectionMultiplier = -1.0; 
+
+    // Adjust this until 0 motor rotations is perfectly facing backward.
+    // Try 90.0, 180.0, or 270.0 now that the direction is fixed.
+    private final Rotation2d kTurretZeroOffset = Rotation2d.fromDegrees(0.0);
+
     // --- TARGET OFFSET CORRECTION ---
     private final double kTargetCenterOffsetXInches = 0.0; 
-    private final double kTargetCenterOffsetYInches = -2.0;  
+    private final double kTargetCenterOffsetYInches = 0.0;  
 
     // --- Mechanical Constants ---
     private final double kTurretRingTeeth = 200.0; 
@@ -98,7 +105,6 @@ public class Turret extends SubsystemBase {
         return m_virtualDistanceToHubMeters; 
     }
 
-    /** Legacy command hook (Can be removed if not used manually) */
     public void alignToHub() {
         m_turretMotor.setControl(m_motionMagic.withPosition(m_targetMotorRotations));
     }
@@ -107,7 +113,6 @@ public class Turret extends SubsystemBase {
         m_turretMotor.setControl(m_motionMagic.withPosition(0));
     }
 
-    /** Accurately checks if the turret is at its calculated setpoint for EITHER passing or shooting. */
     public boolean isTurretReady(){
         if (m_targetMotorRotations == 0.0) {
             return false;
@@ -116,9 +121,6 @@ public class Turret extends SubsystemBase {
         return Math.abs(currentpos - m_targetMotorRotations) <= 0.2;
     }
 
-    /** * Runs continuously as the default command. 
-     * Simply tells the motor to move to whatever setpoint periodic() calculated.
-     */
     public void passOrShoot() {
         m_turretMotor.setControl(m_motionMagic.withPosition(m_targetMotorRotations));
     }
@@ -162,7 +164,6 @@ public class Turret extends SubsystemBase {
             double passTargetY = robotPose.getY();
             double dangerZoneClearanceMeters = 1.5; 
 
-            // Shift target to avoid hitting the hub structure
             if (Math.abs(robotPose.getY() - hubCenterY) < dangerZoneClearanceMeters) {
                 passTargetY = (robotPose.getY() >= hubCenterY) 
                     ? hubCenterY + dangerZoneClearanceMeters 
@@ -177,9 +178,14 @@ public class Turret extends SubsystemBase {
             SmartDashboard.putNumber("Turret/Pass_Distance_Meters", m_distanceToPassTargetMeters);
             SmartDashboard.putNumber("Turret/Pass_Target_Y", passTargetY);
 
-            // Compute desired rotations for passing
-            Rotation2d turretSetpoint = turretToPassTarget.getAngle().minus(robotPose.getRotation()).minus(Rotation2d.fromDegrees(180));
+            Rotation2d turretSetpoint = turretToPassTarget.getAngle()
+                .minus(robotPose.getRotation())
+                .minus(kTurretZeroOffset); 
             double desiredTurretRotations = turretSetpoint.getRadians() / (2 * Math.PI);
+
+            // APPLY DIRECTION FIX
+            desiredTurretRotations *= kTurretDirectionMultiplier;
+
             desiredTurretRotations = Math.IEEEremainder(desiredTurretRotations, 1.0);
             desiredTurretRotations = MathUtil.clamp(desiredTurretRotations, -kMaxTurretRotations, kMaxTurretRotations);
             
@@ -205,11 +211,10 @@ public class Turret extends SubsystemBase {
             m_distanceToHubMeters = turretToTarget.getNorm();
             SmartDashboard.putNumber("Turret/Distance_To_Hub_Meters", m_distanceToHubMeters);
 
-            // Shoot-on-the-move inherited velocity calculations
             var speeds = m_robotVelocitySupplier.get();
             double robotVelX = speeds.vxMetersPerSecond;
             double robotVelY = speeds.vyMetersPerSecond;
-            double kEstimatedShotSpeedMPS = 6.0; // TUNE THIS ON THE FIELD
+            double kEstimatedShotSpeedMPS = 6.0; 
 
             double timeOfFlight = m_distanceToHubMeters / kEstimatedShotSpeedMPS;
             Translation2d inheritedVelocityOffset = new Translation2d(robotVelX * timeOfFlight, robotVelY * timeOfFlight);
@@ -219,16 +224,20 @@ public class Turret extends SubsystemBase {
             m_virtualDistanceToHubMeters = turretToVirtualTarget.getNorm();
             SmartDashboard.putNumber("Turret/Virtual_Distance_Meters", m_virtualDistanceToHubMeters);
 
-            // Compute desired rotations for shooting
-            Rotation2d turretSetpoint = turretToVirtualTarget.getAngle().minus(robotPose.getRotation()).minus(Rotation2d.fromDegrees(180)); 
+            Rotation2d turretSetpoint = turretToVirtualTarget.getAngle()
+                .minus(robotPose.getRotation())
+                .minus(kTurretZeroOffset); 
             double desiredTurretRotations = turretSetpoint.getRadians() / (2 * Math.PI);
+
+            // APPLY DIRECTION FIX
+            desiredTurretRotations *= kTurretDirectionMultiplier;
+
             desiredTurretRotations = Math.IEEEremainder(desiredTurretRotations, 1.0);
             desiredTurretRotations = MathUtil.clamp(desiredTurretRotations, -kMaxTurretRotations, kMaxTurretRotations);
             
             m_targetMotorRotations = desiredTurretRotations * kTurretGearRatio;
         }
 
-        // Post final requested values to Dashboard
         SmartDashboard.putNumber("Turret/Target_Motor_Rots", m_targetMotorRotations);
         SmartDashboard.putNumber("Turret/Target_Turret_Rots", m_targetMotorRotations / kTurretGearRatio);
     }
