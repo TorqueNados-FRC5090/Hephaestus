@@ -46,11 +46,11 @@ public class Turret extends SubsystemBase {
     );
 
     // NEW: Flips the direction if the turret is mirroring the target (turns left when target is right)
-    private final double kTurretDirectionMultiplier = -1.0; 
+    private final double kTurretDirectionMultiplier = 1.0; 
 
     // Adjust this until 0 motor rotations is perfectly facing backward.
     // Try 90.0, 180.0, or 270.0 now that the direction is fixed.
-    private final Rotation2d kTurretZeroOffset = Rotation2d.fromDegrees(0.0);
+    private final Rotation2d kTurretZeroOffset = Rotation2d.fromDegrees(0);
 
     // --- TARGET OFFSET CORRECTION ---
     private final double kTargetCenterOffsetXInches = 0.0; 
