@@ -7,7 +7,9 @@ package frc.robot;
 
 import com.ctre.phoenix6.HootAutoReplay;
 
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -47,27 +49,44 @@ public class Robot extends TimedRobot {
      *
      * This example is sufficient to show that vision integration is possible, though exact implementation of how to use vision should be tuned per-robot and to the team's specification. */
     if (kUseLimelight) {
-      var driveState = m_robotContainer.drivetrain.getState();
-      
-      double omegaRps = Units.radiansToRotations(driveState.Speeds.omegaRadiansPerSecond);
-      
-     
-  
-      Limelighthelpers.SetRobotOrientation("limelight",m_robotContainer.drivetrain.getgyroyaw().getDegrees(), 0, 0, 0, 0, 0);
-      var llMeasurement = Limelighthelpers.getBotPoseEstimate_wpiBlue("limelight");
-      if (llMeasurement != null && llMeasurement.tagCount > 0 && Math.abs(omegaRps) < 2.0) {
-        m_robotContainer.drivetrain.addVisionMeasurement(llMeasurement.pose, llMeasurement.timestampSeconds);
-        Limelighthelpers.SetRobotOrientation("limelight-left",m_robotContainer.drivetrain.getgyroyaw().getDegrees(), 0, 0, 0, 0, 0);
-        var llMeasurementleft = Limelighthelpers.getBotPoseEstimate_wpiBlue("limelight-left");
-        if (llMeasurementleft != null && llMeasurementleft.tagCount > 0 && Math.abs(omegaRps) < 2.0) {
-          m_robotContainer.drivetrain.addVisionMeasurement(llMeasurementleft.pose, llMeasurementleft.timestampSeconds);
-        }
-      
+      updateVision("limelight");
+      updateVision("limelight-left");
+
       SmartDashboard.putNumber("111 drive pose X", m_robotContainer.drivetrain.getState().Pose.getX());
       SmartDashboard.putNumber("111 drive pose Y",  m_robotContainer.drivetrain.getState().Pose.getY());
     }
-}
   }
+
+    /** Feeds one Limelight into the pose estimator.
+     *  Enabled: MegaTag2. It takes the heading from the Pigeon and only corrects X/Y, which keeps the
+     *  pose steady for shoot-on-the-move (MegaTag1 single-tag headings jump around).
+     *  Disabled: MegaTag1 with 2+ tags is allowed to fix the heading, so MegaTag2 starts the match
+     *  with a correct heading even if the robot was placed crooked. */
+    private void updateVision(String limelightName) {
+      var drivetrain = m_robotContainer.drivetrain;
+      var driveState = drivetrain.getState();
+
+      // Vision is unreliable while spinning fast
+      double omegaRps = Units.radiansToRotations(driveState.Speeds.omegaRadiansPerSecond);
+      if (Math.abs(omegaRps) >= 2.0) {
+        return;
+      }
+
+      Limelighthelpers.SetRobotOrientation(limelightName, driveState.Pose.getRotation().getDegrees(), 0, 0, 0, 0, 0);
+
+      if (DriverStation.isDisabled()) {
+        var mt1 = Limelighthelpers.getBotPoseEstimate_wpiBlue(limelightName);
+        if (mt1 != null && mt1.tagCount >= 2) {
+          drivetrain.addVisionMeasurement(mt1.pose, mt1.timestampSeconds, VecBuilder.fill(0.5, 0.5, 0.5));
+        }
+      } else {
+        var mt2 = Limelighthelpers.getBotPoseEstimate_wpiBlue_MegaTag2(limelightName);
+        if (mt2 != null && mt2.tagCount > 0) {
+          // Huge heading std dev = ignore vision heading, trust the Pigeon
+          drivetrain.addVisionMeasurement(mt2.pose, mt2.timestampSeconds, VecBuilder.fill(0.7, 0.7, 9999999));
+        }
+      }
+    }
 
     /* Used to be used for the intializing of the robot when disabled. No idea why it was commented out.
      * @Override

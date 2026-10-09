@@ -5,6 +5,7 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -41,7 +42,7 @@ public class EvilIntake extends SubsystemBase {
         // 1. Set to Coast Mode
         intakeConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 
-        // 2. Limit Torque to 5 Amps so it gives up when hit
+        // 2. Limit Torque to 40 Amps so it gives up when hit
         intakeConfig.CurrentLimits.StatorCurrentLimit = 40.0;
         intakeConfig.CurrentLimits.StatorCurrentLimitEnable = true;
 
@@ -54,7 +55,10 @@ public class EvilIntake extends SubsystemBase {
        // intakeConfig.Slot0.kD = 0;
        // intakeConfig.Slot0.kV = 1;
        // intakeConfig.Slot0.kG = 1.8;
-        intakeConfig.Slot0.kS = 15; 
+        // Volts to overcome friction. Was 15, which did nothing with the default sign setting
+        // (and would slam full power with the one below). UseClosedLoopSign makes it push toward the setpoint.
+        intakeConfig.Slot0.kS = 0.3; 
+        intakeConfig.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
         // pdvga......................................................!!
         
         // Apply configs to the intake motor

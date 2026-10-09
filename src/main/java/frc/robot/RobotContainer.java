@@ -13,7 +13,9 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
-import edu.wpi.first.math.MathUtil; // Added for safety clamp
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType; // Added for safety clamp
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap; // Added for Passing
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -73,6 +75,10 @@ public class RobotContainer {
     private final InterpolatingDoubleTreeMap m_passRpmMap = new InterpolatingDoubleTreeMap();
     private final InterpolatingDoubleTreeMap m_passHoodMap = new InterpolatingDoubleTreeMap();
 
+    // Each ball pulls the flywheel down, and with 2 brass flywheels removed it drops further.
+    // Keep feeding for a moment after "ready" goes false so the rollers don't stutter between balls.
+    private final Debouncer m_readyDebouncer = new Debouncer(0.15, DebounceType.kFalling);
+
     // EXPLANATION: This is the Constructor. It runs once when the robot boots up.
     public RobotContainer() {
         SmartDashboard.putData("Auton Selector", autonChooser);
@@ -87,7 +93,7 @@ public class RobotContainer {
 
     /** @return Whether the robot is on the red alliance or not. */
     public boolean onRedAlliance() { 
-        return DriverStation.getAlliance().get().equals(DriverStation.Alliance.Red);
+        return DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Red;
     }
 
     // EXPLANATION: This wires your physical Xbox controller to your robot's code commands.
@@ -208,8 +214,9 @@ public class RobotContainer {
 
     /** @return If the whole shooter is ready to shoot or not. */
     public boolean readyToShoot() {
-        return shooter.isShooterReady(1.5) &&
+        return m_readyDebouncer.calculate(
+            shooter.isShooterReady(1.5) &&
             turret.isTurretReady() &&
-            hood.atSetpoint();
+            hood.atSetpoint());
     }
 }

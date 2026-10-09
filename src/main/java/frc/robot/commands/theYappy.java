@@ -24,7 +24,7 @@ public class theYappy extends Command{
     @Override
     public void execute() {
         if (runCondition.getAsBoolean()) {
-            rollers.roll(30); 
+            rollers.roll(RollerSystem.kFeedSpeedRPS); 
         }
         else{ 
             rollers.rollerStop();

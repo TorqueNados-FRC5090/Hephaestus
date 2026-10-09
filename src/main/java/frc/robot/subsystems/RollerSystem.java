@@ -13,7 +13,10 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class RollerSystem extends SubsystemBase {
+    /** Feed speed in RPS while shooting. Krakens/Falcons top out around 100 RPS. */
+    public static final double kFeedSpeedRPS = 80;
     
+
     TalonFX rollerFloor; 
     TalonFX lowerBelt; 
     TalonFX upperBelt;
@@ -24,7 +27,9 @@ public class RollerSystem extends SubsystemBase {
         upperBelt = new TalonFX(22, canbus);
 
         Slot0Configs rollerConfig = new Slot0Configs();
-        rollerConfig.kP = 2;
+        rollerConfig.kP = 0.3;
+        // Volts per RPS. With only kP the rollers never reached their target speed.
+        rollerConfig.kV = 0.12;
         
         rollerFloor.getConfigurator().apply(rollerConfig);
         lowerBelt.getConfigurator().apply(rollerConfig);
