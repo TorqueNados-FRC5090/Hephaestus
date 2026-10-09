@@ -14,6 +14,7 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType; // Added for safety clamp
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap; // Added for Passing
@@ -60,7 +61,13 @@ public class RobotContainer {
     // --- SWERVE DRIVE VARIABLES END ---
 
     // --- TURRET VARIABLES START ---
-    public final Hood hood = new Hood(upper);
+    // Hood is held down whenever the robot is in, or about to drive into, a trench (a raised hood breaks there)
+    public final Hood hood = new Hood(upper, () -> {
+        var state = drivetrain.getState();
+        return FieldZones.robotHeadingIntoTrench(state.Pose,
+            ChassisSpeeds.fromRobotRelativeSpeeds(state.Speeds, state.Pose.getRotation()),
+            Hood.kTrenchReachMeters, Hood.kTrenchLookaheadSeconds);
+    });
     public final EvilIntake evilIntake = new EvilIntake(11, 12, upper);//spin ID should be set to 12
     public final Shooter shooter = new Shooter(upper);
     public final RollerSystem rollersystem = new RollerSystem(upper);
@@ -126,6 +133,8 @@ public class RobotContainer {
         // --- CONTINUOUS TRACKING ---
         // This makes the turret run passOrShoot() continuously whenever no other command is using it.
         turret.setDefaultCommand(turret.run(turret::passOrShoot));
+        // Hood sits down (safe for the trench) whenever nothing is shooting
+        hood.setDefaultCommand(hood.stowCommand());
 
         final var idle = new SwerveRequest.Idle();
         RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));

@@ -21,6 +21,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.FieldZones;
 
 public class Turret extends SubsystemBase {
 
@@ -71,12 +72,9 @@ public class Turret extends SubsystemBase {
     /** Keep pass landing spots this far from the side walls */
     private final double kPassSideMargin = 0.5;
 
-    // --- TRENCH (6328 field constants) ---
+    // --- TRENCH ---
     // The trench roof is 22in up, so a shot fired from under it hits the roof. Hold fire there.
     // Bumpers can already be in our zone while we're still under it on the way back in.
-    private final double kTrenchNearX = 4.03;   // from our wall
-    private final double kTrenchFarX = 5.22;
-    private final double kTrenchFromSideWall = 1.67;
     private final double kTrenchFireMargin = 0.30;
 
     // --- PHYSICAL TURRET OFFSET ---
@@ -219,7 +217,7 @@ public class Turret extends SubsystemBase {
         Translation2d globalTurretPos = robotPose.getTranslation()
             .plus(m_robotRelativeTurretOffset.rotateBy(robotPose.getRotation()));
 
-        m_underTrench = isUnderTrench(globalTurretPos);
+        m_underTrench = FieldZones.isNearTrench(globalTurretPos, kTrenchFireMargin);
         SmartDashboard.putBoolean("Turret/Under_Trench", m_underTrench);
 
         // 3. --- MODE ---
@@ -313,17 +311,6 @@ public class Turret extends SubsystemBase {
             best = new Translation2d(landingX, onUpperSide ? maxY : minY);
         }
         return best;
-    }
-
-    /** Checks all 4 trenches (both sides of both hubs) */
-    private boolean isUnderTrench(Translation2d turretPos) {
-        double x = turretPos.getX();
-        double y = turretPos.getY();
-        boolean nearSideWall = y >= kFieldWidth - kTrenchFromSideWall - kTrenchFireMargin
-            || y <= kTrenchFromSideWall + kTrenchFireMargin;
-        boolean inBlueTrenchX = x >= kTrenchNearX - kTrenchFireMargin && x <= kTrenchFarX + kTrenchFireMargin;
-        boolean inRedTrenchX = x >= kFieldLength - kTrenchFarX - kTrenchFireMargin && x <= kFieldLength - kTrenchNearX + kTrenchFireMargin;
-        return nearSideWall && (inBlueTrenchX || inRedTrenchX);
     }
 
     private boolean clearsBothHubs(Translation2d from, Translation2d to) {
