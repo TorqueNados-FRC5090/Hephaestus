@@ -148,6 +148,17 @@ public class RobotContainer {
         );
     }
 
+    /** Auton-only shoot: never passes. Spins the shooter + hood for the hub the whole time (so it's
+     *  already up to speed when the robot drives back into our zone) and only feeds while we're
+     *  legally in our alliance zone and everything is ready. Works while driving (shoot on the move). */
+    public Command autoShootCommand() {
+        return new ParallelCommandGroup(
+            shooter.shoot(() -> hubShooterRPS(turret.getHubShootingDistance())),
+            new theYappy(rollersystem, () -> !turret.isPassing() && readyToShoot()),
+            hood.hoodgo(() -> hubHoodAngle(turret.getHubShootingDistance()))
+        );
+    }
+
     /** Failsafe shoot that does not coordinate and instead sets everything to the minimum it can to shoot without an Apriltag. Should just shoot forward.  */
     public Command failsafeShoot() {
         return new ParallelCommandGroup(
@@ -172,11 +183,15 @@ public class RobotContainer {
         double targetDist = turret.getShootingDistance();
 
         // 2. Override if Passing
-        if (SmartDashboard.getString("Turret/Mode", "SHOOTING").equals("PASSING")) {
+        if (turret.isPassing()) {
             return m_passRpmMap.get(targetDist);
         }
         
-        // 3. New Equation 3/20/26 (For Hub Shooting)
+        return hubShooterRPS(targetDist);
+    }
+
+    /** New Equation 3/20/26 (For Hub Shooting) */
+    private double hubShooterRPS(double targetDist) {
         return (20.9 + 0.697 * targetDist + 0.243 * Math.pow(targetDist, 2));
     }
 
@@ -184,20 +199,24 @@ public class RobotContainer {
     public double calculateOptimalHoodAngle() {
         // 1. Get Virtual SOTM Distance
         double targetDist = turret.getShootingDistance();
-        double optimal = 0;
 
         // 2. Override if Passing
-        if (SmartDashboard.getString("Turret/Mode", "SHOOTING").equals("PASSING")) {
-            optimal = m_passHoodMap.get(targetDist);
+        if (turret.isPassing()) {
+            return clampHood(m_passHoodMap.get(targetDist));
         } 
-        // 3. New Equation 3/20/26 (For Hub Shooting)
-        else {
-            if (targetDist >= 2.2) {
-                optimal = (1 - (0.463 * targetDist));
-            } else {
-                optimal = 0;
-            }
+        return hubHoodAngle(targetDist);
+    }
+
+    /** New Equation 3/20/26 (For Hub Shooting) */
+    private double hubHoodAngle(double targetDist) {
+        double optimal = 0;
+        if (targetDist >= 2.2) {
+            optimal = (1 - (0.463 * targetDist));
         }
+        return clampHood(optimal);
+    }
+
+    private double clampHood(double optimal) {
 
         // --- NEW SAFETY LIMIT ---
         // Replace -3.0 with the absolute maximum negative value your hood can physically go.

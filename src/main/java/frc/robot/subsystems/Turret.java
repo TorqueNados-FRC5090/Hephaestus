@@ -49,6 +49,36 @@ public class Turret extends SubsystemBase {
     // behind when the robot spins. 0 = off. Raise if it still trails, lower if it overshoots.
     private final double kHeadingLeadSeconds = 0.10;
 
+    /** Horizontal ball speed used to guess time of flight for shoot-on-the-move (hub shots and passes) */
+    private final double kEstimatedShotSpeedMPS = 6.0;
+
+    // --- FIELD (2026 REBUILT, meters) ---
+    private final double kFieldLength = 16.54;
+    private final double kFieldWidth = 8.07;
+    /** Alliance zone line, measured from our own wall. G407: bumpers must be in this zone to shoot at the hub */
+    private final double kAllianceZoneDepth = 4.03;
+    /** Switch to hub shooting once the robot center is within this distance past the line (bumpers ~0.45m) */
+    private final double kEnterShootingMargin = 0.25;
+    /** Switch back to passing once the robot center is this far past the line. Gap = no flickering on the line */
+    private final double kExitShootingMargin = 0.40;
+
+    // --- PASSING ---
+    /** Where passes land, measured from our wall (in front of the tower, inside our alliance zone) */
+    private final double kPassLandingDepth = 2.0;
+    /** A pass's ground track must stay at least this far from the center of BOTH hubs so it never
+     *  clips a hub or the net on its back. Hub is 1.19m square (0.84m center-to-corner). */
+    private final double kHubClearanceMeters = 1.0;
+    /** Keep pass landing spots this far from the side walls */
+    private final double kPassSideMargin = 0.5;
+
+    // --- TRENCH (6328 field constants) ---
+    // The trench roof is 22in up, so a shot fired from under it hits the roof. Hold fire there.
+    // Bumpers can already be in our zone while we're still under it on the way back in.
+    private final double kTrenchNearX = 4.03;   // from our wall
+    private final double kTrenchFarX = 5.22;
+    private final double kTrenchFromSideWall = 1.67;
+    private final double kTrenchFireMargin = 0.30;
+
     // --- PHYSICAL TURRET OFFSET ---
     private final double kTurretOffsetXInches = -5; // Backwards
     private final double kTurretOffsetYInches = -6;  // Right
@@ -83,6 +113,12 @@ public class Turret extends SubsystemBase {
     private double m_targetMotorRotations = 0.0;
     /** False when the target is outside the turret's travel, so we don't fire while parked at the limit */
     private boolean m_targetReachable = false;
+    /** True when the robot is outside our alliance zone, so the turret aims a pass instead of a hub shot */
+    private boolean m_isPassing = false;
+    /** False when no pass lane clears both hubs (e.g. parked right behind one), so we hold fire */
+    private boolean m_passLaneClear = false;
+    /** True while the turret is under (or right at the edge of) a trench roof */
+    private boolean m_underTrench = false;
 
     public Turret(Supplier<Pose2d> poseSupplier, Supplier<ChassisSpeeds> velocitySupplier, CANBus canbus) {
         this.m_robotPoseSupplier = poseSupplier;
@@ -119,10 +155,20 @@ public class Turret extends SubsystemBase {
         return m_distanceToHubMeters;
     }
 
+    /** @return true when outside our alliance zone and aiming a pass instead of a hub shot */
+    public boolean isPassing() {
+        return m_isPassing;
+    }
+
     public double getShootingDistance() {
-        if (SmartDashboard.getString("Turret/Mode", "SHOOTING").equals("PASSING")) {
+        if (m_isPassing) {
             return m_distanceToPassTargetMeters;
         }
+        return getHubShootingDistance();
+    }
+
+    /** Distance for the hub formulas, valid in either mode (autos use it to pre-spin before entering the zone) */
+    public double getHubShootingDistance() {
         // Shooter/hood formulas expect distance to the hub's front tag, not its center
         return Math.max(0.0, m_virtualDistanceToHubMeters - kHubFaceToCenterMeters); 
     }
@@ -136,7 +182,7 @@ public class Turret extends SubsystemBase {
     }
 
     public boolean isTurretReady(){
-        if (m_targetMotorRotations == 0.0 || !m_targetReachable) {
+        if (m_targetMotorRotations == 0.0 || !m_targetReachable || m_underTrench || (m_isPassing && !m_passLaneClear)) {
             return false;
         }
         double currentpos = m_turretMotor.getPosition().refresh().getValueAsDouble();
@@ -162,11 +208,6 @@ public class Turret extends SubsystemBase {
         // 2. --- FIELD VARIABLES ---
         Pose2d robotPose = m_robotPoseSupplier.get();
         boolean isRed = isRedAlliance();
-        
-        double fieldLength = 16.54;
-        double fieldWidth = 8.07; 
-        double fieldMidpointX = fieldLength / 2.0; 
-        double hubCenterY = fieldWidth / 2.0; 
 
         // CTRE gives robot-relative speeds; SOTM math works in field coordinates, so rotate them.
         ChassisSpeeds robotRelativeSpeeds = m_robotVelocitySupplier.get();
@@ -175,102 +216,131 @@ public class Turret extends SubsystemBase {
         // Where the robot will be facing a moment from now, so the turret leads a spinning robot
         Rotation2d aimHeading = robotPose.getRotation()
             .plus(Rotation2d.fromRadians(robotRelativeSpeeds.omegaRadiansPerSecond * kHeadingLeadSeconds));
-        
-        boolean inOpponentOrMidZone = isRed ? (robotPose.getX() <= fieldMidpointX) : (robotPose.getX() >= fieldMidpointX);
 
         Translation2d globalTurretPos = robotPose.getTranslation()
             .plus(m_robotRelativeTurretOffset.rotateBy(robotPose.getRotation()));
 
-        // ==========================================================
-        // 3. --- CALCULATE MASTER TARGET BASED ON ZONE ---
-        // ==========================================================
-        if (inOpponentOrMidZone) {
-            // -----------------------------
-            // A. PASSING MODE CALCULATION
-            // -----------------------------
-            SmartDashboard.putString("Turret/Mode", "PASSING");
-            
-            double passTargetX = isRed ? fieldLength : 0.0;
-            double passTargetY = robotPose.getY();
-            double dangerZoneClearanceMeters = 1.5; 
+        m_underTrench = isUnderTrench(globalTurretPos);
+        SmartDashboard.putBoolean("Turret/Under_Trench", m_underTrench);
 
-            if (Math.abs(robotPose.getY() - hubCenterY) < dangerZoneClearanceMeters) {
-                passTargetY = (robotPose.getY() >= hubCenterY) 
-                    ? hubCenterY + dangerZoneClearanceMeters 
-                    : hubCenterY - dangerZoneClearanceMeters;
-            }
-            
-            passTargetY = MathUtil.clamp(passTargetY, 0.5, fieldWidth - 0.5);
-            Translation2d passTarget = new Translation2d(passTargetX, passTargetY);
-            Translation2d turretToPassTarget = passTarget.minus(globalTurretPos);
-            
-            m_distanceToPassTargetMeters = turretToPassTarget.getNorm();
-            SmartDashboard.putNumber("Turret/Pass_Distance_Meters", m_distanceToPassTargetMeters);
-            SmartDashboard.putNumber("Turret/Pass_Target_Y", passTargetY);
+        // 3. --- MODE ---
+        // G407: we may only shoot at our hub with bumpers in our alliance zone. Anywhere else we pass.
+        double depthFromOurWall = isRed ? kFieldLength - robotPose.getX() : robotPose.getX();
+        double shootingLimit = kAllianceZoneDepth + (m_isPassing ? kEnterShootingMargin : kExitShootingMargin);
+        m_isPassing = depthFromOurWall > shootingLimit;
+        SmartDashboard.putString("Turret/Mode", m_isPassing ? "PASSING" : "SHOOTING");
 
-            Rotation2d turretSetpoint = turretToPassTarget.getAngle()
-                .minus(aimHeading)
-                .minus(kTurretZeroOffset); 
-            double desiredTurretRotations = turretSetpoint.getRadians() / (2 * Math.PI);
+        // 4. --- HUB TARGET (always computed so autos can spin up before entering the zone) ---
+        Translation2d targetCorrectionOffset = new Translation2d(
+            Units.inchesToMeters(kTargetCenterOffsetXInches), 
+            Units.inchesToMeters(kTargetCenterOffsetYInches)
+        );
+        Translation2d hubTarget = isRed 
+            ? kRedTargetCenter.plus(targetCorrectionOffset) 
+            : kBlueTargetCenter.minus(targetCorrectionOffset);
+        Translation2d virtualHubTarget = leadTarget(hubTarget, globalTurretPos, fieldSpeeds);
 
-            // APPLY DIRECTION FIX
-            desiredTurretRotations *= kTurretDirectionMultiplier;
+        m_distanceToHubMeters = hubTarget.minus(globalTurretPos).getNorm();
+        m_virtualDistanceToHubMeters = virtualHubTarget.minus(globalTurretPos).getNorm();
+        SmartDashboard.putNumber("Turret/Distance_To_Hub_Meters", m_distanceToHubMeters);
+        SmartDashboard.putNumber("Turret/Virtual_Distance_Meters", m_virtualDistanceToHubMeters);
 
-            desiredTurretRotations = Math.IEEEremainder(desiredTurretRotations, 1.0);
-            m_targetReachable = Math.abs(desiredTurretRotations) <= kMaxTurretRotations;
-            desiredTurretRotations = MathUtil.clamp(desiredTurretRotations, -kMaxTurretRotations, kMaxTurretRotations);
-            
-            m_targetMotorRotations = desiredTurretRotations * kTurretGearRatio;
+        // 5. --- PASS TARGET (middle and full field) ---
+        Translation2d passTarget = choosePassTarget(globalTurretPos, isRed);
+        Translation2d virtualPassTarget = leadTarget(passTarget, globalTurretPos, fieldSpeeds);
 
-        } else {
-            // -----------------------------
-            // B. SHOOTING MODE CALCULATION
-            // -----------------------------
-            SmartDashboard.putString("Turret/Mode", "SHOOTING");
+        m_distanceToPassTargetMeters = virtualPassTarget.minus(globalTurretPos).getNorm();
+        SmartDashboard.putNumber("Turret/Pass_Distance_Meters", m_distanceToPassTargetMeters);
+        SmartDashboard.putNumber("Turret/Pass_Target_Y", passTarget.getY());
+        SmartDashboard.putBoolean("Turret/Pass_Lane_Clear", m_passLaneClear);
 
-            Translation2d rawTargetTranslation = isRed ? kRedTargetCenter : kBlueTargetCenter;
-            Translation2d targetCorrectionOffset = new Translation2d(
-                Units.inchesToMeters(kTargetCenterOffsetXInches), 
-                Units.inchesToMeters(kTargetCenterOffsetYInches)
-            );
+        // 6. --- TURRET SETPOINT ---
+        Translation2d aimPoint = m_isPassing ? virtualPassTarget : virtualHubTarget;
+        Rotation2d turretSetpoint = aimPoint.minus(globalTurretPos).getAngle()
+            .minus(aimHeading)
+            .minus(kTurretZeroOffset); 
+        double desiredTurretRotations = turretSetpoint.getRadians() / (2 * Math.PI);
 
-            Translation2d finalTargetTranslation = isRed 
-                ? rawTargetTranslation.plus(targetCorrectionOffset) 
-                : rawTargetTranslation.minus(targetCorrectionOffset);
-                
-            Translation2d turretToTarget = finalTargetTranslation.minus(globalTurretPos);
-            m_distanceToHubMeters = turretToTarget.getNorm();
-            SmartDashboard.putNumber("Turret/Distance_To_Hub_Meters", m_distanceToHubMeters);
+        // APPLY DIRECTION FIX
+        desiredTurretRotations *= kTurretDirectionMultiplier;
 
-            double robotVelX = fieldSpeeds.vxMetersPerSecond;
-            double robotVelY = fieldSpeeds.vyMetersPerSecond;
-            double kEstimatedShotSpeedMPS = 6.0; 
-
-            double timeOfFlight = m_distanceToHubMeters / kEstimatedShotSpeedMPS;
-            Translation2d inheritedVelocityOffset = new Translation2d(robotVelX * timeOfFlight, robotVelY * timeOfFlight);
-            Translation2d virtualTargetTranslation = finalTargetTranslation.minus(inheritedVelocityOffset);
-            Translation2d turretToVirtualTarget = virtualTargetTranslation.minus(globalTurretPos);
-            
-            m_virtualDistanceToHubMeters = turretToVirtualTarget.getNorm();
-            SmartDashboard.putNumber("Turret/Virtual_Distance_Meters", m_virtualDistanceToHubMeters);
-
-            Rotation2d turretSetpoint = turretToVirtualTarget.getAngle()
-                .minus(aimHeading)
-                .minus(kTurretZeroOffset); 
-            double desiredTurretRotations = turretSetpoint.getRadians() / (2 * Math.PI);
-
-            // APPLY DIRECTION FIX
-            desiredTurretRotations *= kTurretDirectionMultiplier;
-
-            desiredTurretRotations = Math.IEEEremainder(desiredTurretRotations, 1.0);
-            m_targetReachable = Math.abs(desiredTurretRotations) <= kMaxTurretRotations;
-            desiredTurretRotations = MathUtil.clamp(desiredTurretRotations, -kMaxTurretRotations, kMaxTurretRotations);
-            
-            m_targetMotorRotations = desiredTurretRotations * kTurretGearRatio;
-        }
+        desiredTurretRotations = Math.IEEEremainder(desiredTurretRotations, 1.0);
+        m_targetReachable = Math.abs(desiredTurretRotations) <= kMaxTurretRotations;
+        desiredTurretRotations = MathUtil.clamp(desiredTurretRotations, -kMaxTurretRotations, kMaxTurretRotations);
+        
+        m_targetMotorRotations = desiredTurretRotations * kTurretGearRatio;
 
         SmartDashboard.putNumber("Turret/Target_Motor_Rots", m_targetMotorRotations);
         SmartDashboard.putNumber("Turret/Target_Turret_Rots", m_targetMotorRotations / kTurretGearRatio);
         SmartDashboard.putBoolean("Turret/Target_Reachable", m_targetReachable);
+    }
+
+    /** Shoot-on-the-move: the ball keeps the robot's velocity, so aim at a point shifted against it */
+    private Translation2d leadTarget(Translation2d target, Translation2d turretPos, ChassisSpeeds fieldSpeeds) {
+        double timeOfFlight = target.minus(turretPos).getNorm() / kEstimatedShotSpeedMPS;
+        return target.minus(new Translation2d(
+            fieldSpeeds.vxMetersPerSecond * timeOfFlight,
+            fieldSpeeds.vyMetersPerSecond * timeOfFlight));
+    }
+
+    /** Picks a landing spot in our alliance zone whose straight-line ground track clears both hubs
+     *  (and the nets on their backs). Prefers passing straight down the robot's own lane. */
+    private Translation2d choosePassTarget(Translation2d turretPos, boolean isRed) {
+        double landingX = isRed ? kFieldLength - kPassLandingDepth : kPassLandingDepth;
+        double minY = kPassSideMargin;
+        double maxY = kFieldWidth - kPassSideMargin;
+        double preferredY = MathUtil.clamp(turretPos.getY(), minY, maxY);
+        double hubY = kBlueTargetCenter.getY();
+        boolean onUpperSide = turretPos.getY() >= hubY;
+
+        Translation2d best = null;
+        double bestCost = Double.MAX_VALUE;
+        for (double y = minY; y <= maxY + 1e-9; y += 0.05) {
+            Translation2d candidate = new Translation2d(landingX, y);
+            if (!clearsBothHubs(turretPos, candidate)) {
+                continue;
+            }
+            // Tiny penalty for crossing to the other side of the hubs, so a centered robot doesn't flip-flop
+            double cost = Math.abs(y - preferredY) + ((y >= hubY) == onUpperSide ? 0.0 : 0.01);
+            if (cost < bestCost) {
+                bestCost = cost;
+                best = candidate;
+            }
+        }
+
+        m_passLaneClear = best != null;
+        if (best == null) {
+            // No clear lane (robot is tucked right behind a hub). Aim down our side anyway but hold fire.
+            best = new Translation2d(landingX, onUpperSide ? maxY : minY);
+        }
+        return best;
+    }
+
+    /** Checks all 4 trenches (both sides of both hubs) */
+    private boolean isUnderTrench(Translation2d turretPos) {
+        double x = turretPos.getX();
+        double y = turretPos.getY();
+        boolean nearSideWall = y >= kFieldWidth - kTrenchFromSideWall - kTrenchFireMargin
+            || y <= kTrenchFromSideWall + kTrenchFireMargin;
+        boolean inBlueTrenchX = x >= kTrenchNearX - kTrenchFireMargin && x <= kTrenchFarX + kTrenchFireMargin;
+        boolean inRedTrenchX = x >= kFieldLength - kTrenchFarX - kTrenchFireMargin && x <= kFieldLength - kTrenchNearX + kTrenchFireMargin;
+        return nearSideWall && (inBlueTrenchX || inRedTrenchX);
+    }
+
+    private boolean clearsBothHubs(Translation2d from, Translation2d to) {
+        return distanceToSegment(kBlueTargetCenter, from, to) >= kHubClearanceMeters
+            && distanceToSegment(kRedTargetCenter, from, to) >= kHubClearanceMeters;
+    }
+
+    /** Shortest distance from point p to the line segment a-b */
+    private static double distanceToSegment(Translation2d p, Translation2d a, Translation2d b) {
+        Translation2d ab = b.minus(a);
+        double lengthSquared = ab.getX() * ab.getX() + ab.getY() * ab.getY();
+        double t = 0.0;
+        if (lengthSquared > 0.0) {
+            Translation2d ap = p.minus(a);
+            t = MathUtil.clamp((ap.getX() * ab.getX() + ap.getY() * ab.getY()) / lengthSquared, 0.0, 1.0);
+        }
+        return p.getDistance(a.plus(ab.times(t)));
     }
 }

@@ -48,10 +48,21 @@ public class AutonContainer{
     }
 
     private void registerNamedCommands() {
-        NamedCommands.registerCommand("DropIntake", robotContainer.evilIntake.evilestyummy(EvilIntakePosition.out));
-        NamedCommands.registerCommand("RaiseIntake", robotContainer.evilIntake.evilestyummy(EvilIntakePosition.in));
+        // DropIntake/RaiseIntake finish instantly (they used to run forever and froze any auto that used them in a row).
+        // The pivot holds its position after they end.
+        NamedCommands.registerCommand("DropIntake", robotContainer.evilIntake.runOnce(() -> robotContainer.evilIntake.evilyummy(EvilIntakePosition.out)));
+        NamedCommands.registerCommand("RaiseIntake", robotContainer.evilIntake.runOnce(() -> {
+            robotContainer.evilIntake.evilyummy(EvilIntakePosition.in);
+            robotContainer.evilIntake.evileryummy(0);
+        }));
+        // Never ends on its own: only use it inside a deadline group with a path as the deadline
         NamedCommands.registerCommand("DriveIntake", new EvilIntakePiece(robotContainer.evilIntake, EvilIntakePosition.out));
-        NamedCommands.registerCommand("Shoot", robotContainer.fullShootCommand().withTimeout(5));
+        // Stand-still shoot. Hub only, never passes.
+        NamedCommands.registerCommand("Shoot", robotContainer.autoShootCommand().withTimeout(5));
+        // Short stand-still shoot to empty whatever is left after shooting on the move
+        NamedCommands.registerCommand("ShootFinish", robotContainer.autoShootCommand().withTimeout(1.5));
+        // Never ends on its own: put it in a deadline group with a path to shoot while driving
+        NamedCommands.registerCommand("ShootOnMove", robotContainer.autoShootCommand());
     }
 
     public SendableChooser<Command> buildAutonChooser() {
@@ -64,6 +75,8 @@ public class AutonContainer{
          chooser.addOption("Center Preload", AutoBuilder.buildAuto("Simple Center"));
           chooser.addOption("Left Preload", AutoBuilder.buildAuto("Trench Preload Left"));
            chooser.addOption("Right Preload", AutoBuilder.buildAuto("Trench Preload Right"));
+        chooser.addOption("Left Double Swipe (SOTM)", AutoBuilder.buildAuto("Left Double Swipe"));
+        chooser.addOption("Right Double Swipe (SOTM)", AutoBuilder.buildAuto("Right Double Swipe"));
 
         return chooser;
     }

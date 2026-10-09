@@ -3,57 +3,73 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 7.776,
-        "y": 4.938
+        "x": 7.65,
+        "y": 3.4700000000000006
       },
       "prevControl": null,
       "nextControl": {
-        "x": 8.611,
-        "y": 4.938
+        "x": 7.65,
+        "y": 2.6240685606977365
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 7.273674242424242,
-        "y": 6.966717171717172
+        "x": 7.4,
+        "y": 1.37
       },
       "prevControl": {
-        "x": 7.673659876605074,
-        "y": 6.8032010319577125
+        "x": 7.844909771047379,
+        "y": 2.089482658322332
       },
       "nextControl": {
-        "x": 5.45280303030303,
-        "y": 7.711098484848485
+        "x": 7.049049739151118,
+        "y": 0.8024632924558084
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 2.944810606060606,
-        "y": 7.205201421800948
+        "x": 5.9,
+        "y": 0.6400000000000006
       },
       "prevControl": {
-        "x": 3.746452020202021,
-        "y": 7.47060606060606
+        "x": 6.567281050232959,
+        "y": 0.6400000000000006
       },
       "nextControl": {
-        "x": 2.51820721326842,
-        "y": 7.0639630608832915
+        "x": 4.92,
+        "y": 0.6400000000000006
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 2.174,
-        "y": 6.13
+        "x": 3.45,
+        "y": 0.6400000000000006
       },
       "prevControl": {
-        "x": 2.039643735274219,
-        "y": 6.5433042025334185
+        "x": 4.430000000000001,
+        "y": 0.6400000000000006
+      },
+      "nextControl": {
+        "x": 2.915823999041515,
+        "y": 0.6400000000000006
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 2.6,
+        "y": 1.67
+      },
+      "prevControl": {
+        "x": 2.94,
+        "y": 1.258
       },
       "nextControl": null,
       "isLocked": false,
@@ -62,11 +78,11 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 1.2103158736505368,
+      "waypointRelativePos": 2.0,
       "rotationDegrees": 0.0
     },
     {
-      "waypointRelativePos": 1.5701719312275113,
+      "waypointRelativePos": 3.0,
       "rotationDegrees": 0.0
     }
   ],
@@ -77,9 +93,9 @@
         "x": 4.625,
         "y": 4.035
       },
-      "rotationOffset": 90.0,
-      "minWaypointRelativePos": 1.9,
-      "maxWaypointRelativePos": 3.0,
+      "rotationOffset": -90,
+      "minWaypointRelativePos": 3.05,
+      "maxWaypointRelativePos": 4.0,
       "name": "Aim hub on robot's side"
     }
   ],
@@ -94,13 +110,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 49.48
+    "rotation": -40.57135433444989
   },
   "reversed": false,
-  "folder": null,
+  "folder": "Right",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 85.0949706789184
+    "rotation": 90
   },
   "useDefaultConstraints": true
 }

@@ -5,7 +5,7 @@
     "data": {
       "commands": [
         {
-          "type": "parallel",
+          "type": "deadline",
           "data": {
             "commands": [
               {
@@ -24,9 +24,22 @@
           }
         },
         {
-          "type": "path",
+          "type": "deadline",
           "data": {
-            "pathName": "Left Ballpit to Shoot"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Left Ballpit to Shoot"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "ShootOnMove"
+                }
+              }
+            ]
           }
         },
         {

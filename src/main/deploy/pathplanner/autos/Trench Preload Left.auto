@@ -5,15 +5,22 @@
     "data": {
       "commands": [
         {
-          "type": "named",
+          "type": "deadline",
           "data": {
-            "name": "DriveIntake"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Left Trench to Center"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Left Trench to Center"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "DriveIntake"
+                }
+              }
+            ]
           }
         },
         {
