@@ -80,6 +80,7 @@ public class AutonContainer{
           chooser.addOption("Left Preload", AutoBuilder.buildAuto("Trench Preload Left"));
            chooser.addOption("Right Preload", AutoBuilder.buildAuto("Trench Preload Right"));
         chooser.addOption("Center Depot", AutoBuilder.buildAuto("Center with Depot"));
+        chooser.addOption("Center Depot + Trench", AutoBuilder.buildAuto("Center Depot Trench"));
         chooser.addOption("Left Double Swipe (SOTM)", AutoBuilder.buildAuto("Left Double Swipe"));
         chooser.addOption("Right Double Swipe (SOTM)", AutoBuilder.buildAuto("Right Double Swipe"));
 
