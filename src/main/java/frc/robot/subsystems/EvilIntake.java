@@ -23,6 +23,8 @@ public class EvilIntake extends SubsystemBase {
      // --- AUTO AGITATE (rack and pinion) ---
      /** Roller power while intaking. Negative = pulls fuel in (same as EvilIntakePiece). */
      private static final double kRollerIntakeSpeed = -1.0;
+     /** Roller power while ejecting (spits fuel back out the intake) */
+     private static final double kRollerEjectSpeed = 1.0;
      /** How far in the rack slides during agitate, in motor rotations (out = 17, fully in = 0.36).
       *  Only part way: pulling it all the way in with fuel inside jams or breaks it. */
      private static final double kAgitateInRotations = 10.0;
@@ -122,6 +124,18 @@ public class EvilIntake extends SubsystemBase {
                 intakeMotor.setControl(rotationRequest.withPosition(out));
                 spinMotor.setControl(spinRequest.withOutput(0));
             });
+    }
+
+    /** Intake out with the wheels spinning backwards to spit fuel out. Pulls back in and stops when released,
+     *  same as the intake button. */
+    public Command eject() {
+        return run(() -> {
+            evilyummy(EvilIntakePosition.out);
+            spinMotor.setControl(spinRequest.withOutput(kRollerEjectSpeed));
+        }).finallyDo(() -> {
+            evilyummy(EvilIntakePosition.in);
+            spinMotor.setControl(spinRequest.withOutput(0));
+        });
     }
 
     public double getAngle(){

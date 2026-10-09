@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
@@ -136,6 +137,8 @@ public class RobotContainer {
         joystick.leftBumper().whileTrue(new EvilIntakePiece(evilIntake, EvilIntakePosition.out));
         // Unjam: floor + lower + upper tunnel all spin backwards while held
         joystick.rightBumper().whileTrue(rollersystem.otherUnjam());
+        // Eject: everything backwards like unjam, plus the intake goes out with its wheels reversed to spit fuel out
+        joystick.leftTrigger().whileTrue(Commands.parallel(rollersystem.otherUnjam(), evilIntake.eject()));
         joystick.start().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric)); 
         
         // This will fire the shooter, move the hood, and slow the chassis
