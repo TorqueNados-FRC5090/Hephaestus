@@ -4,12 +4,12 @@
     {
       "anchor": {
         "x": 3.3,
-        "y": 7.43
+        "y": 7.52
       },
       "prevControl": null,
       "nextControl": {
         "x": 4.28,
-        "y": 7.43
+        "y": 7.52
       },
       "isLocked": false,
       "linkedName": null
@@ -17,31 +17,31 @@
     {
       "anchor": {
         "x": 5.75,
-        "y": 7.43
+        "y": 7.52
       },
       "prevControl": {
         "x": 4.77,
-        "y": 7.43
+        "y": 7.52
       },
       "nextControl": {
-        "x": 6.204030835957207,
-        "y": 7.43
+        "x": 6.173962262471555,
+        "y": 7.52
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 6.85,
-        "y": 7.15
+        "x": 6.7,
+        "y": 7.05
       },
       "prevControl": {
-        "x": 6.459768588995551,
-        "y": 7.382084997071067
+        "x": 6.360401706011821,
+        "y": 7.303805040770112
       },
       "nextControl": {
-        "x": 7.251296268718513,
-        "y": 6.911334324393726
+        "x": 7.130464055740449,
+        "y": 6.728284758341349
       },
       "isLocked": false,
       "linkedName": null
@@ -49,15 +49,15 @@
     {
       "anchor": {
         "x": 7.65,
-        "y": 6.3
+        "y": 6.1
       },
       "prevControl": {
-        "x": 7.5023517693976665,
-        "y": 6.742944691807002
+        "x": 7.444841652577435,
+        "y": 6.596699156917788
       },
       "nextControl": {
-        "x": 7.84606121493044,
-        "y": 5.711816355208681
+        "x": 7.856150483386688,
+        "y": 5.600898829695386
       },
       "isLocked": false,
       "linkedName": null
@@ -69,7 +69,7 @@
       },
       "prevControl": {
         "x": 7.65,
-        "y": 5.37
+        "y": 5.29
       },
       "nextControl": null,
       "isLocked": false,
@@ -82,7 +82,11 @@
       "rotationDegrees": 0.0
     },
     {
-      "waypointRelativePos": 2.0,
+      "waypointRelativePos": 1.45,
+      "rotationDegrees": 0.0
+    },
+    {
+      "waypointRelativePos": 2.4,
       "rotationDegrees": -90.0
     }
   ],
