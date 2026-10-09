@@ -43,7 +43,9 @@ public class RobotContainer {
     // --- EXTRA VARIABLES START ---
     public final CANBus upper = new CANBus("Upper");
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); 
-    private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); 
+    // 0.43 keeps the same spin feel as before kSpeedAt12Volts was corrected (it was 0.75 with a 2x-too-high
+    // top speed, which really gave ~0.43 rot/s). Raise it if the drivers want faster turning.
+    private double MaxAngularRate = RotationsPerSecond.of(0.43).in(RadiansPerSecond); 
     // --- EXTRA VARIABLES END ---
 
     // --- SWERVE DRIVE VARIABLES START ---

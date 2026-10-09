@@ -83,13 +83,17 @@ public class TunerConstants {
 
     // Theoretical free speed (m/s) at 12 V applied output;
     // This needs to be tuned to your individual robot
-    public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(10.24);
+    // MK5n R3: 96.7 rps (Kraken X60) / 5.273 * (pi * 4in wheel) = 5.85 m/s.
+    // Was 10.24 (about 2x too high). In auto, PathPlanner speeds are turned into voltage using this
+    // number, so the robot only drove about half the speed the path asked for.
+    public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.85);
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
-    private static final double kCoupleRatio = 3.857142857142857;
+    // MK5n R3 (16T drive pinion): first stage 54/16, second 25/16. Was R2 (54/14 * 25/16).
+    private static final double kCoupleRatio = 54.0 / 16.0;
 
-    private static final double kDriveGearRatio = 6.026785714285714;
+    private static final double kDriveGearRatio = (54.0 / 16.0) * (25.0 / 16.0);
     private static final double kSteerGearRatio = 26.09090909090909;
     private static final Distance kWheelRadius = Inches.of(2);
 

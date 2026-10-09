@@ -65,9 +65,8 @@ public class AutonContainer{
         NamedCommands.registerCommand("ShootOnMove", robotContainer.autoShootCommand());
         // Shooter + hood up to hub speed without feeding (e.g. while crossing the bump on the way back)
         NamedCommands.registerCommand("SpinUp", robotContainer.spinUpCommand());
-        // Never end on their own: use in deadline groups. Rollers spin in both.
+        // Never ends on its own: use in a deadline group. Intake wheels spin the whole time.
         NamedCommands.registerCommand("IntakeAgitate", robotContainer.evilIntake.agitate());
-        NamedCommands.registerCommand("IntakeStowSpin", robotContainer.evilIntake.stowSpinning());
     }
 
     public SendableChooser<Command> buildAutonChooser() {

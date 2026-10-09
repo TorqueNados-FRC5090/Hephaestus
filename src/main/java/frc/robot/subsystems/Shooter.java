@@ -109,5 +109,8 @@ public class Shooter extends SubsystemBase {
         SmartDashboard.putNumber("Shooter/Velocity_RPS", leadShoot.getVelocity().getValueAsDouble());
         SmartDashboard.putNumber("Shooter/Target_Velocity_RPS", setpoint); 
         SmartDashboard.putBoolean("Shooter/Ready", isShooterReady(2)); 
+        // CTRE motor commands ask for FOC by default; it only runs if the device/CANivore has a Phoenix Pro
+        // license. Without one the motor quietly uses normal commutation and sets this fault.
+        SmartDashboard.putBoolean("FOC Unlicensed", leadShoot.getStickyFault_UnlicensedFeatureInUse().getValue()); 
     }   
 }

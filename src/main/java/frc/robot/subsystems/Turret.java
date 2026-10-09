@@ -92,10 +92,8 @@ public class Turret extends SubsystemBase {
     private final double kTurretDirectionMultiplier = 1.0; 
 
     // Which way the turret points at 0 motor rotations: 0 = robot front, 180 = robot back.
-    // 0 matches the code since the June upgrade and the autos (they shoot with the intake facing
-    // the field center, hub ahead-right). CHECK: power on, the shooter should point out the front.
-    // If it points out the back, set this to 180.
-    private final Rotation2d kTurretZeroOffset = Rotation2d.fromDegrees(0);
+    // The turret faces the BACK of the robot, away from the intake.
+    private final Rotation2d kTurretZeroOffset = Rotation2d.fromDegrees(180);
 
     // --- TARGET OFFSET CORRECTION ---
     private final double kTargetCenterOffsetXInches = 0.0; 
