@@ -91,10 +91,11 @@ public class Turret extends SubsystemBase {
     // NEW: Flips the direction if the turret is mirroring the target (turns left when target is right)
     private final double kTurretDirectionMultiplier = 1.0; 
 
-    // Turret zero faces the BACK of the robot, so this is 180 (same as the March code that aimed at tag 26/10).
-    // It was set to 0 while the target was the alliance wall; the two mistakes cancelled out on the
-    // field centerline only, which is why off-center shots missed.
-    private final Rotation2d kTurretZeroOffset = Rotation2d.fromDegrees(180);
+    // Which way the turret points at 0 motor rotations: 0 = robot front, 180 = robot back.
+    // 0 matches the code since the June upgrade and the autos (they shoot with the intake facing
+    // the field center, hub ahead-right). CHECK: power on, the shooter should point out the front.
+    // If it points out the back, set this to 180.
+    private final Rotation2d kTurretZeroOffset = Rotation2d.fromDegrees(0);
 
     // --- TARGET OFFSET CORRECTION ---
     private final double kTargetCenterOffsetXInches = 0.0; 

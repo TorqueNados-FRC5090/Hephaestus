@@ -11,7 +11,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Left Swipe Out 1"
+                  "pathName": "Left Swipe Out"
                 }
               },
               {
@@ -30,13 +30,32 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Left Swipe Return"
+                  "pathName": "Left Bump Return"
                 }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "DriveIntake"
+                  "name": "IntakeStowSpin"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SpinUp"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "deadline",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Left Shoot Walk"
                 }
               },
               {
@@ -44,6 +63,12 @@
                 "data": {
                   "name": "ShootOnMove"
                 }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeAgitate"
+                }
               }
             ]
           }
@@ -53,9 +78,9 @@
           "data": {
             "commands": [
               {
-                "type": "named",
+                "type": "path",
                 "data": {
-                  "name": "ShootFinish"
+                  "pathName": "Left Swipe Out"
                 }
               },
               {
@@ -74,13 +99,19 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Left Swipe Out 2"
+                  "pathName": "Left Bump Return"
                 }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "DriveIntake"
+                  "name": "IntakeStowSpin"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SpinUp"
                 }
               }
             ]
@@ -93,13 +124,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Left Swipe Return"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "DriveIntake"
+                  "pathName": "Left Shoot Walk"
                 }
               },
               {
@@ -107,6 +132,12 @@
                 "data": {
                   "name": "ShootOnMove"
                 }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeAgitate"
+                }
               }
             ]
           }
@@ -116,9 +147,9 @@
           "data": {
             "commands": [
               {
-                "type": "named",
+                "type": "path",
                 "data": {
-                  "name": "Shoot"
+                  "pathName": "Left Trench Exit"
                 }
               },
               {

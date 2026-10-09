@@ -18,6 +18,8 @@ import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType; // Added for safety clamp
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap; // Added for Passing
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -74,6 +76,13 @@ public class RobotContainer {
     // --- PASSING INTERPOLATION MAPS ---
     private final InterpolatingDoubleTreeMap m_passRpmMap = new InterpolatingDoubleTreeMap();
     private final InterpolatingDoubleTreeMap m_passHoodMap = new InterpolatingDoubleTreeMap();
+
+    // --- BROWNOUT RUMBLE ---
+    /** Battery voltage where the controller starts to rumble. Full rumble at the brownout voltage (6.75V). */
+    private static final double kRumbleStartVolts = 7.5;
+    /** How fast the rumble fades after a dip (per 20ms loop). Dips last milliseconds, so this lets the driver feel them. */
+    private static final double kRumbleDecayPerLoop = 0.03;
+    private double m_brownoutRumble = 0.0;
 
     // Each ball pulls the flywheel down, and with 2 brass flywheels removed it drops further.
     // Keep feeding for a moment after "ready" goes false so the rollers don't stutter between balls.
@@ -159,6 +168,14 @@ public class RobotContainer {
         );
     }
 
+    /** Gets the shooter and hood to hub speed/angle without feeding anything */
+    public Command spinUpCommand() {
+        return new ParallelCommandGroup(
+            shooter.shoot(() -> hubShooterRPS(turret.getHubShootingDistance())),
+            hood.hoodgo(() -> hubHoodAngle(turret.getHubShootingDistance()))
+        );
+    }
+
     /** Failsafe shoot that does not coordinate and instead sets everything to the minimum it can to shoot without an Apriltag. Should just shoot forward.  */
     public Command failsafeShoot() {
         return new ParallelCommandGroup(
@@ -229,6 +246,23 @@ public class RobotContainer {
 
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
         return optimal;
+    }
+
+    /** Rumbles the driver controller harder the closer the battery gets to browning out. Call every loop. */
+    public void updateBrownoutRumble() {
+        double target = 0.0;
+        if (DriverStation.isEnabled()) {
+            if (RobotController.isBrownedOut()) {
+                target = 1.0;
+            } else {
+                double volts = RobotController.getBatteryVoltage();
+                double brownoutVolts = RobotController.getBrownoutVoltage();
+                target = MathUtil.clamp((kRumbleStartVolts - volts) / (kRumbleStartVolts - brownoutVolts), 0.0, 1.0);
+            }
+        }
+        m_brownoutRumble = Math.max(target, m_brownoutRumble - kRumbleDecayPerLoop);
+        joystick.getHID().setRumble(RumbleType.kBothRumble, m_brownoutRumble);
+        SmartDashboard.putNumber("Brownout Rumble", m_brownoutRumble);
     }
 
     /** @return If the whole shooter is ready to shoot or not. */

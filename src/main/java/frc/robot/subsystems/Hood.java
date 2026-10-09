@@ -17,12 +17,24 @@ public class Hood extends SubsystemBase {
 
     private double setpoint = 0.0;
 
+    // --- SOFT LIMITS (PLACEHOLDERS, in motor rotations) ---
+    // TODO: replace with the real numbers. Move the hood by hand to each hard stop with the robot
+    // disabled, read "Hood Angle" on the dashboard, and put those values here minus a little margin.
+    // The hood encoder zeroes wherever the hood is at power-on, so always boot with it at rest.
+    // The aiming code already clamps to -2.77 .. -0.13, so these sit just outside that.
+    private static final double kHoodForwardSoftLimit = 0.10;   // rest end (hood fully down)
+    private static final double kHoodReverseSoftLimit = -2.90;  // most extended
+
     public Hood(CANBus canbus){
         hood = new TalonFX(20, canbus);
 
         // --- HOOD CONFIG ---
         TalonFXConfiguration hoodConfig = new TalonFXConfiguration();
         hoodConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        hoodConfig.SoftwareLimitSwitch.ForwardSoftLimitThreshold = kHoodForwardSoftLimit;
+        hoodConfig.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
+        hoodConfig.SoftwareLimitSwitch.ReverseSoftLimitThreshold = kHoodReverseSoftLimit;
+        hoodConfig.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
         hood.getConfigurator().apply(hoodConfig);
 
         Slot0Configs hoodPID = new Slot0Configs();

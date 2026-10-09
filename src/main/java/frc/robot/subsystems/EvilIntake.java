@@ -7,6 +7,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -17,6 +18,14 @@ public class EvilIntake extends SubsystemBase {
      TalonFX intakeMotor;
      TalonFX spinMotor;
      EvilIntakePosition pos = EvilIntakePosition.in;
+
+     // --- AUTO AGITATE (rack and pinion) ---
+     /** Roller power while intaking. Negative = pulls fuel in (same as EvilIntakePiece). */
+     private static final double kRollerIntakeSpeed = -1.0;
+     /** How far in the rack slides during agitate, in motor rotations (out = 17, fully in = 0.36) */
+     private static final double kAgitateInRotations = 6.0;
+     /** Seconds for one full out -> in -> out cycle. Bigger = slower */
+     private static final double kAgitatePeriodSeconds = 2.0;
 
      // Define the control request once up here to save Garbage Collection overhead!
      final PositionVoltage rotationRequest = new PositionVoltage(0).withSlot(0);
@@ -93,6 +102,33 @@ public class EvilIntake extends SubsystemBase {
         return run(() -> evilyummy(pos));
     }
     
+    /** Rollers on while the rack slowly slides in and out, squeezing the hopper so fuel keeps
+     *  flowing into the feeder while we shoot. Leaves the rack out and rollers off when it ends. */
+    public Command agitate() {
+        Timer timer = new Timer();
+        double out = EvilIntakePosition.out.getAngle();
+        return startRun(
+            timer::restart,
+            () -> {
+                // 0 -> 1 -> 0 over one period, starting from fully out
+                double inAmount = (1 - Math.cos(2 * Math.PI * timer.get() / kAgitatePeriodSeconds)) / 2;
+                intakeMotor.setControl(rotationRequest.withPosition(out + (kAgitateInRotations - out) * inAmount));
+                spinMotor.set(kRollerIntakeSpeed);
+            })
+            .finallyDo(() -> {
+                intakeMotor.setControl(rotationRequest.withPosition(out));
+                spinMotor.set(0);
+            });
+    }
+
+    /** Rack pulled in (e.g. to cross a bump) with the rollers still spinning */
+    public Command stowSpinning() {
+        return run(() -> {
+            evilyummy(EvilIntakePosition.in);
+            spinMotor.set(kRollerIntakeSpeed);
+        }).finallyDo(() -> spinMotor.set(0));
+    }
+
     public double getAngle(){
         return intakeMotor.getRotorPosition().getValueAsDouble();
     }
