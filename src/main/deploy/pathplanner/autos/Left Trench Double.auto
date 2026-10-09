@@ -38,14 +38,33 @@
                 "data": {
                   "name": "ShootOnMove"
                 }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeAgitate"
+                }
               }
             ]
           }
         },
         {
-          "type": "named",
+          "type": "deadline",
           "data": {
-            "name": "ShootFinish"
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "ShootFinish"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeAgitate"
+                }
+              }
+            ]
           }
         },
         {
@@ -82,14 +101,33 @@
                 "data": {
                   "name": "ShootOnMove"
                 }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeAgitate"
+                }
               }
             ]
           }
         },
         {
-          "type": "named",
+          "type": "deadline",
           "data": {
-            "name": "ShootFinish"
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "ShootFinish"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeAgitate"
+                }
+              }
+            ]
           }
         },
         {
