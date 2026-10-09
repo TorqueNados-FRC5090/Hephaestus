@@ -61,45 +61,13 @@
               {
                 "type": "wait",
                 "data": {
-                  "waitTime": 1.0
+                  "waitTime": 2.5
                 }
               },
               {
                 "type": "named",
                 "data": {
                   "name": "DriveIntake"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "deadline",
-          "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "Depot to Center"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "DriveIntake"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "deadline",
-          "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "Depot Shoot Walk"
                 }
               },
               {
@@ -107,11 +75,24 @@
                 "data": {
                   "name": "ShootOnMove"
                 }
+              }
+            ]
+          }
+        },
+        {
+          "type": "deadline",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Depot Corner Out"
+                }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "IntakeAgitate"
+                  "name": "DriveIntake"
                 }
               }
             ]
@@ -124,13 +105,38 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Depot Trench Sweep"
+                  "pathName": "Depot Corner Return"
                 }
               },
               {
                 "type": "named",
                 "data": {
                   "name": "DriveIntake"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "ShootOnMove"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "deadline",
+          "data": {
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "Shoot"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "IntakeAgitate"
                 }
               }
             ]
