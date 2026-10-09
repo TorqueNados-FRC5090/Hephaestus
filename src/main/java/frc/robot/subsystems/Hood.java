@@ -54,13 +54,13 @@ public class Hood extends SubsystemBase {
     // hood go go!
     public void goTo(double position){
         setpoint = position;
-        PositionVoltage hoodRequest = new PositionVoltage(setpoint).withSlot(0);
+        PositionVoltage hoodRequest = new PositionVoltage(setpoint).withSlot(0).withEnableFOC(true);
         hood.setControl(hoodRequest);
     }
     
     public void incrementPositionBy(double revolutions) {
         setpoint += revolutions;
-        PositionVoltage hoodRequest = new PositionVoltage(setpoint).withSlot(0);
+        PositionVoltage hoodRequest = new PositionVoltage(setpoint).withSlot(0).withEnableFOC(true);
         hood.setControl(hoodRequest);
     }
 

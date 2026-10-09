@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -29,7 +30,8 @@ public class EvilIntake extends SubsystemBase {
      private static final double kAgitatePeriodSeconds = 2.0;
 
      // Define the control request once up here to save Garbage Collection overhead!
-     final PositionVoltage rotationRequest = new PositionVoltage(0).withSlot(0);
+     final PositionVoltage rotationRequest = new PositionVoltage(0).withSlot(0).withEnableFOC(true);
+     final DutyCycleOut spinRequest = new DutyCycleOut(0).withEnableFOC(true);
 
      //debugging
      boolean hitPoint = false;
@@ -96,7 +98,7 @@ public class EvilIntake extends SubsystemBase {
     }
     
     public void evileryummy(double speed){
-        spinMotor.set(speed);
+        spinMotor.setControl(spinRequest.withOutput(speed));
     }
 
     public Command evilestyummy(EvilIntakePosition pos){
@@ -114,11 +116,11 @@ public class EvilIntake extends SubsystemBase {
                 // 0 -> 1 -> 0 over one period, starting from fully out
                 double inAmount = (1 - Math.cos(2 * Math.PI * timer.get() / kAgitatePeriodSeconds)) / 2;
                 intakeMotor.setControl(rotationRequest.withPosition(out + (kAgitateInRotations - out) * inAmount));
-                spinMotor.set(kRollerIntakeSpeed);
+                spinMotor.setControl(spinRequest.withOutput(kRollerIntakeSpeed));
             })
             .finallyDo(() -> {
                 intakeMotor.setControl(rotationRequest.withPosition(out));
-                spinMotor.set(0);
+                spinMotor.setControl(spinRequest.withOutput(0));
             });
     }
 

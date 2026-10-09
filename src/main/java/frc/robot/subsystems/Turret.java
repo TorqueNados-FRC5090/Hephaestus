@@ -124,7 +124,7 @@ public class Turret extends SubsystemBase {
         this.m_robotVelocitySupplier = velocitySupplier; 
 
         m_turretMotor = new TalonFXS(16, canbus); 
-        m_motionMagic = new MotionMagicVoltage(0);
+        m_motionMagic = new MotionMagicVoltage(0).withEnableFOC(true);
 
         TalonFXSConfiguration config = new TalonFXSConfiguration();
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;

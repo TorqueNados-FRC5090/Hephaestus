@@ -134,6 +134,8 @@ public class RobotContainer {
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
         joystick.leftBumper().whileTrue(new EvilIntakePiece(evilIntake, EvilIntakePosition.out));
+        // Unjam: floor + lower + upper tunnel all spin backwards while held
+        joystick.rightBumper().whileTrue(rollersystem.otherUnjam());
         joystick.start().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric)); 
         
         // This will fire the shooter, move the hood, and slow the chassis
@@ -178,6 +180,8 @@ public class RobotContainer {
         );
     }
 
+    /** FIXED SHOT (B button). Ignores vision, pose and turret aiming: turret parked at zero (straight back),
+     *  fixed 23 RPS, feeds as soon as the flywheel is up to speed. Use it if the turret gets misaligned. */
     /** Failsafe shoot that does not coordinate and instead sets everything to the minimum it can to shoot without an Apriltag. Should just shoot forward.  */
     public Command failsafeShoot() {
         return new ParallelCommandGroup(

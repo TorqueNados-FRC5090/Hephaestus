@@ -77,14 +77,14 @@ public class Shooter extends SubsystemBase {
     /** Updates the targetRPS and sends it to the shooter */
     public void goShoot(double RPS) {
         this.setpoint = RPS;
-        VelocityVoltage velocityRequest = new VelocityVoltage(setpoint).withSlot(0);
+        VelocityVoltage velocityRequest = new VelocityVoltage(setpoint).withSlot(0).withEnableFOC(true);
         leadShoot.setControl(velocityRequest);
     }
 
     /** Adds the given RPS to the shooter's current setpoint. */
     public void incrementVelocityBy(double RPS) {
         this.setpoint += RPS;
-        VelocityVoltage velocityRequest = new VelocityVoltage(setpoint).withSlot(0);
+        VelocityVoltage velocityRequest = new VelocityVoltage(setpoint).withSlot(0).withEnableFOC(true);
         leadShoot.setControl(velocityRequest);
     }
 

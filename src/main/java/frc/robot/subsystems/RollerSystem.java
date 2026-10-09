@@ -15,6 +15,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class RollerSystem extends SubsystemBase {
     /** Feed speed in RPS while shooting. Krakens/Falcons top out around 100 RPS. */
     public static final double kFeedSpeedRPS = 80;
+    /** Unjam speed in RPS: floor, lower and upper tunnel all run backwards (the belts follow the floor) */
+    public static final double kUnjamSpeedRPS = -40;
     
 
     TalonFX rollerFloor; 
@@ -47,7 +49,7 @@ public class RollerSystem extends SubsystemBase {
 
     // Sets speed using PID
     public void roll(double rollerSpeed){
-        VelocityVoltage velocityRequest = new VelocityVoltage(rollerSpeed).withSlot(0);
+        VelocityVoltage velocityRequest = new VelocityVoltage(rollerSpeed).withSlot(0).withEnableFOC(true);
         rollerFloor.setControl(velocityRequest);
     }
 
@@ -57,13 +59,13 @@ public class RollerSystem extends SubsystemBase {
     } 
 
     public void unjam(){
-        VelocityVoltage unjamRequest = new VelocityVoltage(-1).withSlot(0);
+        VelocityVoltage unjamRequest = new VelocityVoltage(kUnjamSpeedRPS).withSlot(0).withEnableFOC(true);
         rollerFloor.setControl(unjamRequest);
     }
 
     public Command otherUnjam(){
         return runEnd(
-            () -> roll(-1), 
+            () -> roll(kUnjamSpeedRPS), 
             () -> rollerStop()
         );
     }
