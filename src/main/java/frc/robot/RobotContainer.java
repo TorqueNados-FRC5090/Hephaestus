@@ -102,6 +102,7 @@ public class RobotContainer {
 
     // EXPLANATION: This is the Constructor. It runs once when the robot boots up.
     public RobotContainer() {
+        SmartDashboard.putBoolean("Ready/Require turret on target", false);
         SmartDashboard.putData("Auton Selector", autonChooser);
         configureBindings();
         
@@ -305,15 +306,22 @@ public class RobotContainer {
     public boolean readyToShoot() {
         return m_readyDebouncer.calculate(
             shooter.isShooterReady(1.5) &&
-            turret.isTurretReady() &&
+            turretOk() &&
             hood.atSetpoint());
+    }
+
+    /** Shooting trusts the robot's pose: the turret only has to be able to shoot from here (in range, not under a
+     *  trench). Waiting for the turret motor to read "on target" is off unless the dashboard switch turns it on. */
+    private boolean turretOk() {
+        boolean requireOnTarget = SmartDashboard.getBoolean("Ready/Require turret on target", false);
+        return requireOnTarget ? turret.isTurretReady() : turret.canShootFromHere();
     }
 
     /** Publishes, every loop, which part is holding up a shot and by how much. Shooter numbers only mean
      *  something while Y or RT is held (the shooter's target is 0 otherwise). */
     public void updateShotDiagnostics() {
         boolean shooterReady = shooter.isShooterReady(1.5);
-        boolean turretReady = turret.isTurretReady();
+        boolean turretReady = turretOk();
         boolean hoodReady = hood.atSetpoint();
         SmartDashboard.putBoolean("Ready/0 ALL READY", shooterReady && turretReady && hoodReady);
 

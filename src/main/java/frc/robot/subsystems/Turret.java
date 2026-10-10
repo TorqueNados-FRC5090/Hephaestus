@@ -191,6 +191,12 @@ public class Turret extends SubsystemBase {
         m_turretMotor.setControl(m_motionMagic.withPosition(0));
     }
 
+    /** Pose-only check: from where the robot is, can we shoot at all? (target set, within turret range,
+     *  not under a trench, clear pass lane). Does NOT look at where the turret motor actually is. */
+    public boolean canShootFromHere(){
+        return m_targetMotorRotations != 0.0 && m_targetReachable && !m_underTrench && !(m_isPassing && !m_passLaneClear);
+    }
+
     public boolean isTurretReady(){
         if (m_targetMotorRotations == 0.0 || !m_targetReachable || m_underTrench || (m_isPassing && !m_passLaneClear)) {
             return false;
