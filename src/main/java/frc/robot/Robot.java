@@ -12,9 +12,11 @@ import java.nio.file.Files;
 import com.ctre.phoenix6.HootAutoReplay;
 
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -70,8 +72,11 @@ public class Robot extends TimedRobot {
       updateVision("limelight");
       updateVision("limelight-left");
 
-      SmartDashboard.putNumber("111 drive pose X", m_robotContainer.drivetrain.getState().Pose.getX());
-      SmartDashboard.putNumber("111 drive pose Y",  m_robotContainer.drivetrain.getState().Pose.getY());
+      var pose = m_robotContainer.drivetrain.getState().Pose;
+      SmartDashboard.putNumber("111 drive pose X", pose.getX());
+      SmartDashboard.putNumber("111 drive pose Y",  pose.getY());
+      SmartDashboard.putNumber("111 drive pose heading", pose.getRotation().getDegrees());
+      SmartDashboard.putNumber("Vision/Seconds since last tag", Timer.getFPGATimestamp() - m_lastTagTime);
     }
   }
 
@@ -95,15 +100,28 @@ public class Robot extends TimedRobot {
       if (DriverStation.isDisabled()) {
         var mt1 = Limelighthelpers.getBotPoseEstimate_wpiBlue(limelightName);
         if (mt1 != null && mt1.tagCount >= 2) {
+          recordVisionCorrection(driveState.Pose, mt1.pose, mt1.tagCount);
           drivetrain.addVisionMeasurement(mt1.pose, mt1.timestampSeconds, VecBuilder.fill(0.5, 0.5, 0.5));
         }
       } else {
         var mt2 = Limelighthelpers.getBotPoseEstimate_wpiBlue_MegaTag2(limelightName);
         if (mt2 != null && mt2.tagCount > 0) {
+          recordVisionCorrection(driveState.Pose, mt2.pose, mt2.tagCount);
           // Huge heading std dev = ignore vision heading, trust the Pigeon
           drivetrain.addVisionMeasurement(mt2.pose, mt2.timestampSeconds, VecBuilder.fill(0.7, 0.7, 9999999));
         }
       }
+    }
+
+    private double m_lastTagTime = 0.0;
+
+    /** How far the camera disagrees with odometry each time it sees tags. Small (under ~0.3m) = odometry is
+     *  tracking well on its own. Big = odometry drifts when it can't see tags (wheel size, gearing, or gyro). */
+    private void recordVisionCorrection(Pose2d odometryPose, Pose2d visionPose, int tagCount) {
+      m_lastTagTime = Timer.getFPGATimestamp();
+      SmartDashboard.putNumber("Vision/Tags seen", tagCount);
+      SmartDashboard.putNumber("Vision/Correction (m)", odometryPose.getTranslation().getDistance(visionPose.getTranslation()));
+      SmartDashboard.putNumber("Vision/Heading disagreement (deg)", odometryPose.getRotation().minus(visionPose.getRotation()).getDegrees());
     }
 
     /* Used to be used for the intializing of the robot when disabled. No idea why it was commented out.
