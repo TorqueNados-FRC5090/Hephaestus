@@ -45,6 +45,8 @@ public class Robot extends TimedRobot {
     
     public Robot() {
         m_robotContainer = new RobotContainer();
+        // Dashboard switch: false = ignore the Limelight completely (pure odometry). Shooting never needs it.
+        SmartDashboard.putBoolean("Vision/Use camera", true);
         SmartDashboard.putString("Code Version", readCodeVersion());
     }
 
@@ -86,6 +88,9 @@ public class Robot extends TimedRobot {
      *  Disabled: MegaTag1 with 2+ tags is allowed to fix the heading, so MegaTag2 starts the match
      *  with a correct heading even if the robot was placed crooked. */
     private void updateVision(String limelightName) {
+      if (!SmartDashboard.getBoolean("Vision/Use camera", true)) {
+        return;
+      }
       var drivetrain = m_robotContainer.drivetrain;
       var driveState = drivetrain.getState();
 
