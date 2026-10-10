@@ -324,7 +324,8 @@ public class RobotContainer {
 
         SmartDashboard.putBoolean("Ready/2 Turret on target", turretReady);
         SmartDashboard.putString("Ready/2 Turret status", turret.getNotReadyReason());
-        SmartDashboard.putNumber("Ready/2 Turret error rots (need < 0.2)", turret.getAimErrorMotorRotations());
+        SmartDashboard.putNumber("Ready/2 Turret error rots", turret.getAimErrorMotorRotations());
+        SmartDashboard.putNumber("Ready/2 Turret allowed error rots", turret.getAimToleranceMotorRotations());
 
         SmartDashboard.putBoolean("Ready/3 Hood in place", hoodReady);
         SmartDashboard.putString("Ready/3 Hood status", hood.isForcedDown() ? "Held down: near a trench" : "OK");

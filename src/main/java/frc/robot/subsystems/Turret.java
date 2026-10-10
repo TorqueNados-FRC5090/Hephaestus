@@ -10,6 +10,7 @@ import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.TalonFXS;
 import com.ctre.phoenix6.signals.MotorArrangementValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 
 // WPILib Imports
 import edu.wpi.first.math.MathUtil;
@@ -102,6 +103,9 @@ public class Turret extends SubsystemBase {
     private final double kEncoderGearTeeth = 16.0; 
     private final double kTurretGearRatio = kTurretRingTeeth / kEncoderGearTeeth; 
     private final double kMaxTurretRotations = 0.30; //0.48
+    /** Sideways miss allowed when deciding the turret is on target. Hub opening is ~0.53m each side of center,
+     *  minus the ball radius (~0.075m), so 0.35m still lands well inside. Lower it if shots clip the rim. */
+    private final double kAllowedMissMeters = 0.35;
 
     // --- LIVE STATE VARIABLES ---
     public double m_distanceToHubMeters = 0.0;
@@ -133,7 +137,10 @@ public class Turret extends SubsystemBase {
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
         config.Slot0.kP = 8;
         config.Slot0.kD = 0;
-        config.Slot0.kS = 0;
+        // Small push in the direction of the error so friction can't stop the turret just short of the target
+        // (with no camera nudging the pose it would sit a few degrees off forever and never read "on target")
+        config.Slot0.kS = 0.15;
+        config.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
         // Volts per motor rot/s. Without this the turret only moves once it's already behind
         // (pure kP), which is most of the lag. ~12V / Minion free speed.
         config.Slot0.kV = 0.1;
@@ -188,8 +195,15 @@ public class Turret extends SubsystemBase {
         if (m_targetMotorRotations == 0.0 || !m_targetReachable || m_underTrench || (m_isPassing && !m_passLaneClear)) {
             return false;
         }
-        double currentpos = m_turretMotor.getPosition().refresh().getValueAsDouble();
-        return Math.abs(currentpos - m_targetMotorRotations) <= 0.2;
+        return Math.abs(getAimErrorMotorRotations()) <= getAimToleranceMotorRotations();
+    }
+
+    /** How far off the turret may be and still count as on target, in motor rotations. Based on distance:
+     *  the ball may land up to kAllowedMissMeters sideways from the target (the hub opening is ~0.53m each side). */
+    public double getAimToleranceMotorRotations() {
+        double distance = Math.max(0.5, m_isPassing ? m_distanceToPassTargetMeters : m_distanceToHubMeters);
+        double allowedAngleRotations = Math.atan(kAllowedMissMeters / distance) / (2 * Math.PI);
+        return MathUtil.clamp(allowedAngleRotations * kTurretGearRatio, 0.15, 0.45);
     }
 
     /** @return why the turret isn't ready, or "OK" (for the dashboard) */
@@ -197,7 +211,7 @@ public class Turret extends SubsystemBase {
         if (!m_targetReachable) return "Target out of range: point the robot's BACK at it";
         if (m_underTrench) return "Under a trench";
         if (m_isPassing && !m_passLaneClear) return "No clear pass lane past the hubs";
-        if (Math.abs(getAimErrorMotorRotations()) > 0.2) return "Still turning onto target";
+        if (Math.abs(getAimErrorMotorRotations()) > getAimToleranceMotorRotations()) return "Still turning onto target";
         return "OK";
     }
 
