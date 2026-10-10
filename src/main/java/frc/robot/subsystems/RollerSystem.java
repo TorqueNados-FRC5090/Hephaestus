@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -36,6 +37,17 @@ public class RollerSystem extends SubsystemBase {
         rollerFloor.getConfigurator().apply(rollerConfig);
         lowerBelt.getConfigurator().apply(rollerConfig);
         upperBelt.getConfigurator().apply(rollerConfig);
+
+        // Current limits on all three (followers do NOT copy the leader's limits).
+        // Stator = how hard it can push into a jam, supply = how much it pulls from the battery.
+        CurrentLimitsConfigs rollerLimits = new CurrentLimitsConfigs()
+            .withStatorCurrentLimit(40)
+            .withStatorCurrentLimitEnable(true)
+            .withSupplyCurrentLimit(30)
+            .withSupplyCurrentLimitEnable(true);
+        rollerFloor.getConfigurator().apply(rollerLimits);
+        lowerBelt.getConfigurator().apply(rollerLimits);
+        upperBelt.getConfigurator().apply(rollerLimits);
 
         // Set to Brake mode so they stop instantly when power is cut
         rollerFloor.setNeutralMode(NeutralModeValue.Brake);

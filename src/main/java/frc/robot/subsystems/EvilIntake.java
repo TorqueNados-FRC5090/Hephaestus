@@ -59,6 +59,8 @@ public class EvilIntake extends SubsystemBase {
         // 2. Limit Torque to 40 Amps so it gives up when hit
         intakeConfig.CurrentLimits.StatorCurrentLimit = 40.0;
         intakeConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        intakeConfig.CurrentLimits.SupplyCurrentLimit = 25;
+        intakeConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
 
         /* intakeConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
         intakeConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; */
@@ -80,6 +82,10 @@ public class EvilIntake extends SubsystemBase {
 
         // --- SPIN MOTOR CONFIGURATION ---
         TalonFXConfiguration spinConfig = new TalonFXConfiguration();
+        spinConfig.CurrentLimits.StatorCurrentLimit = 40;
+        spinConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        spinConfig.CurrentLimits.SupplyCurrentLimit = 30;
+        spinConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
         spinMotor.getConfigurator().apply(spinConfig);
     }
 

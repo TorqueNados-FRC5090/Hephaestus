@@ -51,7 +51,9 @@ public class TunerConstants {
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
-    private static final Current kSlipCurrent = Amps.of(120);
+    // CTRE's swerve code uses this as the drive motors' STATOR current limit, overwriting the 60A set below.
+    // It was 120A, so the drive could pull twice the intended current and brown the robot out.
+    private static final Current kSlipCurrent = Amps.of(60);
 
     // Initial configs for the drive and steer motors and the azimuth encoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
@@ -62,16 +64,18 @@ public class TunerConstants {
                 // stator current limit to help avoid brownouts without impacting performance.
                 .withStatorCurrentLimit(Amps.of(60)) // peak is 60, wanted to be around there and probably not over
                 .withStatorCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(Amps.of(45)) // between 40 and 50, tune it at some point if it doesnt work
+                .withSupplyCurrentLimit(Amps.of(40)) // battery draw per drive motor (x4). Raise toward 50 if drive feels weak
+                .withSupplyCurrentLimitEnable(true)
         );
     private static final TalonFXConfiguration steerInitialConfigs = new TalonFXConfiguration()
         .withCurrentLimits( // steering motors
             new CurrentLimitsConfigs()
                 // Swerve azimuth does not require much torque output, so we can set a relatively low
                 // stator current limit to help avoid brownouts without impacting performance.
-                .withStatorCurrentLimit(Amps.of(60))
+                .withStatorCurrentLimit(Amps.of(40))
                 .withStatorCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(Amps.of(40))
+                .withSupplyCurrentLimit(Amps.of(30))
+                .withSupplyCurrentLimitEnable(true)
         );
     private static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();
     // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
