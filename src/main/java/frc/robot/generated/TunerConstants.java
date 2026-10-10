@@ -104,7 +104,10 @@ public class TunerConstants {
     private static final boolean kInvertLeftSide = false;
     private static final boolean kInvertRightSide = true;
 
-    private static final int kPigeonId = 24;
+    // The robot's Pigeon 2 is CAN ID 0 (Tuner X project + the team's March code). This was 24, which doesn't
+    // exist, so the swerve never got a heading: the field map never rotated and turret aim ignored rotation.
+    // If "Gyro/Connected" on the dashboard is false, check the Pigeon's ID and CAN bus in Phoenix Tuner X.
+    private static final int kPigeonId = 0;
 
     // These are only used for simulation
     private static final MomentOfInertia kSteerInertia = KilogramSquareMeters.of(0.01);

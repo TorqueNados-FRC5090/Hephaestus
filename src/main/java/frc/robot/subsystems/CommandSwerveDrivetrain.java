@@ -243,6 +243,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     @Override
     public void periodic() {
         SmartDashboard.putNumber("robot yaw", getgyroyaw().getDegrees());
+        // If Connected is false or Yaw doesn't change when the robot turns, the swerve has no heading
+        SmartDashboard.putBoolean("Gyro/Connected", getPigeon2().isConnected());
+        SmartDashboard.putNumber("Gyro/Yaw (deg)", getPigeon2().getYaw().getValueAsDouble());
         /*
          * Periodically try to apply the operator perspective.
          * If we haven't applied the operator perspective before, then we should apply it regardless of DS state.
