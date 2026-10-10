@@ -8,7 +8,9 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue; // Restored this!
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -31,8 +33,8 @@ public class RollerSystem extends SubsystemBase {
         Slot0Configs rollerConfig = new Slot0Configs();
         rollerConfig.kP = 0.3;
         // Volts per RPS. With only kP the rollers never reached their target speed.
-        rollerConfig.kV = 0.12;
-        
+        rollerConfig.kV = 0.5;
+      //   rollerConfig.
         rollerFloor.getConfigurator().apply(rollerConfig);
         lowerBelt.getConfigurator().apply(rollerConfig);
         upperBelt.getConfigurator().apply(rollerConfig);
@@ -72,6 +74,6 @@ public class RollerSystem extends SubsystemBase {
 
      @Override
     public void periodic() {
-        // SmartDashboard.putNumber("accellator", accelterator.getPosition().getValueAsDouble());
+         SmartDashboard.putNumber("Roller Floor voltage", rollerFloor.getMotorVoltage().getValueAsDouble());
     }
 }

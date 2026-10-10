@@ -143,7 +143,21 @@ public class RobotContainer {
         joystick.y().whileTrue(fullShootCommand());
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
-        joystick.leftBumper().whileTrue(new EvilIntakePiece(evilIntake, EvilIntakePosition.out));
+        
+        
+       // joystick.leftBumper().whileTrue(new EvilIntakePiece(evilIntake, EvilIntakePosition.out))
+       // .and(joystick.leftBumper().whileTrue(rollersystem.roll(100)));
+        joystick.leftBumper().whileTrue(
+            Commands.parallel(
+                new EvilIntakePiece(evilIntake, EvilIntakePosition.out),
+                rollersystem.runEnd(
+                    () -> rollersystem.roll(100),
+                    () -> rollersystem.rollerStop()
+                )
+            )
+            );
+
+        
         // Unjam: floor + lower + upper tunnel all spin backwards while held
         joystick.rightBumper().whileTrue(rollersystem.otherUnjam());
         // Eject: everything backwards like unjam, plus the intake goes out with its wheels reversed to spit fuel out

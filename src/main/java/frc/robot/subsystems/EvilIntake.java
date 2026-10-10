@@ -80,6 +80,7 @@ public class EvilIntake extends SubsystemBase {
 
         // --- SPIN MOTOR CONFIGURATION ---
         TalonFXConfiguration spinConfig = new TalonFXConfiguration();
+         spinConfig.CurrentLimits.StatorCurrentLimit = 28.0;
         spinMotor.getConfigurator().apply(spinConfig);
     }
 
@@ -149,6 +150,7 @@ public class EvilIntake extends SubsystemBase {
         SmartDashboard.putBoolean("Intake HitPoint", hitPoint);
         SmartDashboard.putNumber("Intake HitPointValue", hitPointValue);
         SmartDashboard.putNumber("Intake Position", intakeMotor.getPosition().getValueAsDouble());
+        SmartDashboard.putNumber("Intake Roller voltage", spinMotor.getMotorVoltage().getValueAsDouble());
         /* SmartDashboard.putNumber("Intake Position Degrees", getAngle());
         SmartDashboard.putString("Intake Target Position", pos.name());
         SmartDashboard.putNumber("Intake Target Revolutions", pos.getAngle());

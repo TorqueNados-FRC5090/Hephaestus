@@ -138,7 +138,7 @@ public class Turret extends SubsystemBase {
         // Acceleration was the real limit. Turn accel down if the turret slams or skips teeth.
         config.MotionMagic.MotionMagicCruiseVelocity = 90.0;
         config.MotionMagic.MotionMagicAcceleration = 400.0;
-        config.MotionMagic.MotionMagicJerk = 4000.0;
+        config.MotionMagic.MotionMagicJerk = 200.0;
 
         m_turretMotor.getConfigurator().apply(config);
         m_turretMotor.setPosition(0);
