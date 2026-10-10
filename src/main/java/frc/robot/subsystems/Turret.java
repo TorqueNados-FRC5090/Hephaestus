@@ -142,7 +142,9 @@ public class Turret extends SubsystemBase {
         // Acceleration was the real limit. Turn accel down if the turret slams or skips teeth.
         config.MotionMagic.MotionMagicCruiseVelocity = 90.0;
         config.MotionMagic.MotionMagicAcceleration = 400.0;
-        config.MotionMagic.MotionMagicJerk = 200.0;
+        // Jerk = how fast the turret may START accelerating. At 200 it took ~2s to reach full accel, so it could not
+        // keep up with the robot rotating (stayed "not on target" and never fed). 0 = no jerk limit (fastest).
+        config.MotionMagic.MotionMagicJerk = 1500.0;
 
         m_turretMotor.getConfigurator().apply(config);
         m_turretMotor.setPosition(0);
