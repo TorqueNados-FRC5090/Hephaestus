@@ -5,11 +5,16 @@
 
 package frc.robot;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+
 import com.ctre.phoenix6.HootAutoReplay;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -38,6 +43,17 @@ public class Robot extends TimedRobot {
     
     public Robot() {
         m_robotContainer = new RobotContainer();
+        SmartDashboard.putString("Code Version", readCodeVersion());
+    }
+
+    /** Branch + commit this code was built from (written by the writeVersionFile task in build.gradle) */
+    private static String readCodeVersion() {
+        try {
+            return Files.readString(new File(Filesystem.getDeployDirectory(), "version.txt").toPath()).trim();
+        } catch (IOException e) {
+            DriverStation.reportWarning("Code Version unknown: " + e.getMessage(), false);
+            return "unknown";
+        }
     }
 
     @Override

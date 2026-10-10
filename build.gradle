@@ -103,3 +103,20 @@ wpi.java.configureTestTasks(test)
 tasks.withType(JavaCompile) {
     options.compilerArgs.add '-XDstringConcat=inline'
 }
+
+// Writes the git branch + commit into the deploy folder at build time, so the dashboard's
+// "Code Version" shows exactly which code is on the robot.
+tasks.register('writeVersionFile') {
+    def deployDir = file('src/main/deploy')
+    def root = projectDir
+    outputs.upToDateWhen { false }
+    doLast {
+        def run = { String cmd ->
+            try { cmd.execute(null, root).text.trim() } catch (Exception e) { 'unknown' }
+        }
+        def changes = run('git status --porcelain') ? ' +uncommitted changes' : ''
+        new File(deployDir, 'version.txt').text =
+            "${run('git rev-parse --abbrev-ref HEAD')} ${run('git rev-parse --short HEAD')}${changes} (built ${new Date().format('MM/dd HH:mm')})"
+    }
+}
+compileJava.dependsOn 'writeVersionFile'
