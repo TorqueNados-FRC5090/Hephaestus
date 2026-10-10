@@ -32,6 +32,11 @@ public class Shooter extends SubsystemBase {
         // --- LEAD SHOOTER CONFIG ---
         TalonFXConfiguration shooterConfig = new TalonFXConfiguration();
         shooterConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast; // Coast is safer for heavy flywheels
+        // Flywheel spin-up is one of the biggest current draws on the robot
+        shooterConfig.CurrentLimits.StatorCurrentLimit = 60;
+        shooterConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        shooterConfig.CurrentLimits.SupplyCurrentLimit = 40;
+        shooterConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
         
         // PID Configuration
         shooterConfig.Slot0.kP = 0.4; 
@@ -56,6 +61,10 @@ public class Shooter extends SubsystemBase {
 
         TalonFXConfiguration shooterfollowConfig = new TalonFXConfiguration();
         shooterfollowConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+        shooterfollowConfig.CurrentLimits.StatorCurrentLimit = 60;
+        shooterfollowConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        shooterfollowConfig.CurrentLimits.SupplyCurrentLimit = 40;
+        shooterfollowConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
         followShoot.getConfigurator().apply(shooterfollowConfig);
         followShoot.setControl(new Follower(27, MotorAlignmentValue.Opposed));
     }

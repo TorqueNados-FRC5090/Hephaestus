@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -8,7 +9,6 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue; // Restored this!
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -16,7 +16,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class RollerSystem extends SubsystemBase {
     /** Feed speed in RPS while shooting. Krakens/Falcons top out around 100 RPS. */
-    public static final double kFeedSpeedRPS = 80;
+    public static final double kFeedSpeedRPS = 90;
     /** Unjam speed in RPS: floor, lower and upper tunnel all run backwards (the belts follow the floor) */
     public static final double kUnjamSpeedRPS = -40;
     
@@ -38,6 +38,17 @@ public class RollerSystem extends SubsystemBase {
         rollerFloor.getConfigurator().apply(rollerConfig);
         lowerBelt.getConfigurator().apply(rollerConfig);
         upperBelt.getConfigurator().apply(rollerConfig);
+
+        // Current limits on all three (followers do NOT copy the leader's limits).
+        // Stator = how hard it can push into a jam, supply = how much it pulls from the battery.
+        CurrentLimitsConfigs rollerLimits = new CurrentLimitsConfigs()
+            .withStatorCurrentLimit(60)
+            .withStatorCurrentLimitEnable(true)
+            .withSupplyCurrentLimit(50)
+            .withSupplyCurrentLimitEnable(true);
+        rollerFloor.getConfigurator().apply(rollerLimits);
+        lowerBelt.getConfigurator().apply(rollerLimits);
+        upperBelt.getConfigurator().apply(rollerLimits);
 
         // Set to Brake mode so they stop instantly when power is cut
         rollerFloor.setNeutralMode(NeutralModeValue.Brake);

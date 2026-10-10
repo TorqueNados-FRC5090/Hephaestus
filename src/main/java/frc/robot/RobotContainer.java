@@ -241,7 +241,7 @@ public class RobotContainer {
 
     /** New Equation 3/20/26 (For Hub Shooting) */
     private double hubShooterRPS(double targetDist) {
-        return (20.9 + 0.697 * targetDist + 0.243 * Math.pow(targetDist, 2));
+        return (25 + 0.697 * targetDist + 0.243 * Math.pow(targetDist, 2)); //20.9 -> 25
     }
 
     // EXPLANATION: Calculates hood deflection based on SOTM distance.

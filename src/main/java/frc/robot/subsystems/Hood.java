@@ -50,6 +50,10 @@ public class Hood extends SubsystemBase {
         // --- HOOD CONFIG ---
         TalonFXConfiguration hoodConfig = new TalonFXConfiguration();
         hoodConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        hoodConfig.CurrentLimits.StatorCurrentLimit = 30;
+        hoodConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        hoodConfig.CurrentLimits.SupplyCurrentLimit = 20;
+        hoodConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
         hoodConfig.SoftwareLimitSwitch.ForwardSoftLimitThreshold = kHoodForwardSoftLimit;
         hoodConfig.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
         hoodConfig.SoftwareLimitSwitch.ReverseSoftLimitThreshold = kHoodReverseSoftLimit;
