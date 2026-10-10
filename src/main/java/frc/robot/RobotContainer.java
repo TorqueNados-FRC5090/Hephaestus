@@ -303,14 +303,32 @@ public class RobotContainer {
 
     /** @return If the whole shooter is ready to shoot or not. */
     public boolean readyToShoot() {
+        return m_readyDebouncer.calculate(
+            shooter.isShooterReady(1.5) &&
+            turret.isTurretReady() &&
+            hood.atSetpoint());
+    }
+
+    /** Publishes, every loop, which part is holding up a shot and by how much. Shooter numbers only mean
+     *  something while Y or RT is held (the shooter's target is 0 otherwise). */
+    public void updateShotDiagnostics() {
         boolean shooterReady = shooter.isShooterReady(1.5);
         boolean turretReady = turret.isTurretReady();
         boolean hoodReady = hood.atSetpoint();
-        // Shows which part is holding up the shot
+        SmartDashboard.putBoolean("Ready/0 ALL READY", shooterReady && turretReady && hoodReady);
+
         SmartDashboard.putBoolean("Ready/1 Shooter at speed", shooterReady);
+        SmartDashboard.putNumber("Ready/1 Shooter target RPS", shooter.getTargetRPS());
+        SmartDashboard.putNumber("Ready/1 Shooter actual RPS", shooter.getVelocityRPS());
+        SmartDashboard.putNumber("Ready/1 Shooter error RPS (need < 1.5)", shooter.getTargetRPS() - shooter.getVelocityRPS());
+
         SmartDashboard.putBoolean("Ready/2 Turret on target", turretReady);
+        SmartDashboard.putString("Ready/2 Turret status", turret.getNotReadyReason());
+        SmartDashboard.putNumber("Ready/2 Turret error rots (need < 0.2)", turret.getAimErrorMotorRotations());
+
         SmartDashboard.putBoolean("Ready/3 Hood in place", hoodReady);
-        return m_readyDebouncer.calculate(shooterReady && turretReady && hoodReady);
+        SmartDashboard.putString("Ready/3 Hood status", hood.isForcedDown() ? "Held down: near a trench" : "OK");
+        SmartDashboard.putNumber("Ready/3 Hood error (need < 0.5)", hood.getAngle() - hood.getSetpoint());
     }
 
     /** SHOP TESTING (View button, never during a real match): tells the robot it is straight in front of our hub,

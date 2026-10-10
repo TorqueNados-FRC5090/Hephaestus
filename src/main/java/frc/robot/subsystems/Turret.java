@@ -190,6 +190,20 @@ public class Turret extends SubsystemBase {
         return Math.abs(currentpos - m_targetMotorRotations) <= 0.2;
     }
 
+    /** @return why the turret isn't ready, or "OK" (for the dashboard) */
+    public String getNotReadyReason() {
+        if (!m_targetReachable) return "Target out of range: point the robot's BACK at it";
+        if (m_underTrench) return "Under a trench";
+        if (m_isPassing && !m_passLaneClear) return "No clear pass lane past the hubs";
+        if (Math.abs(getAimErrorMotorRotations()) > 0.2) return "Still turning onto target";
+        return "OK";
+    }
+
+    /** @return how far the turret is from where it's aiming, in motor rotations (ready under 0.2) */
+    public double getAimErrorMotorRotations() {
+        return m_turretMotor.getPosition().getValueAsDouble() - m_targetMotorRotations;
+    }
+
     public void passOrShoot() {
         m_turretMotor.setControl(m_motionMagic.withPosition(m_targetMotorRotations));
     }

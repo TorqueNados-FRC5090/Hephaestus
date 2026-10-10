@@ -70,6 +70,15 @@ public class Hood extends SubsystemBase {
         return !m_forcedDown && Math.abs(getAngle() - setpoint) <= 0.5;
     }
 
+    public double getSetpoint(){
+        return setpoint;
+    }
+
+    /** @return true while the hood is being held down because we're near a trench */
+    public boolean isForcedDown(){
+        return m_forcedDown;
+    }
+
     /** @return true when the hood is down low enough to fit under the trench */
     public boolean isStowed(){
         return Math.abs(getAngle() - kHoodStowed) <= kStowedTolerance;

@@ -70,6 +70,16 @@ public class Shooter extends SubsystemBase {
     }
 
     /** Checks if the shooter is up to speed and ready to fire */
+    /** @return the speed we're asking for, in RPS (0 when not shooting) */
+    public double getTargetRPS() {
+        return setpoint;
+    }
+
+    /** @return the measured flywheel speed in RPS */
+    public double getVelocityRPS() {
+        return leadShoot.getVelocity().getValueAsDouble();
+    }
+
     public boolean isShooterReady(double range) {
         // If we aren't trying to shoot, the shooter isn't "ready"
         if (setpoint == 0.0) {
