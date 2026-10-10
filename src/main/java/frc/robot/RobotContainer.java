@@ -14,6 +14,8 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType; // Added for safety clamp
@@ -163,6 +165,8 @@ public class RobotContainer {
         // Eject: everything backwards like unjam, plus the intake goes out with its wheels reversed to spit fuel out
         joystick.leftTrigger().whileTrue(Commands.parallel(rollersystem.otherUnjam(), evilIntake.eject()));
         joystick.start().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric)); 
+        // Shop testing only: pretend we're straight in front of the hub (disabled when connected to a real match)
+        joystick.back().and(() -> !DriverStation.isFMSAttached()).onTrue(shopTestPose());
         
         // This will fire the shooter, move the hood, and slow the chassis
         joystick.rightTrigger().whileTrue(fullShootCommand());
@@ -299,9 +303,25 @@ public class RobotContainer {
 
     /** @return If the whole shooter is ready to shoot or not. */
     public boolean readyToShoot() {
-        return m_readyDebouncer.calculate(
-            shooter.isShooterReady(1.5) &&
-            turret.isTurretReady() &&
-            hood.atSetpoint());
+        boolean shooterReady = shooter.isShooterReady(1.5);
+        boolean turretReady = turret.isTurretReady();
+        boolean hoodReady = hood.atSetpoint();
+        // Shows which part is holding up the shot
+        SmartDashboard.putBoolean("Ready/1 Shooter at speed", shooterReady);
+        SmartDashboard.putBoolean("Ready/2 Turret on target", turretReady);
+        SmartDashboard.putBoolean("Ready/3 Hood in place", hoodReady);
+        return m_readyDebouncer.calculate(shooterReady && turretReady && hoodReady);
+    }
+
+    /** SHOP TESTING (View button, never during a real match): tells the robot it is straight in front of our hub,
+     *  2.6m from its center, with its back (turret) toward it. Without AprilTags the robot thinks it is at (0,0)
+     *  facing the hub, where the back-facing turret can't reach, so it would never get ready to shoot. */
+    public Command shopTestPose() {
+        return drivetrain.runOnce(() -> {
+            boolean red = onRedAlliance();
+            drivetrain.resetPose(new Pose2d(
+                red ? 16.54 - 2.0 : 2.0, 4.035,
+                Rotation2d.fromDegrees(red ? 0 : 180)));
+        }).ignoringDisable(true);
     }
 }
