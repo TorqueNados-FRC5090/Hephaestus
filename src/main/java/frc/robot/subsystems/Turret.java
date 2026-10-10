@@ -104,8 +104,8 @@ public class Turret extends SubsystemBase {
     private final double kTurretGearRatio = kTurretRingTeeth / kEncoderGearTeeth; 
     private final double kMaxTurretRotations = 0.30; //0.48
     /** Sideways miss allowed when deciding the turret is on target. Hub opening is ~0.53m each side of center,
-     *  minus the ball radius (~0.075m), so 0.35m still lands well inside. Lower it if shots clip the rim. */
-    private final double kAllowedMissMeters = 0.35;
+     *  minus the ball radius (~0.075m) = ~0.45m, so 0.40m still lands inside. Lower it if shots clip the rim. */
+    private final double kAllowedMissMeters = 0.40;
 
     // --- LIVE STATE VARIABLES ---
     public double m_distanceToHubMeters = 0.0;
@@ -296,7 +296,9 @@ public class Turret extends SubsystemBase {
         desiredTurretRotations *= kTurretDirectionMultiplier;
 
         desiredTurretRotations = Math.IEEEremainder(desiredTurretRotations, 1.0);
-        m_targetReachable = Math.abs(desiredTurretRotations) <= kMaxTurretRotations;
+        // Reachable if the turret can get there, OR if parked at its limit the ball still lands in the hub
+        double toleranceTurretRotations = getAimToleranceMotorRotations() / kTurretGearRatio;
+        m_targetReachable = Math.abs(desiredTurretRotations) <= kMaxTurretRotations + toleranceTurretRotations;
         desiredTurretRotations = MathUtil.clamp(desiredTurretRotations, -kMaxTurretRotations, kMaxTurretRotations);
         
         m_targetMotorRotations = desiredTurretRotations * kTurretGearRatio;
