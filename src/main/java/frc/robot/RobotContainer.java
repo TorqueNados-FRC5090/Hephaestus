@@ -321,6 +321,15 @@ public class RobotContainer {
         boolean hoodReady = hood.atSetpoint();
         SmartDashboard.putBoolean("Ready/0 ALL READY", shooterReady && turretReady && hoodReady);
 
+        // One line that says exactly what a shot is waiting on
+        StringBuilder waiting = new StringBuilder();
+        if (!shooterReady) waiting.append(String.format("SHOOTER %.0f of %.0f RPS. ", shooter.getVelocityRPS(), shooter.getTargetRPS()));
+        if (!turretReady) waiting.append("TURRET: ").append(turret.getNotReadyReason()).append(" (mode ")
+            .append(turret.isPassing() ? "PASSING" : "SHOOTING").append("). ");
+        if (!hoodReady) waiting.append(hood.isForcedDown() ? "HOOD held down near a trench. "
+            : String.format("HOOD at %.2f, wants %.2f. ", hood.getAngle(), hood.getSetpoint()));
+        SmartDashboard.putString("Feeder/Waiting on", waiting.length() == 0 ? "Nothing - ready to feed" : waiting.toString());
+
         SmartDashboard.putBoolean("Ready/1 Shooter at speed", shooterReady);
         SmartDashboard.putNumber("Ready/1 Shooter target RPS", shooter.getTargetRPS());
         SmartDashboard.putNumber("Ready/1 Shooter actual RPS", shooter.getVelocityRPS());
