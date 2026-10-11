@@ -306,9 +306,10 @@ public class RobotContainer {
 
     /** @return If the whole shooter is ready to shoot or not. */
     public boolean readyToShoot() {
+        // The turret is NOT checked: it's always tracking the target, so a shot only waits for the shooter to be
+        // at speed and the hood to be in place (the hood check also blocks shots near a trench).
         return m_readyDebouncer.calculate(
             shooter.isShooterReady(1.5) &&
-            turret.canShootFromHere() &&
             hood.atSetpoint());
     }
 
@@ -316,16 +317,13 @@ public class RobotContainer {
      *  something while Y or RT is held (the shooter's target is 0 otherwise). */
     public void updateShotDiagnostics() {
         boolean shooterReady = shooter.isShooterReady(1.5);
-        // No "turret on target" check: the turret is always tracking, we only need to be able to shoot from here
-        boolean turretReady = turret.canShootFromHere();
+        boolean turretReady = turret.canShootFromHere();   // info only, NOT required to shoot
         boolean hoodReady = hood.atSetpoint();
-        SmartDashboard.putBoolean("Ready/0 ALL READY", shooterReady && turretReady && hoodReady);
+        SmartDashboard.putBoolean("Ready/0 ALL READY", shooterReady && hoodReady);
 
         // One line that says exactly what a shot is waiting on
         StringBuilder waiting = new StringBuilder();
         if (!shooterReady) waiting.append(String.format("SHOOTER %.0f of %.0f RPS. ", shooter.getVelocityRPS(), shooter.getTargetRPS()));
-        if (!turretReady) waiting.append("TURRET: ").append(turret.getNotReadyReason()).append(" (mode ")
-            .append(turret.isPassing() ? "PASSING" : "SHOOTING").append("). ");
         if (!hoodReady) waiting.append(hood.isForcedDown() ? "HOOD held down near a trench. "
             : String.format("HOOD at %.2f, wants %.2f. ", hood.getAngle(), hood.getSetpoint()));
         SmartDashboard.putString("Feeder/Waiting on", waiting.length() == 0 ? "Nothing - ready to feed" : waiting.toString());
@@ -336,7 +334,7 @@ public class RobotContainer {
         SmartDashboard.putNumber("Ready/1 Shooter error RPS", shooter.getTargetRPS() - shooter.getVelocityRPS());
         SmartDashboard.putNumber("Ready/1 Shooter allowed error RPS", shooter.getReadyTolerance(1.5));
 
-        SmartDashboard.putBoolean("Ready/2 Turret can shoot from here", turretReady);
+        SmartDashboard.putBoolean("Ready/2 Turret (info only, not required)", turretReady);
         SmartDashboard.putString("Ready/2 Turret status", turret.getNotReadyReason());
         SmartDashboard.putNumber("Ready/2 Turret tracking error rots (info)", turret.getAimErrorMotorRotations());
 
