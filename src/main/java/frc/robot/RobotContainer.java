@@ -170,10 +170,12 @@ public class RobotContainer {
         
         // This will fire the shooter, move the hood, and slow the chassis
         joystick.rightTrigger().whileTrue(fullShootCommand());
-        // While auto-aim shooting (Y or RT), agitate the intake to keep fuel flowing, unless the driver is holding
-        // the intake open with LB. LB takes over while held; agitate picks back up when it's released.
-        joystick.y().or(joystick.rightTrigger()).and(joystick.leftBumper().negate())
-            .whileTrue(evilIntake.agitate());
+        // While shooting (RT, Y or B) and NOT touching the intake buttons, agitate the intake like auto does.
+        // LB (intake) or LT (eject) take over and work exactly as before; agitate resumes when they're let go.
+        // When shooting stops the intake goes back in and its wheels stop, same as before.
+        joystick.rightTrigger().or(joystick.y()).or(joystick.b())
+            .and(joystick.leftBumper().negate()).and(joystick.leftTrigger().negate())
+            .whileTrue(evilIntake.agitate(EvilIntakePosition.in));
 
         drivetrain.registerTelemetry(logger::telemeterize);
     }

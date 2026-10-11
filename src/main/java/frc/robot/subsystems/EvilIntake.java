@@ -116,6 +116,11 @@ public class EvilIntake extends SubsystemBase {
     /** Rollers on while the rack slowly slides in and out, squeezing the hopper so fuel keeps
      *  flowing into the feeder while we shoot. Leaves the rack out and rollers off when it ends. */
     public Command agitate() {
+        return agitate(EvilIntakePosition.out);
+    }
+
+    /** Same as agitate(), but leaves the rack at endPosition when it stops (teleop puts it back in) */
+    public Command agitate(EvilIntakePosition endPosition) {
         Timer timer = new Timer();
         double out = EvilIntakePosition.out.getAngle();
         return startRun(
@@ -127,7 +132,7 @@ public class EvilIntake extends SubsystemBase {
                 spinMotor.setControl(spinRequest.withOutput(kRollerIntakeSpeed));
             })
             .finallyDo(() -> {
-                intakeMotor.setControl(rotationRequest.withPosition(out));
+                intakeMotor.setControl(rotationRequest.withPosition(endPosition.getAngle()));
                 spinMotor.setControl(spinRequest.withOutput(0));
             });
     }
