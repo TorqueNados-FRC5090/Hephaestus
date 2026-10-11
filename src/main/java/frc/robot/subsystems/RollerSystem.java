@@ -3,11 +3,9 @@ package frc.robot.subsystems;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.MotorAlignmentValue; // Restored this!
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -17,8 +15,14 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class RollerSystem extends SubsystemBase {
     /** Feed speed in RPS while shooting. Krakens/Falcons top out around 100 RPS. */
     public static final double kFeedSpeedRPS = 90;
-    /** Unjam speed in RPS: floor, lower and upper tunnel all run backwards (the belts follow the floor) */
+    /** Unjam speed in RPS: floor, lower and upper tunnel all run backwards */
     public static final double kUnjamSpeedRPS = -40;
+    /** Floor speed while intaking (LB). The tunnels stay off: they only run when shooting. */
+    public static final double kIntakeFloorSpeedRPS = 100;
+
+    private final VelocityVoltage m_floorRequest = new VelocityVoltage(0).withSlot(0).withEnableFOC(true);
+    private final VelocityVoltage m_beltRequest = new VelocityVoltage(0).withSlot(0).withEnableFOC(true);
+    private final VoltageOut m_stopRequest = new VoltageOut(0).withEnableFOC(true);
     
 
     TalonFX rollerFloor; 
@@ -55,25 +59,45 @@ public class RollerSystem extends SubsystemBase {
         lowerBelt.setNeutralMode(NeutralModeValue.Brake);
         upperBelt.setNeutralMode(NeutralModeValue.Brake);
 
-        // Using the correct CTRE Phoenix 6 (v25+) enum for followers
-        lowerBelt.setControl(new Follower(13, MotorAlignmentValue.Opposed));
-        upperBelt.setControl(new Follower(13, MotorAlignmentValue.Opposed)); // Change to .Aligned if it spins backwards!
+        // The tunnel belts used to be Followers of the floor (Opposed), so they ran whenever the floor ran, including
+        // while intaking. Now each motor is commanded on its own. Belts get the opposite sign of the floor, same as
+        // the old Opposed follower. If a belt spins the wrong way, flip kBeltDirection.
     } 
 
-    // Sets speed using PID
+    /** -1 = belts spin opposite the floor motor (what the old Opposed followers did) */
+    private static final double kBeltDirection = -1.0;
+
+    /** Floor + lower + upper tunnel at this speed (shooting, unjam, eject) */
     public void roll(double rollerSpeed){
-        VelocityVoltage velocityRequest = new VelocityVoltage(rollerSpeed).withSlot(0).withEnableFOC(true);
-        rollerFloor.setControl(velocityRequest);
+        rollerFloor.setControl(m_floorRequest.withVelocity(rollerSpeed));
+        lowerBelt.setControl(m_beltRequest.withVelocity(rollerSpeed * kBeltDirection));
+        upperBelt.setControl(m_beltRequest.withVelocity(rollerSpeed * kBeltDirection));
+    }
+
+    /** Floor only, tunnels off (intaking) */
+    public void rollFloorOnly(double rollerSpeed){
+        rollerFloor.setControl(m_floorRequest.withVelocity(rollerSpeed));
+        lowerBelt.setControl(m_stopRequest);
+        upperBelt.setControl(m_stopRequest);
     }
 
     // Cuts power to 0 volts instead of fighting PID, stopping the jitter!
     public void rollerStop(){
-        rollerFloor.setControl(new VoltageOut(0));
+        rollerFloor.setControl(m_stopRequest);
+        lowerBelt.setControl(m_stopRequest);
+        upperBelt.setControl(m_stopRequest);
     } 
 
     public void unjam(){
-        VelocityVoltage unjamRequest = new VelocityVoltage(kUnjamSpeedRPS).withSlot(0).withEnableFOC(true);
-        rollerFloor.setControl(unjamRequest);
+        roll(kUnjamSpeedRPS);
+    }
+
+    /** Floor spins to pull fuel in, tunnels stay off. Stops everything when released. */
+    public Command intakeFloor(){
+        return runEnd(
+            () -> rollFloorOnly(kIntakeFloorSpeedRPS),
+            () -> rollerStop()
+        );
     }
 
     public Command otherUnjam(){
@@ -86,5 +110,7 @@ public class RollerSystem extends SubsystemBase {
      @Override
     public void periodic() {
          SmartDashboard.putNumber("Roller Floor voltage", rollerFloor.getMotorVoltage().getValueAsDouble());
+         SmartDashboard.putNumber("Roller Lower tunnel voltage", lowerBelt.getMotorVoltage().getValueAsDouble());
+         SmartDashboard.putNumber("Roller Upper tunnel voltage", upperBelt.getMotorVoltage().getValueAsDouble());
     }
 }

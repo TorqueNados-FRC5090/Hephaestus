@@ -152,10 +152,7 @@ public class RobotContainer {
         joystick.leftBumper().whileTrue(
             Commands.parallel(
                 new EvilIntakePiece(evilIntake, EvilIntakePosition.out),
-                rollersystem.runEnd(
-                    () -> rollersystem.roll(100),
-                    () -> rollersystem.rollerStop()
-                )
+                rollersystem.intakeFloor()   // floor only; the tunnels only run when shooting
             )
             );
 

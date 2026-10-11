@@ -2,6 +2,7 @@ package frc.robot.commands;
 import java.util.function.BooleanSupplier;
 
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 
 import frc.robot.subsystems.RollerSystem;
@@ -32,12 +33,15 @@ public class theYappy extends Command{
     public void execute() {
         if (timer.get() < kPrimeReverseSeconds) {
             rollers.roll(RollerSystem.kUnjamSpeedRPS);
+            SmartDashboard.putString("Feeder/State", "Priming (backwards)");
         }
         else if (runCondition.getAsBoolean()) {
             rollers.roll(RollerSystem.kFeedSpeedRPS); 
+            SmartDashboard.putString("Feeder/State", "FEEDING");
         }
         else{ 
             rollers.rollerStop();
+            SmartDashboard.putString("Feeder/State", "Waiting for Ready (see Ready/ lights)");
         }
     }
 
@@ -45,6 +49,7 @@ public class theYappy extends Command{
     @Override
     public void end(boolean interrupted) {
        rollers.rollerStop();
+       SmartDashboard.putString("Feeder/State", "Off (not shooting)");
     }
 
     // Returns true when the command should end.
