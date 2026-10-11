@@ -102,7 +102,6 @@ public class RobotContainer {
 
     // EXPLANATION: This is the Constructor. It runs once when the robot boots up.
     public RobotContainer() {
-        SmartDashboard.putBoolean("Ready/Require turret on target", false);
         SmartDashboard.putData("Auton Selector", autonChooser);
         configureBindings();
         
@@ -171,6 +170,10 @@ public class RobotContainer {
         
         // This will fire the shooter, move the hood, and slow the chassis
         joystick.rightTrigger().whileTrue(fullShootCommand());
+        // While auto-aim shooting (Y or RT), agitate the intake to keep fuel flowing, unless the driver is holding
+        // the intake open with LB. LB takes over while held; agitate picks back up when it's released.
+        joystick.y().or(joystick.rightTrigger()).and(joystick.leftBumper().negate())
+            .whileTrue(evilIntake.agitate());
 
         drivetrain.registerTelemetry(logger::telemeterize);
     }
@@ -306,22 +309,16 @@ public class RobotContainer {
     public boolean readyToShoot() {
         return m_readyDebouncer.calculate(
             shooter.isShooterReady(1.5) &&
-            turretOk() &&
+            turret.canShootFromHere() &&
             hood.atSetpoint());
-    }
-
-    /** Shooting trusts the robot's pose: the turret only has to be able to shoot from here (in range, not under a
-     *  trench). Waiting for the turret motor to read "on target" is off unless the dashboard switch turns it on. */
-    private boolean turretOk() {
-        boolean requireOnTarget = SmartDashboard.getBoolean("Ready/Require turret on target", false);
-        return requireOnTarget ? turret.isTurretReady() : turret.canShootFromHere();
     }
 
     /** Publishes, every loop, which part is holding up a shot and by how much. Shooter numbers only mean
      *  something while Y or RT is held (the shooter's target is 0 otherwise). */
     public void updateShotDiagnostics() {
         boolean shooterReady = shooter.isShooterReady(1.5);
-        boolean turretReady = turretOk();
+        // No "turret on target" check: the turret is always tracking, we only need to be able to shoot from here
+        boolean turretReady = turret.canShootFromHere();
         boolean hoodReady = hood.atSetpoint();
         SmartDashboard.putBoolean("Ready/0 ALL READY", shooterReady && turretReady && hoodReady);
 
@@ -330,10 +327,9 @@ public class RobotContainer {
         SmartDashboard.putNumber("Ready/1 Shooter actual RPS", shooter.getVelocityRPS());
         SmartDashboard.putNumber("Ready/1 Shooter error RPS (need < 1.5)", shooter.getTargetRPS() - shooter.getVelocityRPS());
 
-        SmartDashboard.putBoolean("Ready/2 Turret on target", turretReady);
+        SmartDashboard.putBoolean("Ready/2 Turret can shoot from here", turretReady);
         SmartDashboard.putString("Ready/2 Turret status", turret.getNotReadyReason());
-        SmartDashboard.putNumber("Ready/2 Turret error rots", turret.getAimErrorMotorRotations());
-        SmartDashboard.putNumber("Ready/2 Turret allowed error rots", turret.getAimToleranceMotorRotations());
+        SmartDashboard.putNumber("Ready/2 Turret tracking error rots (info)", turret.getAimErrorMotorRotations());
 
         SmartDashboard.putBoolean("Ready/3 Hood in place", hoodReady);
         SmartDashboard.putString("Ready/3 Hood status", hood.isForcedDown() ? "Held down: near a trench" : "OK");

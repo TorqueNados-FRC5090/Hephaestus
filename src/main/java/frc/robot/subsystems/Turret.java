@@ -197,31 +197,23 @@ public class Turret extends SubsystemBase {
         return m_targetMotorRotations != 0.0 && m_targetReachable && !m_underTrench && !(m_isPassing && !m_passLaneClear);
     }
 
-    public boolean isTurretReady(){
-        if (m_targetMotorRotations == 0.0 || !m_targetReachable || m_underTrench || (m_isPassing && !m_passLaneClear)) {
-            return false;
-        }
-        return Math.abs(getAimErrorMotorRotations()) <= getAimToleranceMotorRotations();
-    }
-
-    /** How far off the turret may be and still count as on target, in motor rotations. Based on distance:
-     *  the ball may land up to kAllowedMissMeters sideways from the target (the hub opening is ~0.53m each side). */
+    /** How far past its travel limit the target may be and still count as reachable, in motor rotations. Based on
+     *  distance: the ball may land up to kAllowedMissMeters sideways from the target (hub opening ~0.53m each side). */
     public double getAimToleranceMotorRotations() {
         double distance = Math.max(0.5, m_isPassing ? m_distanceToPassTargetMeters : m_distanceToHubMeters);
         double allowedAngleRotations = Math.atan(kAllowedMissMeters / distance) / (2 * Math.PI);
         return MathUtil.clamp(allowedAngleRotations * kTurretGearRatio, 0.15, 0.45);
     }
 
-    /** @return why the turret isn't ready, or "OK" (for the dashboard) */
+    /** @return why we can't shoot from here, or "OK" (for the dashboard) */
     public String getNotReadyReason() {
         if (!m_targetReachable) return "Target out of range: point the robot's BACK at it";
         if (m_underTrench) return "Under a trench";
         if (m_isPassing && !m_passLaneClear) return "No clear pass lane past the hubs";
-        if (Math.abs(getAimErrorMotorRotations()) > getAimToleranceMotorRotations()) return "Still turning onto target";
         return "OK";
     }
 
-    /** @return how far the turret is from where it's aiming, in motor rotations (ready under 0.2) */
+    /** @return how far the turret is from where it's aiming, in motor rotations (dashboard only) */
     public double getAimErrorMotorRotations() {
         return m_turretMotor.getPosition().getValueAsDouble() - m_targetMotorRotations;
     }
