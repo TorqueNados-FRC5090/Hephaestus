@@ -333,7 +333,8 @@ public class RobotContainer {
         SmartDashboard.putBoolean("Ready/1 Shooter at speed", shooterReady);
         SmartDashboard.putNumber("Ready/1 Shooter target RPS", shooter.getTargetRPS());
         SmartDashboard.putNumber("Ready/1 Shooter actual RPS", shooter.getVelocityRPS());
-        SmartDashboard.putNumber("Ready/1 Shooter error RPS (need < 1.5)", shooter.getTargetRPS() - shooter.getVelocityRPS());
+        SmartDashboard.putNumber("Ready/1 Shooter error RPS", shooter.getTargetRPS() - shooter.getVelocityRPS());
+        SmartDashboard.putNumber("Ready/1 Shooter allowed error RPS", shooter.getReadyTolerance(1.5));
 
         SmartDashboard.putBoolean("Ready/2 Turret can shoot from here", turretReady);
         SmartDashboard.putString("Ready/2 Turret status", turret.getNotReadyReason());

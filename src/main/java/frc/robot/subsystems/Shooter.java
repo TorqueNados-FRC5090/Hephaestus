@@ -80,6 +80,14 @@ public class Shooter extends SubsystemBase {
         return leadShoot.getVelocity().getValueAsDouble();
     }
 
+    /** Shots fire when the flywheel is within this fraction of its target (or the fixed RPS range, whichever is bigger) */
+    public static final double kReadyPercent = 0.05;
+
+    /** @return how far off target the flywheel may be and still count as at speed, in RPS */
+    public double getReadyTolerance(double range) {
+        return Math.max(range, Math.abs(setpoint) * kReadyPercent);
+    }
+
     public boolean isShooterReady(double range) {
         // If we aren't trying to shoot, the shooter isn't "ready"
         if (setpoint == 0.0) {
@@ -90,7 +98,7 @@ public class Shooter extends SubsystemBase {
         double currentRPS = leadShoot.getVelocity().getValueAsDouble();
 
         // Check if the current speed is within the given RPS range of our target
-        return Math.abs(currentRPS - setpoint) <= range;
+        return Math.abs(currentRPS - setpoint) <= getReadyTolerance(range);
     }
 
     /** Updates the targetRPS and sends it to the shooter */
