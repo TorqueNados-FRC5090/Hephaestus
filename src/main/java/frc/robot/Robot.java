@@ -64,6 +64,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void robotPeriodic() {
+        double loopStart = Timer.getFPGATimestamp();
         m_timeAndJoystickReplay.update();
         CommandScheduler.getInstance().run(); 
         m_robotContainer.updateBrownoutRumble();
@@ -84,6 +85,12 @@ public class Robot extends TimedRobot {
       SmartDashboard.putNumber("111 drive pose heading", pose.getRotation().getDegrees());
       SmartDashboard.putNumber("Vision/Seconds since last tag", Timer.getFPGATimestamp() - m_lastTagTime);
     }
+
+        // How long OUR code took this loop (the budget is 20 ms). If this stays small while the Driver Station
+        // still reports loop overruns, the time is going somewhere else (CAN error spam, garbage collection, CPU).
+        double loopMs = (Timer.getFPGATimestamp() - loopStart) * 1000.0;
+        SmartDashboard.putNumber("Loop/Robot code ms", loopMs);
+        RobotLog.eventOnRise("slowLoop", loopMs > 15.0, String.format("Slow robot code loop: %.1f ms", loopMs));
   }
 
     /** Feeds one Limelight into the pose estimator.
@@ -109,13 +116,13 @@ public class Robot extends TimedRobot {
       if (DriverStation.isDisabled()) {
         var mt1 = Limelighthelpers.getBotPoseEstimate_wpiBlue(limelightName);
         if (mt1 != null && mt1.tagCount >= 2) {
-          recordVisionCorrection(driveState.Pose, mt1.pose, mt1.tagCount);
+          recordVisionCorrection(driveState.Pose, mt1.pose, mt1.tagCount, mt1.rawFiducials);
           drivetrain.addVisionMeasurement(mt1.pose, mt1.timestampSeconds, VecBuilder.fill(0.5, 0.5, 0.5));
         }
       } else {
         var mt2 = Limelighthelpers.getBotPoseEstimate_wpiBlue_MegaTag2(limelightName);
         if (mt2 != null && mt2.tagCount > 0) {
-          recordVisionCorrection(driveState.Pose, mt2.pose, mt2.tagCount);
+          recordVisionCorrection(driveState.Pose, mt2.pose, mt2.tagCount, mt2.rawFiducials);
           // Huge heading std dev = ignore vision heading, trust the Pigeon
           drivetrain.addVisionMeasurement(mt2.pose, mt2.timestampSeconds, VecBuilder.fill(0.7, 0.7, 9999999));
         }
@@ -126,8 +133,23 @@ public class Robot extends TimedRobot {
 
     /** How far the camera disagrees with odometry each time it sees tags. Small (under ~0.3m) = odometry is
      *  tracking well on its own. Big = odometry drifts when it can't see tags (wheel size, gearing, or gyro). */
-    private void recordVisionCorrection(Pose2d odometryPose, Pose2d visionPose, int tagCount) {
+    private void recordVisionCorrection(Pose2d odometryPose, Pose2d visionPose, int tagCount,
+                                        Limelighthelpers.RawFiducial[] rawFiducials) {
       m_lastTagTime = Timer.getFPGATimestamp();
+      if (rawFiducials != null) {
+        // Which tags we localized from, how far away, and how unsure (ambiguity near 1 = unreliable)
+        double[] ids = new double[rawFiducials.length];
+        double[] dists = new double[rawFiducials.length];
+        double worstAmbiguity = 0;
+        for (int i = 0; i < rawFiducials.length; i++) {
+          ids[i] = rawFiducials[i].id;
+          dists[i] = rawFiducials[i].distToCamera;
+          worstAmbiguity = Math.max(worstAmbiguity, rawFiducials[i].ambiguity);
+        }
+        SmartDashboard.putNumberArray("Vision/Tag IDs", ids);
+        SmartDashboard.putNumberArray("Vision/Tag distances (m)", dists);
+        SmartDashboard.putNumber("Vision/Worst tag ambiguity", worstAmbiguity);
+      }
       RobotLog.pose("Vision", visionPose);   // compare against Poses/Robot to see odometry drift
       SmartDashboard.putNumber("Vision/Tags seen", tagCount);
       SmartDashboard.putNumber("Vision/Correction (m)", odometryPose.getTranslation().getDistance(visionPose.getTranslation()));

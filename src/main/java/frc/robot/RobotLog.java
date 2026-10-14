@@ -42,6 +42,9 @@ public final class RobotLog {
     public static void start() {
         DataLogManager.start();   // picks the USB stick (/u) automatically when one is plugged in
         DataLogManager.logNetworkTables(true);
+        // Also save the console (Driver Station messages), including the loop-overrun printouts that name the
+        // slow part, and any CAN/Phoenix error spam
+        DataLogManager.logConsoleOutput(true);
         DriverStation.startDataLog(DataLogManager.getLog());
 
         // CTRE logs: USB stick if present, otherwise CTRE's default location on the RIO
