@@ -16,6 +16,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -44,6 +45,7 @@ public class Robot extends TimedRobot {
     }
     
     public Robot() {
+        RobotLog.start();   // DataLog + CTRE SignalLogger + command/event logs (USB stick in the RIO)
         m_robotContainer = new RobotContainer();
         // Dashboard switch: false = ignore the Limelight completely (pure odometry). Shooting never needs it.
         SmartDashboard.putBoolean("Vision/Use camera", true);
@@ -66,6 +68,7 @@ public class Robot extends TimedRobot {
         CommandScheduler.getInstance().run(); 
         m_robotContainer.updateBrownoutRumble();
         m_robotContainer.updateShotDiagnostics();
+        RobotLog.eventOnRise("brownout", RobotController.isBrownedOut(), "BROWNOUT (battery " + RobotController.getBatteryVoltage() + " V)");
     /* This example of adding Limelight is very simple and may not be sufficient for on-field use.
      * Users typically need to provide a standard deviation that scales with the distance to target and changes with number of tags available.
      *
@@ -75,6 +78,7 @@ public class Robot extends TimedRobot {
       updateVision("limelight-left");
 
       var pose = m_robotContainer.drivetrain.getState().Pose;
+      RobotLog.pose("Robot", pose);
       SmartDashboard.putNumber("111 drive pose X", pose.getX());
       SmartDashboard.putNumber("111 drive pose Y",  pose.getY());
       SmartDashboard.putNumber("111 drive pose heading", pose.getRotation().getDegrees());
@@ -124,6 +128,7 @@ public class Robot extends TimedRobot {
      *  tracking well on its own. Big = odometry drifts when it can't see tags (wheel size, gearing, or gyro). */
     private void recordVisionCorrection(Pose2d odometryPose, Pose2d visionPose, int tagCount) {
       m_lastTagTime = Timer.getFPGATimestamp();
+      RobotLog.pose("Vision", visionPose);   // compare against Poses/Robot to see odometry drift
       SmartDashboard.putNumber("Vision/Tags seen", tagCount);
       SmartDashboard.putNumber("Vision/Correction (m)", odometryPose.getTranslation().getDistance(visionPose.getTranslation()));
       SmartDashboard.putNumber("Vision/Heading disagreement (deg)", odometryPose.getRotation().minus(visionPose.getRotation()).getDegrees());

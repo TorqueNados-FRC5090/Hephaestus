@@ -16,9 +16,18 @@ public class theYappy extends Command{
     private static final double kPrimeReverseSeconds = 0.2;
     private final Timer timer = new Timer();
 
+    /** Called once each time feeding starts (used for the shot log) */
+    private final Runnable onFeedStart;
+    private boolean wasFeeding = false;
+
     public theYappy(RollerSystem rollers, BooleanSupplier runCondition){
+        this(rollers, runCondition, () -> {});
+    }
+
+    public theYappy(RollerSystem rollers, BooleanSupplier runCondition, Runnable onFeedStart){
         this.rollers = rollers;
         this.runCondition = runCondition;
+        this.onFeedStart = onFeedStart;
 
         addRequirements(rollers);
     }
@@ -26,6 +35,7 @@ public class theYappy extends Command{
     @Override
     public void initialize(){
         timer.restart();
+        wasFeeding = false;
     }
 
     // Called every time the scheduler runs while the command is scheduled.
@@ -36,10 +46,15 @@ public class theYappy extends Command{
             SmartDashboard.putString("Feeder/State", "Priming (backwards)");
         }
         else if (runCondition.getAsBoolean()) {
+            if (!wasFeeding) {
+                onFeedStart.run();
+            }
+            wasFeeding = true;
             rollers.roll(RollerSystem.kFeedSpeedRPS); 
             SmartDashboard.putString("Feeder/State", "FEEDING");
         }
         else{ 
+            wasFeeding = false;
             rollers.rollerStop();
             SmartDashboard.putString("Feeder/State", "Waiting for Ready (see Ready/ lights)");
         }
