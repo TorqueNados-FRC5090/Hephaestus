@@ -2,9 +2,14 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.hardware.TalonFXS;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.signals.MotorArrangementValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 
@@ -16,7 +21,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.EvilIntakePosition;
 
 public class EvilIntake extends SubsystemBase {
-     TalonFX intakeMotor;
+     TalonFXS intakeMotor;
+     TalonFXS intakeMotorTwo;
      TalonFX spinMotor;
      EvilIntakePosition pos = EvilIntakePosition.in;
 
@@ -44,23 +50,34 @@ public class EvilIntake extends SubsystemBase {
      * @param intakeID The ID of the intake motor
      * @param spinID The ID for the spinning part of the intake
      */
-    public EvilIntake(int intakeID, int spinID, CANBus canbus){
-        intakeMotor = new TalonFX(intakeID, canbus);
+    public EvilIntake(int intakeID, int intakeTwoID, int spinID, CANBus canbus){
+        intakeMotor = new TalonFXS(intakeID, canbus);
+        intakeMotorTwo = new TalonFXS(intakeTwoID, canbus);
         spinMotor = new TalonFX(spinID, canbus);  
         
         intakevalueid = intakeID;
 
         // --- INTAKE MOTOR CONFIGURATION ---
-        TalonFXConfiguration intakeConfig = new TalonFXConfiguration();
+        TalonFXSConfiguration intakeConfig = new TalonFXSConfiguration();
+        TalonFXSConfiguration intakeTwoConfig = new TalonFXSConfiguration();
+
+        // fjug
+        intakeConfig.Commutation.MotorArrangement = MotorArrangementValue.VORTEX_JST;
+        intakeTwoConfig.Commutation.MotorArrangement = MotorArrangementValue.VORTEX_JST;
         
         // 1. Set to Coast Mode
         intakeConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+        intakeTwoConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 
         // 2. Limit Torque to 40 Amps so it gives up when hit
         intakeConfig.CurrentLimits.StatorCurrentLimit = 40.0;
         intakeConfig.CurrentLimits.StatorCurrentLimitEnable = true;
         intakeConfig.CurrentLimits.SupplyCurrentLimit = 30;
         intakeConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
+        intakeTwoConfig.CurrentLimits.StatorCurrentLimit = 40.0;
+        intakeTwoConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        intakeTwoConfig.CurrentLimits.SupplyCurrentLimit = 30;
+        intakeTwoConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
 
         /* intakeConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
         intakeConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive; */
@@ -68,17 +85,22 @@ public class EvilIntake extends SubsystemBase {
         
         // 3. PID Tuning (Uncommented and fixed variable name to intakeConfig)
         intakeConfig.Slot0.kP = 3; 
+        intakeTwoConfig.Slot0.kP = 3;
        // intakeConfig.Slot0.kD = 0;
        // intakeConfig.Slot0.kV = 1;
        // intakeConfig.Slot0.kG = 1.8;
         // Volts to overcome friction. Was 15, which did nothing with the default sign setting
         // (and would slam full power with the one below). UseClosedLoopSign makes it push toward the setpoint.
         intakeConfig.Slot0.kS = 0.3; 
+        intakeTwoConfig.Slot0.kS = 0.3;
         intakeConfig.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
+        intakeTwoConfig.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
         // pdvga......................................................!!
         
         // Apply configs to the intake motor
         intakeMotor.getConfigurator().apply(intakeConfig);
+        intakeMotorTwo.getConfigurator().apply(intakeTwoConfig);
+        intakeMotorTwo.setControl(new Follower(intakeID, MotorAlignmentValue.Aligned));
 
         // --- SPIN MOTOR CONFIGURATION ---
         TalonFXConfiguration spinConfig = new TalonFXConfiguration();
@@ -87,6 +109,7 @@ public class EvilIntake extends SubsystemBase {
         spinConfig.CurrentLimits.SupplyCurrentLimit = 30;
         spinConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
         spinMotor.getConfigurator().apply(spinConfig);
+
     }
 
         // Go-go Gadget Move (Makes the Intake Move)
@@ -114,7 +137,7 @@ public class EvilIntake extends SubsystemBase {
     }
     
     /** Rollers on while the rack slowly slides in and out, squeezing the hopper so fuel keeps
-     *  flowing into the feeder while we shoot. Leaves the rack out and rollers off when it ends. */
+       flowing into the feeder while we shoot. Leaves the rack out and rollers off when it ends. */
     public Command agitate() {
         return agitate(EvilIntakePosition.out);
     }

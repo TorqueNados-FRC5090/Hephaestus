@@ -44,7 +44,6 @@ public class Shooter extends SubsystemBase {
         shooterConfig.Slot0.kD = 0.0005;
         shooterConfig.Slot0.kV = 0.16;
         shooterConfig.Slot0.kS = 0.0;
-        
         leadShoot.getConfigurator().apply(shooterConfig);
 
         // --- SHOOTER CONFIG ---
