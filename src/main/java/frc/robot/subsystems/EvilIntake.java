@@ -38,9 +38,12 @@ import frc.robot.RobotLog;
  *       Positive = intake goes OUT.</li>
  *   <li>Every move uses Dynamic Motion Magic, so speed and acceleration are always limited (unlimited, this
  *       gearing would slam the rack at ~150 in/s). Normal moves are fast; agitate is slower and smoother.</li>
- *   <li>Auto zero: the first time the robot is enabled (and any time re-homing is requested) the intake slowly
- *       pushes out against the 16" extension stop, detects the stall, and sets that as 16". Until then every
- *       command is held, so nothing moves to a wrong position.</li>
+ *   <li>Zero: at power-on the intake is assumed fully in (0"). In a real match that is always true (the robot
+ *       starts inside its frame perimeter), so on the field it never homes by itself and auto is unaffected.
+ *       Off the field (shop/practice, no FMS) it homes on the first enable, because the robot may have been
+ *       powered on with the intake out. Homing = slowly push out against the 16" extension stop, detect the
+ *       stall, call that 16". D-pad up / dashboard Re-home homes on request any time (e.g. after a big hit).
+ *       If homing fails it falls back to the power-on zero and keeps working.</li>
  *   <li>A low stator current limit makes the rack act like a force-capped spring: a hit pushes it in instead of
  *       skipping the chain, then Motion Magic brings it back.</li>
  *   <li>Sync guard: if the two sides drift more than 1" apart (one side blocked), both stop until re-homed.</li>
@@ -125,8 +128,12 @@ public class EvilIntake extends SubsystemBase {
      final DutyCycleOut spinRequest = new DutyCycleOut(0).withEnableFOC(true);
 
      // ================= STATE =================
-     private enum State { NOT_HOMED, HOMING, READY, HOMING_FAILED, SIDES_OUT_OF_SYNC }
+     private enum State { NOT_HOMED, HOMING, READY, SIDES_OUT_OF_SYNC }
      private State m_state = State.NOT_HOMED;
+     /** true = home even when connected to the field (driver/dashboard asked for it) */
+     private boolean m_homeRequested = false;
+     /** Where the current zero came from (dashboard) */
+     private String m_zeroSource = "power-on (intake assumed fully in)";
      private final Timer m_homingTimer = new Timer();
      private final Timer m_stallTimer = new Timer();
      private final Timer m_syncTimer = new Timer();
@@ -246,6 +253,7 @@ public class EvilIntake extends SubsystemBase {
 
     public void requestHome() {
         m_state = State.NOT_HOMED;
+        m_homeRequested = true;
     }
 
     public boolean isHomed() {
@@ -283,7 +291,17 @@ public class EvilIntake extends SubsystemBase {
 
         if (DriverStation.isEnabled()) {
             switch (m_state) {
-                case NOT_HOMED -> startHoming();
+                case NOT_HOMED -> {
+                    if (DriverStation.isFMSAttached() && !m_homeRequested) {
+                        // Real match: the robot started inside its frame, so the intake was at the 0" stop at
+                        // power-on and that zero is correct. Don't spend auto time homing.
+                        m_state = State.READY;
+                        m_syncTimer.restart();
+                        RobotLog.event("Intake: match start, using the power-on zero (no homing)");
+                    } else {
+                        startHoming();
+                    }
+                }
                 case HOMING -> runHoming(velocityRps);
                 case READY -> {
                     checkSync(leaderInches, followerInches);
@@ -291,13 +309,14 @@ public class EvilIntake extends SubsystemBase {
                         driveToTarget();
                     }
                 }
-                // Failed or out of sync: hold still until someone re-homes (D-pad up or dashboard)
-                case HOMING_FAILED, SIDES_OUT_OF_SYNC -> intakeMotor.setControl(m_stopRequest);
+                // Out of sync: hold still until someone re-homes (D-pad up or dashboard)
+                case SIDES_OUT_OF_SYNC -> intakeMotor.setControl(m_stopRequest);
             }
         }
 
         SmartDashboard.putString("Intake/Status", m_state.toString());
         SmartDashboard.putBoolean("Intake/Homed", isHomed());
+        SmartDashboard.putString("Intake/Zero from", m_zeroSource);
         SmartDashboard.putNumber("Intake/Position (in)", leaderInches);
         SmartDashboard.putNumber("Intake/Target (in)", m_targetInches);
         SmartDashboard.putNumber("Intake/Error (in)", m_targetInches - leaderInches);
@@ -340,12 +359,17 @@ public class EvilIntake extends SubsystemBase {
             intakeMotorTwo.setPosition(-stopRotations);
             m_syncTimer.restart();
             m_state = State.READY;
+            m_homeRequested = false;
+            m_zeroSource = "hard stop (homed)";
             RobotLog.event(String.format("Intake homed in %.2f s", m_homingTimer.get()));
         } else if (m_homingTimer.get() > kHomingTimeoutSeconds) {
-            m_state = State.HOMING_FAILED;
-            intakeMotor.setControl(m_stopRequest);
+            // Don't lock the intake up for the rest of the match: keep the zero we had and carry on
+            m_syncTimer.restart();
+            m_state = State.READY;
+            m_homeRequested = false;
+            m_zeroSource = "power-on (HOMING FAILED - check for a jam / unplugged motor, then re-home)";
             RobotLog.event("Intake homing FAILED (no stall in " + kHomingTimeoutSeconds
-                + " s): check for a jam or an unplugged motor, then re-home");
+                + " s): kept the power-on zero; check for a jam or an unplugged motor, then re-home");
         }
     }
 
