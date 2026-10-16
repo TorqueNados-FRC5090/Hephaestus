@@ -32,7 +32,9 @@ public class Shooter extends SubsystemBase {
         // --- LEAD SHOOTER CONFIG ---
         TalonFXConfiguration shooterConfig = new TalonFXConfiguration();
         shooterConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast; // Coast is safer for heavy flywheels
-        // Flywheel spin-up is one of the biggest current draws on the robot
+        // Flywheel spin-up is one of the biggest current draws on the robot.
+        // Stator 60 A: still spins up quickly (and recovers between balls) but caps the torque spike.
+        // Supply 40 A: limits battery draw per motor (x2) so spin-up during driving doesn't cause a brownout.
         shooterConfig.CurrentLimits.StatorCurrentLimit = 60;
         shooterConfig.CurrentLimits.StatorCurrentLimitEnable = true;
         shooterConfig.CurrentLimits.SupplyCurrentLimit = 40;

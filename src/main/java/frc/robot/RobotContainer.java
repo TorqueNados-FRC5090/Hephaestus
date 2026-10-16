@@ -70,7 +70,8 @@ public class RobotContainer {
             ChassisSpeeds.fromRobotRelativeSpeeds(state.Speeds, state.Pose.getRotation()),
             Hood.kTrenchReachMeters, Hood.kTrenchLookaheadSeconds);
     });
-    public final EvilIntake evilIntake = new EvilIntake(11, 12, upper);//spin ID should be set to 12
+    // Rack: leader 11 (positive = out) + follower 14 (opposed), both Talon FXS + Vortex. Wheels: 12 (Talon FX).
+    public final EvilIntake evilIntake = new EvilIntake(11, 14, 12, upper);
     public final Shooter shooter = new Shooter(upper);
     public final RollerSystem rollersystem = new RollerSystem(upper);
     
@@ -162,6 +163,8 @@ public class RobotContainer {
         // Eject: everything backwards like unjam, plus the intake goes out with its wheels reversed to spit fuel out
         joystick.leftTrigger().whileTrue(Commands.parallel(rollersystem.otherUnjam(), evilIntake.eject()));
         joystick.start().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric)); 
+        // Re-zero the intake against its extension stop (after a big hit, or if it says SIDES_OUT_OF_SYNC)
+        joystick.povUp().onTrue(evilIntake.requestHomeCommand());
         // Shop testing only: pretend we're straight in front of the hub (disabled when connected to a real match)
         joystick.back().and(() -> !DriverStation.isFMSAttached()).onTrue(shopTestPose());
         

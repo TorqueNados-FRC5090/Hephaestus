@@ -60,9 +60,9 @@ public class TunerConstants {
     private static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration()
         .withCurrentLimits( // driving motors
             new CurrentLimitsConfigs()
-                // Swerve azimuth does not require much torque output, so we can set a relatively low
-                // stator current limit to help avoid brownouts without impacting performance.
-                .withStatorCurrentLimit(Amps.of(60)) // peak is 60, wanted to be around there and probably not over
+                // Drive stator 60 A: about where the wheels start to slip anyway, so more only spins tires and
+                // drains the battery. NOTE: CTRE overwrites this with kSlipCurrent above, so change that one.
+                .withStatorCurrentLimit(Amps.of(60))
                 .withStatorCurrentLimitEnable(true)
                 .withSupplyCurrentLimit(Amps.of(40)) // battery draw per drive motor (x4). Raise toward 50 if drive feels weak
                 .withSupplyCurrentLimitEnable(true)

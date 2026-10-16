@@ -114,18 +114,24 @@ public class Constants {
     }
 
     //  INTAKE CONSTANTS YIPPPIEEEEE!!!   
+    /** Intake rack positions in INCHES of travel, measured from fully in (0") toward fully out.
+     *  Hard stops are at 0" (retracted) and 16" (extended). EvilIntake converts inches to motor rotations
+     *  (Vortex 14T -> 32T chain, 10T 10DP pinion: 1" = 0.728 motor rotations). */
     public enum EvilIntakePosition {
-        // evil intake setpoints
-        in(.36),
-        out(16.1);
+        in(0.3),    // just off the retract stop: never squeeze into the stop with fuel inside
+        out(14.0);  // pickup: 2" short of the 16" extension stop
 
-        private double evilsetpoint;
-        EvilIntakePosition(double evilsetpoint){
-            this.evilsetpoint = evilsetpoint;
+        private final double inches;
+        EvilIntakePosition(double inches){
+            this.inches = inches;
         }
-        //gets the angle of setpoint
+        /** @return the position in inches of rack travel */
+        public double getInches() {
+            return inches;
+        }
+        /** @return the position in motor rotations (what the Talon FXS uses) */
         public double getAngle() {
-            return evilsetpoint;
+            return inches * frc.robot.subsystems.EvilIntake.kMotorRotationsPerInch;
         }
     }
 }

@@ -43,8 +43,11 @@ public class RollerSystem extends SubsystemBase {
         lowerBelt.getConfigurator().apply(rollerConfig);
         upperBelt.getConfigurator().apply(rollerConfig);
 
-        // Current limits on all three (followers do NOT copy the leader's limits).
-        // Stator = how hard it can push into a jam, supply = how much it pulls from the battery.
+        // Current limits on all three motors (each one gets its own; limits are never shared).
+        // Stator 60 A: enough push to keep a full hopper moving and clear light jams; caps heat and belt load
+        //   when fuel really jams (the team raised this from 40).
+        // Supply 50 A: battery draw per motor; these run at full power while shooting, together with the
+        //   shooter, so this keeps the feed from browning the robot out. Lower toward 40 if brownouts return.
         CurrentLimitsConfigs rollerLimits = new CurrentLimitsConfigs()
             .withStatorCurrentLimit(60)
             .withStatorCurrentLimitEnable(true)

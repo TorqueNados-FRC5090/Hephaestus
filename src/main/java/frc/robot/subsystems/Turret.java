@@ -132,6 +132,8 @@ public class Turret extends SubsystemBase {
         TalonFXSConfiguration config = new TalonFXSConfiguration();
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         config.Commutation.MotorArrangement = MotorArrangementValue.Minion_JST;
+        // Minion turret: 30 A stator is enough to swing and hold the turret, and protects the ring gear / belt if it
+        // hits its stop or gets bumped. 20 A supply keeps it from adding to brownouts.
         config.CurrentLimits.StatorCurrentLimit = 30;
         config.CurrentLimits.StatorCurrentLimitEnable = true;
         config.CurrentLimits.SupplyCurrentLimit = 20;

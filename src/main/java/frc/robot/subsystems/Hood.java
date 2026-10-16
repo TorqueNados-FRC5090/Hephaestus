@@ -50,6 +50,8 @@ public class Hood extends SubsystemBase {
         // --- HOOD CONFIG ---
         TalonFXConfiguration hoodConfig = new TalonFXConfiguration();
         hoodConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+        // Hood is light and only moves a few rotations: 30 A stator is plenty to move and hold it, and limits the
+        // damage if it's driven into a hard stop. 20 A supply keeps it from adding to brownouts.
         hoodConfig.CurrentLimits.StatorCurrentLimit = 30;
         hoodConfig.CurrentLimits.StatorCurrentLimitEnable = true;
         hoodConfig.CurrentLimits.SupplyCurrentLimit = 20;
