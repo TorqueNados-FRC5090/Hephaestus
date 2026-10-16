@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.FieldZones;
+import frc.robot.RobotLog;
 
 public class Turret extends SubsystemBase {
 
@@ -285,6 +286,11 @@ public class Turret extends SubsystemBase {
 
         // 6. --- TURRET SETPOINT ---
         Translation2d aimPoint = m_isPassing ? virtualPassTarget : virtualHubTarget;
+        RobotLog.pose("Turret aim point", new Pose2d(aimPoint, Rotation2d.kZero));
+        // Where the turret actually points on the field (from its motor), drawn from the turret's position
+        Rotation2d turretFacing = robotPose.getRotation().plus(kTurretZeroOffset)
+            .plus(Rotation2d.fromRotations(currentMotorRotations / kTurretGearRatio / kTurretDirectionMultiplier));
+        RobotLog.pose("Turret", new Pose2d(globalTurretPos, turretFacing));
         Rotation2d turretSetpoint = aimPoint.minus(globalTurretPos).getAngle()
             .minus(aimHeading)
             .minus(kTurretZeroOffset); 

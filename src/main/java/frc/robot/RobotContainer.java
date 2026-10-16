@@ -189,7 +189,7 @@ public class RobotContainer {
             // Notice MoveTurret is gone! The default command we set above handles aiming.
             
             // Command C: Shoot only when the other subsystems are ready.
-            new theYappy(rollersystem, () -> readyToShoot()),
+            new theYappy(rollersystem, () -> readyToShoot(), () -> logShot("teleop")),
             hood.hoodgo(() -> calculateOptimalHoodAngle())
         );
     }
@@ -200,7 +200,7 @@ public class RobotContainer {
     public Command autoShootCommand() {
         return new ParallelCommandGroup(
             shooter.shoot(() -> hubShooterRPS(turret.getHubShootingDistance())),
-            new theYappy(rollersystem, () -> !turret.isPassing() && readyToShoot()),
+            new theYappy(rollersystem, () -> !turret.isPassing() && readyToShoot(), () -> logShot("auto")),
             hood.hoodgo(() -> hubHoodAngle(turret.getHubShootingDistance()))
         );
     }
@@ -221,7 +221,7 @@ public class RobotContainer {
             shooter.shoot(() -> 23), 
             // The failsafe safely interrupts the default command to zero the turret, then resumes tracking when released
             turret.run(() -> turret.goToZero()),
-            new theYappy(rollersystem, () -> shooter.isShooterReady(2))
+            new theYappy(rollersystem, () -> shooter.isShooterReady(2), () -> logShot("fixed shot"))
         );
     }
 
@@ -313,6 +313,24 @@ public class RobotContainer {
             hood.atSetpoint());
     }
 
+    private int m_shotCount = 0;
+
+    /** One line per shot (each time the feeder starts): everything needed to see why a shot hit or missed and to
+     *  tune the shooter/hood/pass tables. Also drops a pose in "Poses/Shot" so shots show up on the field. */
+    private void logShot(String kind) {
+        m_shotCount++;
+        var state = drivetrain.getState();
+        double speed = Math.hypot(state.Speeds.vxMetersPerSecond, state.Speeds.vyMetersPerSecond);
+        RobotLog.event(String.format(
+            "SHOT #%d %s %s | dist %.2fm | shooter %.1f/%.1f RPS | hood %.2f/%.2f | turret err %.2f rot | speed %.2f m/s | pose (%.2f, %.2f, %.0f deg)",
+            m_shotCount, kind, turret.isPassing() ? "PASS" : "HUB", turret.getShootingDistance(),
+            shooter.getVelocityRPS(), shooter.getTargetRPS(), hood.getAngle(), hood.getSetpoint(),
+            turret.getAimErrorMotorRotations(), speed,
+            state.Pose.getX(), state.Pose.getY(), state.Pose.getRotation().getDegrees()));
+        RobotLog.pose("Shot", state.Pose);
+        SmartDashboard.putNumber("Shots/Count", m_shotCount);
+    }
+
     /** Publishes, every loop, which part is holding up a shot and by how much. Shooter numbers only mean
      *  something while Y or RT is held (the shooter's target is 0 otherwise). */
     public void updateShotDiagnostics() {
@@ -327,6 +345,10 @@ public class RobotContainer {
         if (!hoodReady) waiting.append(hood.isForcedDown() ? "HOOD held down near a trench. "
             : String.format("HOOD at %.2f, wants %.2f. ", hood.getAngle(), hood.getSetpoint()));
         SmartDashboard.putString("Feeder/Waiting on", waiting.length() == 0 ? "Nothing - ready to feed" : waiting.toString());
+
+        // Events (logged once when they start, not every loop)
+        RobotLog.eventOnRise("hoodForced", hood.isForcedDown(), "Hood held down near a trench");
+        RobotLog.eventOnRise("turretRange", !turretReady, "Turret can't shoot from here: " + turret.getNotReadyReason());
 
         SmartDashboard.putBoolean("Ready/1 Shooter at speed", shooterReady);
         SmartDashboard.putNumber("Ready/1 Shooter target RPS", shooter.getTargetRPS());

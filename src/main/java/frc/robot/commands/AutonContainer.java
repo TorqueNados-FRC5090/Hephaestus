@@ -7,6 +7,8 @@ import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.util.PathPlannerLogging;
+import frc.robot.RobotLog;
 
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -31,6 +33,10 @@ public class AutonContainer{
         RobotConfig config = PP_CONFIG;
         try { config = RobotConfig.fromGUISettings(); }
         catch (Exception e) { e.printStackTrace(); }
+
+        // Logged so AdvantageScope can overlay the planned path / target pose on the actual pose
+        PathPlannerLogging.setLogTargetPoseCallback(pose -> RobotLog.pose("Auto target", pose));
+        PathPlannerLogging.setLogActivePathCallback(poses -> RobotLog.poses("Auto path", poses));
 
         AutoBuilder.configure(
             drivetrain::getPose, 

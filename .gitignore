@@ -188,3 +188,8 @@ compile_commands.json
 
 # Generated at build time (see writeVersionFile in build.gradle)
 src/main/deploy/version.txt
+
+# Robot / simulation logs (DataLog + CTRE SignalLogger)
+logs/
+*.wpilog
+*.hoot
