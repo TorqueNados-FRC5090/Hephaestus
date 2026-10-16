@@ -37,7 +37,7 @@ import frc.robot.RobotLog;
  *   <li>Motor 11 (leader) is commanded; motor 14 follows it, Opposed (the motors face each other).
  *       Positive = intake goes OUT.</li>
  *   <li>Every move uses Dynamic Motion Magic, so speed and acceleration are always limited (unlimited, this
- *       gearing would slam the rack at ~150 in/s). Normal moves are fast; agitate is slower and smoother.</li>
+ *       gearing would slam the rack at ~200 in/s). Normal moves are fast; agitate is slower and smoother.</li>
  *   <li>Zero: at power-on the intake is assumed fully in (0"). In a real match that is always true (the robot
  *       starts inside its frame perimeter), so on the field it never homes by itself and auto is unaffected.
  *       Off the field (shop/practice, no FMS) it homes on the first enable, because the robot may have been
@@ -52,9 +52,9 @@ import frc.robot.RobotLog;
  */
 public class EvilIntake extends SubsystemBase {
      // ================= GEARING / TRAVEL =================
-     /** Vortex 14T sprocket -> 32T sprocket (chain), then a 10T 10DP pinion (1.0" pitch diameter) on the rack.
-      *  1 inch of rack travel = (32/14) / (pi * 1.0") = 0.728 motor rotations. */
-     public static final double kMotorRotationsPerInch = (32.0 / 14.0) / (Math.PI * 1.0);
+     /** Vortex 14T sprocket -> 24T sprocket (chain, 1.71:1), then a 10T 10DP pinion (1.0" pitch diameter) on the rack.
+      *  1 inch of rack travel = (24/14) / (pi * 1.0") = 0.546 motor rotations. */
+     public static final double kMotorRotationsPerInch = (24.0 / 14.0) / (Math.PI * 1.0);
      /** Extension hard stop (inches). Auto-zero pushes against this and sets it as the reference. */
      private static final double kExtendStopInches = 16.0;
      /** Never command closer than this to the extension stop (Motion Magic would push into it) */
@@ -70,8 +70,8 @@ public class EvilIntake extends SubsystemBase {
      private double m_agitateAccelInPerSec2 = 60.0;
 
      // ================= AUTO ZERO (hard-stop homing) =================
-     /** Volts pushing OUT while homing. ~1 V moves the rack ~13 in/s, gentle enough to stop on the hard stop */
-     private static final double kHomingVolts = 1.0;
+     /** Volts pushing OUT while homing. 0.8 V moves the rack ~14 in/s, gentle enough to stop on the hard stop */
+     private static final double kHomingVolts = 0.8;
      /** Below this speed (motor rot/s) the rack counts as stopped */
      private static final double kHomingStallRps = 0.5;
      /** Must stay stopped this long to count as "hit the stop" */
@@ -87,7 +87,7 @@ public class EvilIntake extends SubsystemBase {
      private static final double kSyncFaultSeconds = 0.25;
 
      // ================= CURRENT LIMITS (why) =================
-     /** Rack motors, stator: the "spring". 20 A ~= 14 lb of push per side (28 lb total), plenty to move the rack
+     /** Rack motors, stator: the "spring". 20 A ~= 10 lb of push per side (20 lb total), plenty to move the rack
       *  through fuel, but low enough that a hit shoves the intake in instead of skipping the chain. Raise toward
       *  25-30 A if the intake gets pushed back during normal pickup; lower if the chain still skips. */
      private static final double kRackStatorLimitAmps = 20.0;
