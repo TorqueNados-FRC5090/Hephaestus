@@ -35,9 +35,9 @@ import frc.robot.RobotLog;
  *
  * <p>How it works:
  * <ul>
- *   <li>Motor 11 (leader) is commanded; motor 14 follows it, ALIGNED. (The motors face each other, but the 10/21
- *       log showed both encoders move the same way when the intake moves, so they must turn the same way.)
- *       Positive = intake goes OUT.</li>
+ *   <li>Motor 11 (leader) is commanded; motor 14 follows it OPPOSED (the motors face each other). Confirmed on the
+ *       robot 10/21: with Aligned, 11 drove out while 14 drove in and the intake bound. Positive = intake goes OUT
+ *       (confirmed: +1 V on 11 moved it out).</li>
  *   <li>Every move uses Motion Magic, so speed and acceleration are always limited (unlimited, this gearing
  *       would slam the rack at ~200 in/s). Standard Motion Magic on purpose: it works without a Phoenix Pro
  *       license (Pro-only controls make an unlicensed Talon refuse to move).</li>
@@ -128,6 +128,12 @@ public class EvilIntake extends SubsystemBase {
      /** Seconds for one full out -> in -> out cycle. Bigger = slower */
      private static final double kAgitatePeriodSeconds = 2.0;
 
+     // ================= FOLLOWER DIRECTION =================
+     /** Motor 14 turns opposite to motor 11 (they face each other). Used everywhere the follower is set up. */
+     private static final MotorAlignmentValue kFollowerAlignment = MotorAlignmentValue.Opposed;
+     /** Because it's opposed, motor 14's own position reads the opposite sign of motor 11's */
+     private static final double kFollowerPositionSign = -1.0;
+
      // ================= HARDWARE =================
      final TalonFXS intakeMotor;      // leader (CAN 11)
      final TalonFXS intakeMotorTwo;   // follower (CAN 14), opposed
@@ -194,8 +200,8 @@ public class EvilIntake extends SubsystemBase {
 
         intakeMotor.getConfigurator().apply(rackConfig);
         intakeMotorTwo.getConfigurator().apply(rackConfig);   // same limits on the follower (followers don't copy them)
-        // Motor 14 copies motor 11's output in the SAME direction (both encoders move the same way with the intake)
-        intakeMotorTwo.setControl(new Follower(intakeID, MotorAlignmentValue.Aligned));
+        // Motor 14 copies motor 11's output, reversed (they face each other)
+        intakeMotorTwo.setControl(new Follower(intakeID, kFollowerAlignment));
         // Old faults (e.g. the unlicensed fault from earlier code) would otherwise show on the dashboard forever
         intakeMotor.clearStickyFaults();
         intakeMotorTwo.clearStickyFaults();
@@ -307,13 +313,13 @@ public class EvilIntake extends SubsystemBase {
     @Override
     public void periodic() {
         if (m_motorTest) {
-            publishTelemetry(getInches(), intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch,
+            publishTelemetry(getInches(), kFollowerPositionSign * intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch,
                 intakeMotor.getVelocity().getValueAsDouble());
             return;   // Test mode: runMotorTest() is driving the motors, don't touch them here
         }
         double leaderInches = getInches();
-        // Aligned follower: its position reads the same sign as the leader's
-        double followerInches = intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch;
+        // Opposed follower: flip its reading so both are "inches out" 
+        double followerInches = kFollowerPositionSign * intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch;
         double velocityRps = intakeMotor.getVelocity().getValueAsDouble();
 
         if (DriverStation.isDisabled() && m_state == State.HOMING) {
@@ -429,7 +435,7 @@ public class EvilIntake extends SubsystemBase {
             // Stopped against the extension stop: that is 16"
             double stopRotations = kExtendStopInches * kMotorRotationsPerInch;
             intakeMotor.setPosition(stopRotations);
-            intakeMotorTwo.setPosition(stopRotations);
+            intakeMotorTwo.setPosition(kFollowerPositionSign * stopRotations);
             m_syncTimer.restart();
             m_state = State.READY;
             m_homeRequested = false;
@@ -472,7 +478,7 @@ public class EvilIntake extends SubsystemBase {
     // 2. Type a small number (1.0 to 1.5 V) in "Intake/Test/Leader 11 volts". Watch which way the intake goes.
     //    Set it back to 0.
     // 3. Same with "Intake/Test/Follower 14 volts".
-    // 4. Positive should be OUT on both (or tell the programmers what happened). Also check
+    // 4. Expected: +volts on 11 = OUT, and -volts on 14 = OUT (14 is mounted facing the other way). Also check
     //    "Intake/Leader current (A)" and "Intake/Follower current (A)" go up when that motor is pushing.
     // Values are clamped to +/-3 V and drop to 0 when you leave Test mode.
     private static final double kMotorTestMaxVolts = 3.0;
@@ -495,7 +501,7 @@ public class EvilIntake extends SubsystemBase {
     public void endMotorTest() {
         m_motorTest = false;
         intakeMotor.setControl(m_stopRequest);
-        intakeMotorTwo.setControl(new Follower(m_intakeId, MotorAlignmentValue.Aligned));
+        intakeMotorTwo.setControl(new Follower(m_intakeId, kFollowerAlignment));
         m_state = State.NOT_HOMED;   // positions may have moved: re-zero on the next enable
         RobotLog.event("Intake motor test ended");
     }
