@@ -247,8 +247,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
         if (tel) SmartDashboard.putNumber("robot yaw", getgyroyaw().getDegrees());
         // If Connected is false or Yaw doesn't change when the robot turns, the swerve has no heading
-        if (tel) SmartDashboard.putBoolean("Gyro/Connected", getPigeon2().isConnected());
+        boolean gyroConnected = getPigeon2().isConnected();
+        if (tel) SmartDashboard.putBoolean("Gyro/Connected", gyroConnected);
         if (tel) SmartDashboard.putNumber("Gyro/Yaw (deg)", getPigeon2().getYaw().getValueAsDouble());
+        // Heading is frozen without this (odometry can't update rotation, and once enabled MegaTag2 trusts the
+        // gyro for heading, not vision) -- that's exactly what makes the turret look like it "only moves with a
+        // tag in view". Loud on purpose: this is a real wiring/CAN problem, not something to tune around.
+        RobotLog.eventOnRise("gyroDisconnected", !gyroConnected,
+            "GYRO NOT CONNECTED -- heading is frozen, turret/field-relative driving will be wrong. Check the "
+                + "Pigeon's CAN wiring/ID on the Jarvis bus.");
         /*
          * Periodically try to apply the operator perspective.
          * If we haven't applied the operator perspective before, then we should apply it regardless of DS state.
