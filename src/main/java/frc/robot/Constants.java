@@ -115,11 +115,11 @@ public class Constants {
 
     //  INTAKE CONSTANTS YIPPPIEEEEE!!!   
     /** Intake rack positions in INCHES of travel, measured from fully in (0") toward fully out.
-     *  Hard stops are at 0" (retracted) and 16" (extended). EvilIntake converts inches to motor rotations
+     *  Hard stops are at 0" (retracted) and 17" (extended). EvilIntake converts inches to motor rotations
      *  (Vortex 14T -> 24T chain, 10T 10DP pinion: 1" = 0.546 motor rotations). */
     public enum EvilIntakePosition {
         in(0.3),    // just off the retract stop: never squeeze into the stop with fuel inside
-        out(14.0);  // pickup: 2" short of the 16" extension stop
+        out(16.0);  // pickup: arms out 16", 1" short of the 17" extension stop
 
         private final double inches;
         EvilIntakePosition(double inches){

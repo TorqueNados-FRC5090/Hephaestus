@@ -42,8 +42,8 @@ import frc.robot.RobotLog;
  *   <li>Zero: at power-on the intake is assumed fully in (0"). In a real match that is always true (the robot
  *       starts inside its frame perimeter), so on the field it never homes by itself and auto is unaffected.
  *       Off the field (shop/practice, no FMS) it homes on the first enable, because the robot may have been
- *       powered on with the intake out. Homing = slowly push out against the 16" extension stop, detect the
- *       stall, call that 16". D-pad up / dashboard Re-home homes on request any time (e.g. after a big hit).
+ *       powered on with the intake out. Homing = slowly push out against the 17" extension stop, detect the
+ *       stall, call that 17". D-pad up / dashboard Re-home homes on request any time (e.g. after a big hit).
  *       If homing fails it falls back to the power-on zero and keeps working.</li>
  *   <li>A low stator current limit makes the rack act like a force-capped spring: a hit pushes it in instead of
  *       skipping the chain, then Motion Magic brings it back.</li>
@@ -57,15 +57,15 @@ public class EvilIntake extends SubsystemBase {
       *  1 inch of rack travel = (24/14) / (pi * 1.0") = 0.546 motor rotations. */
      public static final double kMotorRotationsPerInch = (24.0 / 14.0) / (Math.PI * 1.0);
      /** Extension hard stop (inches). Auto-zero pushes against this and sets it as the reference. */
-     private static final double kExtendStopInches = 16.0;
+     private static final double kExtendStopInches = 17.0;   // arms fully out = 17" (Michel 10/21)
      /** Never command closer than this to the extension stop (Motion Magic would push into it) */
-     private static final double kMaxCommandInches = 15.5;
+     private static final double kMaxCommandInches = 16.5;
      /** Never command into the retract stop (fuel gets squeezed / jams) */
      private static final double kMinCommandInches = 0.2;
 
      // ================= SPEED (Motion Magic) =================
      // Change these live from the dashboard (Intake/Tune) and copy the good values back here.
-     private static final double kDefaultCruiseInPerSec = 40.0;   // full 14" stroke in ~0.5 s
+     private static final double kDefaultCruiseInPerSec = 40.0;   // full 16" stroke in ~0.5 s
      private static final double kDefaultAccelInPerSec2 = 150.0;
      // Agitate follows a slow back-and-forth (kAgitatePeriodSeconds), always slower than the cruise speed.
 
@@ -447,7 +447,7 @@ public class EvilIntake extends SubsystemBase {
                 m_stallTimer[side].restart();
             }
             if (!m_sideHomed[side] && m_stallTimer[side].get() >= kHomingStallSeconds) {
-                motors[side].setPosition(stopRotations);   // this side is at the 16" stop
+                motors[side].setPosition(stopRotations);   // this side is at the 17" stop
                 m_sideHomed[side] = true;
             }
             // Keep pushing gently (also once homed) so the other side can catch up without twisting
@@ -470,7 +470,7 @@ public class EvilIntake extends SubsystemBase {
             if (m_sideHomed[0] || m_sideHomed[1]) {
                 why = "only motor " + (m_sideHomed[0] ? "11" : "14") + "'s side reached the stop (other side binding?)";
             } else if (anyMoved) {
-                why = "moved but never stopped at the 16\" stop (chain skipping? stop missing?)";
+                why = "moved but never stopped at the 17\" stop (chain skipping? stop missing?)";
             } else {
                 why = "never moved even at " + kHomingMaxVolts + " V (direction? motor/adapter? license? chain off?)";
             }
