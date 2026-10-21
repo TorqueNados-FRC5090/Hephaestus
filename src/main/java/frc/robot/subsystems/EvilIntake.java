@@ -5,7 +5,8 @@ import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.DynamicMotionMagicVoltage;
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
+import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VoltageOut;
@@ -36,8 +37,9 @@ import frc.robot.RobotLog;
  * <ul>
  *   <li>Motor 11 (leader) is commanded; motor 14 follows it, Opposed (the motors face each other).
  *       Positive = intake goes OUT.</li>
- *   <li>Every move uses Dynamic Motion Magic, so speed and acceleration are always limited (unlimited, this
- *       gearing would slam the rack at ~200 in/s). Normal moves are fast; agitate is slower and smoother.</li>
+ *   <li>Every move uses Motion Magic, so speed and acceleration are always limited (unlimited, this gearing
+ *       would slam the rack at ~200 in/s). Standard Motion Magic on purpose: it works without a Phoenix Pro
+ *       license (Pro-only controls make an unlicensed Talon refuse to move).</li>
  *   <li>Zero: at power-on the intake is assumed fully in (0"). In a real match that is always true (the robot
  *       starts inside its frame perimeter), so on the field it never homes by itself and auto is unaffected.
  *       Off the field (shop/practice, no FMS) it homes on the first enable, because the robot may have been
@@ -62,16 +64,21 @@ public class EvilIntake extends SubsystemBase {
      /** Never command into the retract stop (fuel gets squeezed / jams) */
      private static final double kMinCommandInches = 0.2;
 
-     // ================= SPEED (Dynamic Motion Magic) =================
+     // ================= SPEED (Motion Magic) =================
      // Change these live from the dashboard (Intake/Tune) and copy the good values back here.
-     private double m_moveCruiseInPerSec = 40.0;    // normal in/out moves: full 14" stroke in ~0.5 s
-     private double m_moveAccelInPerSec2 = 150.0;
-     private double m_agitateCruiseInPerSec = 15.0; // agitate: slower and smoother, keeps fuel flowing
-     private double m_agitateAccelInPerSec2 = 60.0;
+     private static final double kDefaultCruiseInPerSec = 40.0;   // full 14" stroke in ~0.5 s
+     private static final double kDefaultAccelInPerSec2 = 150.0;
+     // Agitate follows a slow back-and-forth (kAgitatePeriodSeconds), always slower than the cruise speed.
 
      // ================= AUTO ZERO (hard-stop homing) =================
-     /** Volts pushing OUT while homing. 0.8 V moves the rack ~14 in/s, gentle enough to stop on the hard stop */
-     private static final double kHomingVolts = 0.8;
+     /** Volts pushing OUT while homing. Starts at 0.8 V (~14 in/s) and steps up if the rack doesn't move. */
+     private static final double kHomingStartVolts = 0.8;
+     private static final double kHomingMaxVolts = 2.5;
+     /** Volts added per second while the rack still hasn't moved */
+     private static final double kHomingRampVoltsPerSec = 1.0;
+     /** The rack must travel at least this far before a stall counts as "hit the stop" (otherwise "it never
+      *  moved" would look exactly like "it hit the stop") */
+     private static final double kHomingMinTravelInches = 2.0;
      /** Below this speed (motor rot/s) the rack counts as stopped */
      private static final double kHomingStallRps = 0.5;
      /** Must stay stopped this long to count as "hit the stop" */
@@ -85,6 +92,9 @@ public class EvilIntake extends SubsystemBase {
      /** If the two sides disagree by more than this (inches) for kSyncFaultSeconds, both stop until re-homed */
      private static final double kSyncFaultInches = 1.0;
      private static final double kSyncFaultSeconds = 0.25;
+     /** false = only warn (dashboard + log). Set true once "Intake/Sides differ (in)" has been seen to stay near
+      *  0 during normal moves (proves the follower reading is the right way round). */
+     private static final boolean kSyncGuardStopsIntake = false;
 
      // ================= CURRENT LIMITS (why) =================
      /** Rack motors, stator: the "spring". 20 A ~= 10 lb of push per side (20 lb total), plenty to move the rack
@@ -122,7 +132,7 @@ public class EvilIntake extends SubsystemBase {
      final TalonFXS intakeMotorTwo;   // follower (CAN 14), opposed
      final TalonFX spinMotor;         // intake wheels (CAN 12)
 
-     private final DynamicMotionMagicVoltage m_moveRequest = new DynamicMotionMagicVoltage(0, 0, 0).withEnableFOC(true);
+     private final MotionMagicVoltage m_moveRequest = new MotionMagicVoltage(0).withEnableFOC(true);
      private final VoltageOut m_homingRequest = new VoltageOut(0).withEnableFOC(true);
      private final NeutralOut m_stopRequest = new NeutralOut();
      final DutyCycleOut spinRequest = new DutyCycleOut(0).withEnableFOC(true);
@@ -138,7 +148,9 @@ public class EvilIntake extends SubsystemBase {
      private final Timer m_stallTimer = new Timer();
      private final Timer m_syncTimer = new Timer();
      private double m_targetInches = EvilIntakePosition.in.getInches();
-     private boolean m_slowProfile = false;
+     private double m_homingStartInches = 0;
+     private boolean m_homingMoved = false;
+     private double m_homingVolts = kHomingStartVolts;
 
     /** Constructs the intake
      * @param intakeID CAN ID of the leader rack motor (Talon FXS + Vortex), positive = out
@@ -154,8 +166,9 @@ public class EvilIntake extends SubsystemBase {
         TalonFXSConfiguration rackConfig = new TalonFXSConfiguration();
         // Tells the Talon FXS a Vortex is attached (through the REV Vortex Solo Adapter). Nothing runs without it.
         rackConfig.Commutation.MotorArrangement = MotorArrangementValue.VORTEX_JST;
-        // Better commutation + speed measurement for hall-sensor motors like the Vortex (Phoenix Pro feature)
-        rackConfig.Commutation.AdvancedHallSupport = AdvancedHallSupportValue.Enabled;
+        // AdvancedHallSupport (better Vortex commutation) is a Phoenix Pro feature: left OFF so the intake runs even
+        // if these Talons aren't covered by the license. Turn on once "Intake/Unlicensed fault" is confirmed false.
+        rackConfig.Commutation.AdvancedHallSupport = AdvancedHallSupportValue.Disabled;
         // Leader: positive = OUT. If the intake goes IN when it should go out, flip this to Clockwise_Positive.
         rackConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
         // Coast: the rack can give when hit while the robot is disabled
@@ -165,6 +178,7 @@ public class EvilIntake extends SubsystemBase {
         rackConfig.CurrentLimits.SupplyCurrentLimit = kRackSupplyLimitAmps;
         rackConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
         rackConfig.Slot0 = gainsFromDashboardDefaults();
+        rackConfig.MotionMagic = motionMagicFor(kDefaultCruiseInPerSec, kDefaultAccelInPerSec2);
         // Push toward the target to get past friction (kS sign follows the error)
         rackConfig.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
 
@@ -194,7 +208,7 @@ public class EvilIntake extends SubsystemBase {
 
     /** Move the rack to a named position (normal speed) */
     public void evilyummy(EvilIntakePosition pos){
-        setTargetInches(pos.getInches(), false);
+        setTargetInches(pos.getInches());
     }
 
     /** Old placeholder, does nothing */
@@ -225,7 +239,7 @@ public class EvilIntake extends SubsystemBase {
             () -> {
                 // 0 -> 1 -> 0 over one period, starting from out
                 double inAmount = (1 - Math.cos(2 * Math.PI * timer.get() / kAgitatePeriodSeconds)) / 2;
-                setTargetInches(out + (kAgitateInInches - out) * inAmount, true);
+                setTargetInches(out + (kAgitateInInches - out) * inAmount);
                 spinMotor.setControl(spinRequest.withOutput(kRollerIntakeSpeed));
             })
             .finallyDo(() -> {
@@ -270,9 +284,8 @@ public class EvilIntake extends SubsystemBase {
         return getAngle() / kMotorRotationsPerInch;
     }
 
-    private void setTargetInches(double inches, boolean slowProfile) {
+    private void setTargetInches(double inches) {
         m_targetInches = Math.max(kMinCommandInches, Math.min(kMaxCommandInches, inches));
-        m_slowProfile = slowProfile;
     }
 
     // =====================================================================
@@ -326,30 +339,49 @@ public class EvilIntake extends SubsystemBase {
         SmartDashboard.putNumber("Intake/Leader current (A)", intakeMotor.getStatorCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Intake/Follower current (A)", intakeMotorTwo.getStatorCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Intake/Leader volts", intakeMotor.getMotorVoltage().getValueAsDouble());
+        // True = these Talons are being asked for a Pro feature they aren't licensed for (they won't move)
+        SmartDashboard.putBoolean("Intake/Unlicensed fault",
+            intakeMotor.getStickyFault_UnlicensedFeatureInUse().getValue()
+            || intakeMotorTwo.getStickyFault_UnlicensedFeatureInUse().getValue());
         SmartDashboard.putNumber("Intake Roller voltage", spinMotor.getMotorVoltage().getValueAsDouble());
     }
 
     private void driveToTarget() {
-        double cruise = m_slowProfile ? m_agitateCruiseInPerSec : m_moveCruiseInPerSec;
-        double accel = m_slowProfile ? m_agitateAccelInPerSec2 : m_moveAccelInPerSec2;
-        intakeMotor.setControl(m_moveRequest
-            .withPosition(m_targetInches * kMotorRotationsPerInch)
-            .withVelocity(cruise * kMotorRotationsPerInch)
-            .withAcceleration(accel * kMotorRotationsPerInch)
-            .withJerk(accel * kMotorRotationsPerInch * 10));   // soft start/stop, ~0.1 s to full accel
+        intakeMotor.setControl(m_moveRequest.withPosition(m_targetInches * kMotorRotationsPerInch));
+    }
+
+    /** Motion Magic speed limits in motor units from inches */
+    private static MotionMagicConfigs motionMagicFor(double cruiseInPerSec, double accelInPerSec2) {
+        return new MotionMagicConfigs()
+            .withMotionMagicCruiseVelocity(cruiseInPerSec * kMotorRotationsPerInch)
+            .withMotionMagicAcceleration(accelInPerSec2 * kMotorRotationsPerInch)
+            .withMotionMagicJerk(accelInPerSec2 * kMotorRotationsPerInch * 10);   // ~0.1 s to full accel
     }
 
     private void startHoming() {
         m_state = State.HOMING;
         m_homingTimer.restart();
         m_stallTimer.restart();
+        m_homingStartInches = getInches();
+        m_homingMoved = false;
+        m_homingVolts = kHomingStartVolts;
         RobotLog.event("Intake homing: pushing out to the extension stop");
     }
 
     private void runHoming(double velocityRps) {
-        intakeMotor.setControl(m_homingRequest.withOutput(kHomingVolts));
+        if (!m_homingMoved) {
+            if (getInches() - m_homingStartInches >= kHomingMinTravelInches) {
+                m_homingMoved = true;   // it's travelling out; keep this voltage until it reaches the stop
+            } else if (m_homingTimer.get() > kHomingIgnoreSeconds) {
+                // Not moving yet (friction / chain): push a little harder, up to kHomingMaxVolts
+                m_homingVolts = Math.min(kHomingMaxVolts, m_homingVolts + kHomingRampVoltsPerSec * 0.02);
+            }
+        }
+        intakeMotor.setControl(m_homingRequest.withOutput(m_homingVolts));
+        SmartDashboard.putNumber("Intake/Homing volts", m_homingVolts);
+
         boolean moving = Math.abs(velocityRps) > kHomingStallRps;
-        if (moving || m_homingTimer.get() < kHomingIgnoreSeconds) {
+        if (moving || !m_homingMoved || m_homingTimer.get() < kHomingIgnoreSeconds) {
             m_stallTimer.restart();
         }
         if (m_stallTimer.get() >= kHomingStallSeconds) {
@@ -367,9 +399,12 @@ public class EvilIntake extends SubsystemBase {
             m_syncTimer.restart();
             m_state = State.READY;
             m_homeRequested = false;
-            m_zeroSource = "power-on (HOMING FAILED - check for a jam / unplugged motor, then re-home)";
-            RobotLog.event("Intake homing FAILED (no stall in " + kHomingTimeoutSeconds
-                + " s): kept the power-on zero; check for a jam or an unplugged motor, then re-home");
+            String why = m_homingMoved
+                ? "moved but never stopped at the 16\" stop (chain skipping? stop missing?)"
+                : "never moved even at " + kHomingMaxVolts + " V (wrong direction = pushing into the IN stop? "
+                  + "motor/adapter not plugged in? license fault? chain off?)";
+            m_zeroSource = "power-on (HOMING FAILED: " + why + ")";
+            RobotLog.event("Intake homing FAILED: " + why + ". Kept the power-on zero; fix it, then re-home");
         }
     }
 
@@ -377,11 +412,16 @@ public class EvilIntake extends SubsystemBase {
         if (Math.abs(leaderInches - followerInches) <= kSyncFaultInches) {
             m_syncTimer.restart();
         } else if (m_syncTimer.get() >= kSyncFaultSeconds) {
-            m_state = State.SIDES_OUT_OF_SYNC;
-            intakeMotor.setControl(m_stopRequest);
-            RobotLog.event(String.format("Intake sides OUT OF SYNC (%.2f in vs %.2f in): stopped, re-home to clear",
-                leaderInches, followerInches));
+            RobotLog.eventOnRise("intakeSync", true, String.format(
+                "Intake sides OUT OF SYNC (%.2f in vs %.2f in)%s", leaderInches, followerInches,
+                kSyncGuardStopsIntake ? ": stopped, re-home to clear" : " (warning only, guard not armed)"));
+            if (kSyncGuardStopsIntake) {
+                m_state = State.SIDES_OUT_OF_SYNC;
+                intakeMotor.setControl(m_stopRequest);
+            }
+            return;
         }
+        RobotLog.eventOnRise("intakeSync", false, "");
     }
 
     // =====================================================================
@@ -393,7 +433,7 @@ public class EvilIntake extends SubsystemBase {
     //   3. kV: with Motion Magic, raise until "Intake/Velocity (in per s)" matches the cruise speed mid-move.
     //   4. kP: raise until it lands on target quickly; stop when it overshoots, then back off ~20%.
     //   5. kD: only if it still bounces at the end of a move; add small amounts (0.05, 0.1...).
-    //   6. Speeds: raise move cruise/accel until it's as fast as you want without slamming.
+    //   6. Speeds: raise cruise/accel until it's as fast as you want without slamming.
     // Press "Intake/Tune/Apply" after changing numbers. Use "Intake/Tune/Go to test target" to try moves.
     // When it's good, copy the numbers into the kDefault... constants above so they stick.
 
@@ -404,14 +444,12 @@ public class EvilIntake extends SubsystemBase {
         SmartDashboard.putNumber("Intake/Tune/kS", kDefaultS);
         SmartDashboard.putNumber("Intake/Tune/kV", kDefaultV);
         SmartDashboard.putNumber("Intake/Tune/kA", kDefaultA);
-        SmartDashboard.putNumber("Intake/Tune/Move cruise (in per s)", m_moveCruiseInPerSec);
-        SmartDashboard.putNumber("Intake/Tune/Move accel (in per s2)", m_moveAccelInPerSec2);
-        SmartDashboard.putNumber("Intake/Tune/Agitate cruise (in per s)", m_agitateCruiseInPerSec);
-        SmartDashboard.putNumber("Intake/Tune/Agitate accel (in per s2)", m_agitateAccelInPerSec2);
+        SmartDashboard.putNumber("Intake/Tune/Cruise (in per s)", kDefaultCruiseInPerSec);
+        SmartDashboard.putNumber("Intake/Tune/Accel (in per s2)", kDefaultAccelInPerSec2);
         SmartDashboard.putNumber("Intake/Tune/Test target (in)", EvilIntakePosition.out.getInches());
         SmartDashboard.putData("Intake/Tune/Apply", new InstantCommand(this::applyTuning).ignoringDisable(true));
         SmartDashboard.putData("Intake/Tune/Go to test target",
-            run(() -> setTargetInches(SmartDashboard.getNumber("Intake/Tune/Test target (in)", m_targetInches), false))
+            run(() -> setTargetInches(SmartDashboard.getNumber("Intake/Tune/Test target (in)", m_targetInches)))
                 .withName("Intake test target"));
         SmartDashboard.putData("Intake/Re-home", requestHomeCommand());
     }
@@ -434,10 +472,10 @@ public class EvilIntake extends SubsystemBase {
             .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
         intakeMotor.getConfigurator().apply(gains, 0.05);
         intakeMotorTwo.getConfigurator().apply(gains, 0.05);
-        m_moveCruiseInPerSec = SmartDashboard.getNumber("Intake/Tune/Move cruise (in per s)", m_moveCruiseInPerSec);
-        m_moveAccelInPerSec2 = SmartDashboard.getNumber("Intake/Tune/Move accel (in per s2)", m_moveAccelInPerSec2);
-        m_agitateCruiseInPerSec = SmartDashboard.getNumber("Intake/Tune/Agitate cruise (in per s)", m_agitateCruiseInPerSec);
-        m_agitateAccelInPerSec2 = SmartDashboard.getNumber("Intake/Tune/Agitate accel (in per s2)", m_agitateAccelInPerSec2);
+        MotionMagicConfigs speeds = motionMagicFor(
+            SmartDashboard.getNumber("Intake/Tune/Cruise (in per s)", kDefaultCruiseInPerSec),
+            SmartDashboard.getNumber("Intake/Tune/Accel (in per s2)", kDefaultAccelInPerSec2));
+        intakeMotor.getConfigurator().apply(speeds, 0.05);
         RobotLog.event(String.format("Intake tuning applied: kP %.3f kI %.3f kD %.3f kS %.3f kV %.3f kA %.3f",
             gains.kP, gains.kI, gains.kD, gains.kS, gains.kV, gains.kA));
     }

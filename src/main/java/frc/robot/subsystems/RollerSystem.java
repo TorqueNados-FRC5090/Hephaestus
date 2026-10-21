@@ -53,7 +53,13 @@ public class RollerSystem extends SubsystemBase {
             .withStatorCurrentLimitEnable(true)
             .withSupplyCurrentLimit(50)
             .withSupplyCurrentLimitEnable(true);
-        rollerFloor.getConfigurator().apply(rollerLimits);
+        // Floor gets more: it pushes the whole hopper of fuel and wasn't moving it at 60/50 A.
+        // Stator 80 A = more push into a full hopper; supply 60 A. Lower again if brownouts come back.
+        rollerFloor.getConfigurator().apply(new CurrentLimitsConfigs()
+            .withStatorCurrentLimit(80)
+            .withStatorCurrentLimitEnable(true)
+            .withSupplyCurrentLimit(60)
+            .withSupplyCurrentLimitEnable(true));
         lowerBelt.getConfigurator().apply(rollerLimits);
         upperBelt.getConfigurator().apply(rollerLimits);
 
