@@ -39,12 +39,12 @@ import frc.robot.RobotLog;
  *   <li>Every move uses Motion Magic, so speed and acceleration are always limited (unlimited, this gearing
  *       would slam the rack at ~200 in/s). Standard Motion Magic on purpose: it works without a Phoenix Pro
  *       license (Pro-only controls make an unlicensed Talon refuse to move).</li>
- *   <li>Zero: at power-on the intake is assumed fully in (0"). In a real match that is always true (the robot
- *       starts inside its frame perimeter), so on the field it never homes by itself and auto is unaffected.
- *       Off the field (shop/practice, no FMS) it homes on the first enable, because the robot may have been
- *       powered on with the intake out. Homing = slowly push out against the 17" extension stop, detect the
- *       stall, call that 17". D-pad up / dashboard Re-home homes on request any time (e.g. after a big hit).
+ *   <li>Zero: at power-on the intake must be fully in (0"). It NEVER homes by itself (the automatic homing on
+ *       enable caused trouble on 10/21). Homing only runs from D-pad up / dashboard "Intake/Re-home": both sides
+ *       push out against the 17" stop and each side is zeroed when it stops there (squares the intake).
  *       If homing fails it falls back to the power-on zero and keeps working.</li>
+ *   <li>Sync: each side gets a small extra push/hold-back based on how far it is ahead of the other side, so the
+ *       side with less friction can't run ahead (10/21 log: one side got ~3" ahead, the intake twisted).</li>
  *   <li>A low stator current limit makes the rack act like a force-capped spring: a hit pushes it in instead of
  *       skipping the chain, then Motion Magic brings it back.</li>
  *   <li>Sync guard: if the two sides drift more than 1" apart (one side blocked), both stop until re-homed.</li>
@@ -53,9 +53,12 @@ import frc.robot.RobotLog;
  */
 public class EvilIntake extends SubsystemBase {
      // ================= GEARING / TRAVEL =================
-     /** Vortex 14T sprocket -> 24T sprocket (chain, 1.71:1), then a 10T 10DP pinion (1.0" pitch diameter) on the rack.
-      *  1 inch of rack travel = (24/14) / (pi * 1.0") = 0.546 motor rotations. */
-     public static final double kMotorRotationsPerInch = (24.0 / 14.0) / (Math.PI * 1.0);
+     /** MEASURED on the robot 10/21: from fully in (0") to the 17" stop is 6.06 motor rotations (both sides stalled
+      *  against the outer stop at "11.1 in" with the old math). The old math, 14T -> 24T chain and a 10T 10DP pinion
+      *  (1.0" pitch diameter), said 0.546 rot/inch, which made every position 35% short: "16 in" was really 17+".
+      *  A 15T 10DP pinion (1.5") would give 0.364, close to the measurement, so count the pinion teeth.
+      *  If the gearing changes: rotations per inch = (big sprocket / small sprocket) / (pi * pinion pitch diameter). */
+     public static final double kMotorRotationsPerInch = 6.06 / 17.0;
      /** Extension hard stop (inches). Auto-zero pushes against this and sets it as the reference. */
      private static final double kExtendStopInches = 17.0;   // arms fully out = 17" (Michel 10/21)
      /** Never command closer than this to the extension stop (Motion Magic would push into it) */
@@ -65,8 +68,10 @@ public class EvilIntake extends SubsystemBase {
 
      // ================= SPEED (Motion Magic) =================
      // Change these live from the dashboard (Intake/Tune) and copy the good values back here.
-     private static final double kDefaultCruiseInPerSec = 40.0;   // full 16" stroke in ~0.5 s
-     private static final double kDefaultAccelInPerSec2 = 150.0;
+     // Slower than before on purpose: on 10/21 both motors sat at their current limit the whole move, so neither
+     // could follow the profile and the side with less friction ran ahead. Speed up only once "Sides differ" stays small.
+     private static final double kDefaultCruiseInPerSec = 30.0;   // full 16" stroke in ~0.7 s
+     private static final double kDefaultAccelInPerSec2 = 100.0;
      // Agitate follows a slow back-and-forth (kAgitatePeriodSeconds), always slower than the cruise speed.
 
      // ================= AUTO ZERO (hard-stop homing) =================
@@ -85,7 +90,14 @@ public class EvilIntake extends SubsystemBase {
      /** Ignore the first part of homing while the motor gets moving */
      private static final double kHomingIgnoreSeconds = 0.30;
      /** Give up after this long (something is jammed or a motor is unplugged) */
-     private static final double kHomingTimeoutSeconds = 4.0;
+     private static final double kHomingTimeoutSeconds = 5.0;
+
+     // ================= KEEPING THE SIDES TOGETHER =================
+     /** Extra volts per inch one side is ahead of the average: the side ahead is held back, the side behind is
+      *  pushed harder. Bigger = tighter together (too big = buzzing/shaking). */
+     private static final double kSyncVoltsPerInch = 3.0;
+     /** Cap on that extra push, in volts */
+     private static final double kSyncMaxVolts = 3.0;
 
      // ================= SYNC GUARD =================
      /** If the two sides disagree by more than this (inches) for kSyncFaultSeconds, both stop until re-homed */
@@ -141,6 +153,7 @@ public class EvilIntake extends SubsystemBase {
      // If the licenses ever lapse, set these to false or the Talons stop driving (unlicensed fault).
      private static final boolean kUseFOC = true;
      private final MotionMagicVoltage m_moveRequest = new MotionMagicVoltage(0).withEnableFOC(kUseFOC);
+     private final MotionMagicVoltage m_moveRequest14 = new MotionMagicVoltage(0).withEnableFOC(kUseFOC);
      private final VoltageOut m_homingRequest = new VoltageOut(0).withEnableFOC(kUseFOC);
      private final NeutralOut m_stopRequest = new NeutralOut();
      final DutyCycleOut spinRequest = new DutyCycleOut(0).withEnableFOC(true);
@@ -330,21 +343,19 @@ public class EvilIntake extends SubsystemBase {
         if (DriverStation.isEnabled()) {
             switch (m_state) {
                 case NOT_HOMED -> {
-                    if (DriverStation.isFMSAttached() && !m_homeRequested) {
-                        // Real match: the robot started inside its frame, so the intake was at the 0" stop at
-                        // power-on and that zero is correct. Don't spend auto time homing.
+                    if (m_homeRequested) {
+                        startHoming();   // only when asked: D-pad up / dashboard Re-home
+                    } else {
+                        // Use the power-on zero (intake must be fully in when the robot is turned on)
                         m_state = State.READY;
                         m_syncTimer.restart();
-                        RobotLog.event("Intake: match start, using the power-on zero (no homing)");
-                    } else {
-                        startHoming();
                     }
                 }
                 case HOMING -> runHoming(velocityRps);
                 case READY -> {
                     checkSync(leaderInches, followerInches);
                     if (m_state == State.READY) {
-                        driveToTarget();
+                        driveToTarget(leaderInches, followerInches);
                     }
                 }
                 // Out of sync: hold still until someone re-homes (D-pad up or dashboard)
@@ -397,11 +408,14 @@ public class EvilIntake extends SubsystemBase {
         return f.toString();
     }
 
-    private void driveToTarget() {
-        // Same target to both sides, each closing the loop on its own encoder: keeps the intake square
-        m_moveRequest.withPosition(m_targetInches * kMotorRotationsPerInch);
-        intakeMotor.setControl(m_moveRequest);
-        intakeMotorTwo.setControl(m_moveRequest);
+    private void driveToTarget(double inches11, double inches14) {
+        // Same target to both sides, each closing the loop on its own encoder, plus a correction that holds back
+        // the side that's ahead and pushes the side that's behind. Keeps the intake square.
+        double ahead11 = (inches11 - inches14) / 2.0;   // how far 11 is ahead of the middle (14 is the opposite)
+        double sync = Math.max(-kSyncMaxVolts, Math.min(kSyncMaxVolts, kSyncVoltsPerInch * ahead11));
+        double targetRotations = m_targetInches * kMotorRotationsPerInch;
+        intakeMotor.setControl(m_moveRequest.withPosition(targetRotations).withFeedForward(-sync));
+        intakeMotorTwo.setControl(m_moveRequest14.withPosition(targetRotations).withFeedForward(sync));
     }
 
     /** Motion Magic speed limits in motor units from inches */

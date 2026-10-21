@@ -120,7 +120,12 @@ public class Robot extends TimedRobot {
         // still reports loop overruns, the time is going somewhere else (CAN error spam, garbage collection, CPU).
         double loopMs = (Timer.getFPGATimestamp() - loopStart) * 1000.0;
         if (tel) SmartDashboard.putNumber("Loop/Robot code ms", loopMs);
-        RobotLog.eventOnRise("slowLoop", loopMs > 15.0, String.format("Slow robot code loop: %.1f ms", loopMs));
+        // Log file only (printing every slow loop to the console made it worse and filled the DS log with red)
+        if (loopMs > 20.0) {
+            RobotLog.quietEventOnRise("slowLoop", true, String.format("Slow robot code loop: %.1f ms", loopMs));
+        } else {
+            RobotLog.quietEventOnRise("slowLoop", false, "");
+        }
   }
 
     /** Feeds one Limelight into the pose estimator.

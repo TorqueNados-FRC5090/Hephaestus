@@ -83,6 +83,16 @@ public final class RobotLog {
         DataLogManager.log(message);
     }
 
+    /** Like eventOnRise, but only into the log file: NOT printed to the Driver Station console. For frequent
+     *  things (slow loops) where printing would spam the console red and printing itself costs loop time. */
+    public static void quietEventOnRise(String key, boolean condition, String message) {
+        boolean last = s_lastState.getOrDefault(key, false);
+        if (condition && !last && s_events != null) {
+            s_events.append(message);
+        }
+        s_lastState.put(key, condition);
+    }
+
     /** Logs an event only when the condition turns true (not every loop it stays true) */
     public static void eventOnRise(String key, boolean condition, String message) {
         boolean last = s_lastState.getOrDefault(key, false);

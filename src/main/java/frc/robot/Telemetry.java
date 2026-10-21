@@ -83,9 +83,19 @@ public class Telemetry {
     };
 
     private final double[] m_poseArray = new double[3];
+    private static final double kPublishPeriodSeconds = 0.02;
+    private double m_lastPublishTime = 0;
 
     /** Accept the swerve drive state and telemeterize it to SmartDashboard and SignalLogger. */
     public void telemeterize(SwerveDriveState state) {
+        // This runs on CTRE's odometry thread at the odometry rate (~250 Hz with the CANivore). Publishing
+        // 7 NetworkTables topics + 6 log entries that often steals CPU from the main robot loop (overruns).
+        // 50 Hz is plenty for AdvantageScope; the motor data itself is still in the .hoot at full rate.
+        if (state.Timestamp - m_lastPublishTime < kPublishPeriodSeconds) {
+            return;
+        }
+        m_lastPublishTime = state.Timestamp;
+
         /* Telemeterize the swerve drive state */
         drivePose.set(state.Pose);
         driveSpeeds.set(state.Speeds);
