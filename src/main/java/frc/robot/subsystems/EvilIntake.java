@@ -55,9 +55,8 @@ public class EvilIntake extends SubsystemBase {
      // ================= GEARING / TRAVEL =================
      /** Vortex 14T -> 22T chain (1.57:1) */
      private static final double kChainRatio = 22.0 / 14.0;
-     /** Planetary gearbox between each Vortex and its 14T sprocket. 1.0 = none. Set to 5.0 if a 5:1 stage goes in
-      *  (and drop kRackStatorLimitAmps, see there). */
-     private static final double kPlanetaryRatio = 1.0;
+     /** Planetary gearbox between each Vortex and its 14T sprocket (5:1 added 10/21). 1.0 = none. */
+     private static final double kPlanetaryRatio = 5.0;
      /** 10T 10DP pinion on a 10DP rack: pitch diameter = 10 / 10 = 1.0" */
      private static final double kPinionPitchDiameterInches = 1.0;
      /** Motor rotations per inch of rack travel: 1.57 / 3.14 = 0.500 (2.5 with a 5:1 planetary) */
@@ -76,14 +75,15 @@ public class EvilIntake extends SubsystemBase {
      // Change these live from the dashboard (Intake/Tune) and copy the good values back here.
      // Slower than before on purpose: on 10/21 both motors sat at their current limit the whole move, so neither
      // could follow the profile and the side with less friction ran ahead. Speed up only once "Sides differ" stays small.
-     private static final double kDefaultCruiseInPerSec = 21.0;   // full 11" stroke in ~0.7 s
-     private static final double kDefaultAccelInPerSec2 = 70.0;
+     // With the 5:1 the Vortex tops out ~45 in/s, so 25 in/s leaves the motors headroom to keep the sides together
+     private static final double kDefaultCruiseInPerSec = 25.0;   // full 11" stroke in ~0.6 s
+     private static final double kDefaultAccelInPerSec2 = 100.0;
      // Agitate follows a slow back-and-forth (kAgitatePeriodSeconds), always slower than the cruise speed.
 
      // ================= AUTO ZERO (hard-stop homing) =================
-     /** Volts pushing OUT while homing. Starts at 0.8 V (~14 in/s) and steps up if the rack doesn't move. */
-     private static final double kHomingStartVolts = 0.8;
-     private static final double kHomingMaxVolts = 2.5;
+     /** Volts pushing OUT while homing. Starts at 2 V (~7 in/s with the 5:1) and steps up if the rack doesn't move. */
+     private static final double kHomingStartVolts = 2.0;
+     private static final double kHomingMaxVolts = 4.0;
      /** Volts added per second while the rack still hasn't moved */
      private static final double kHomingRampVoltsPerSec = 1.0;
      /** The rack must travel at least this far before a stall counts as "hit the stop" (otherwise "it never
@@ -101,7 +101,7 @@ public class EvilIntake extends SubsystemBase {
      // ================= KEEPING THE SIDES TOGETHER =================
      /** Extra volts per inch one side is ahead of the average: the side ahead is held back, the side behind is
       *  pushed harder. Bigger = tighter together (too big = buzzing/shaking). */
-     private static final double kSyncVoltsPerInch = 3.0;
+     private static final double kSyncVoltsPerInch = 2.0;   // lowered for the 5:1 (each volt pushes 5x harder)
      /** Cap on that extra push, in volts */
      private static final double kSyncMaxVolts = 3.0;
 
@@ -114,11 +114,11 @@ public class EvilIntake extends SubsystemBase {
      private static final boolean kSyncGuardStopsIntake = false;
 
      // ================= CURRENT LIMITS (why) =================
-     /** Rack motors, stator: 40 A ~= 19 lb of push per side (~38 lb with both) with no planetary. In the 10/21 logs
-      *  both motors sat at this limit for whole moves, i.e. the rack needs about all of it to move.
-      *  WITH A 5:1 PLANETARY every amp pushes 5x harder: use ~15-20 A there (~35-47 lb per side) and the motors
-      *  run cool instead of stalling at 40 A against a stop. */
-     private static final double kRackStatorLimitAmps = 40.0;
+     /** Rack motors, stator: with the 5:1 planetary, 20 A ~= 47 lb of push per side (~94 lb both). Before the 5:1,
+      *  40 A was only ~19 lb/side and both motors sat at the limit for whole moves (10/21 logs).
+      *  Lower = more give when the intake gets hit (and less load on the chain). Don't go much above 25 A:
+      *  the chain and rack feel all of it. */
+     private static final double kRackStatorLimitAmps = 20.0;
      /** Rack motors, supply: caps battery draw per side so the intake can't add much to a brownout */
      private static final double kRackSupplyLimitAmps = 30.0;
      /** Intake wheels, stator: enough grip to pull fuel in; limits heat if the wheels stall on a jam */
@@ -128,7 +128,7 @@ public class EvilIntake extends SubsystemBase {
 
      // ================= GAINS (starting values, tune on the dashboard) =================
      // Units: volts per motor rotation of error (kP), volts per rot/s (kV), volts (kS).
-     private static final double kDefaultP = 3.0;   // pushes harder the further it is from target
+     private static final double kDefaultP = 1.5;   // pushes harder the further it is from target (1" off = 2.5 rot = ~3.8 V)
      private static final double kDefaultI = 0.0;   // normally not needed
      private static final double kDefaultD = 0.0;   // add a little if it overshoots or bounces
      private static final double kDefaultS = 0.25;  // volts to get past friction
