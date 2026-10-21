@@ -337,6 +337,9 @@ public class RobotContainer {
     /** Publishes, every loop, which part is holding up a shot and by how much. Shooter numbers only mean
      *  something while Y or RT is held (the shooter's target is 0 otherwise). */
     public void updateShotDiagnostics() {
+        if (!RobotLog.telemetryTick()) {
+            return;   // dashboard values at 10 Hz (loop time)
+        }
         boolean shooterReady = shooter.isShooterReady(1.5);
         boolean turretReady = turret.canShootFromHere();   // info only, NOT required to shoot
         boolean hoodReady = hood.atSetpoint();

@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.HootAutoReplay;
 
 import edu.wpi.first.math.VecBuilder;
@@ -16,6 +17,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -46,10 +48,35 @@ public class Robot extends TimedRobot {
     
     public Robot() {
         RobotLog.start();   // DataLog + CTRE SignalLogger + command/event logs (USB stick in the RIO)
+        // The CANivores come up a few seconds after the robot program starts. Every config sent before that fails
+        // ("failed config with error TxFailed" for all swerve Talons/CANcoders in the 10/21 logs) and CTRE doesn't
+        // retry, so the swerve ran without our current limits/offsets. Wait for both buses first.
+        waitForCanBus("Jarvis", 8.0);
+        waitForCanBus("Upper", 8.0);
         m_robotContainer = new RobotContainer();
         // Dashboard switch: false = ignore the Limelight completely (pure odometry). Shooting never needs it.
         SmartDashboard.putBoolean("Vision/Use camera", true);
         SmartDashboard.putString("Code Version", readCodeVersion());
+    }
+
+    /** Blocks (at startup only) until a CANivore bus is up, or the timeout passes */
+    private static void waitForCanBus(String name, double timeoutSeconds) {
+        if (RobotBase.isSimulation()) {
+            return;   // no real CANivore in simulation
+        }
+        CANBus bus = new CANBus(name);
+        double start = Timer.getFPGATimestamp();
+        while (!bus.getStatus().Status.isOK() && Timer.getFPGATimestamp() - start < timeoutSeconds) {
+            Timer.delay(0.1);
+        }
+        double waited = Timer.getFPGATimestamp() - start;
+        if (bus.getStatus().Status.isOK()) {
+            Timer.delay(0.5);   // give the devices on it a moment to finish booting too
+            RobotLog.event(String.format("CAN bus %s ready after %.1f s", name, waited));
+        } else {
+            RobotLog.event("CAN bus " + name + " NOT READY after " + timeoutSeconds
+                + " s: configs will fail (check the CANivore USB cable / power)");
+        }
     }
 
     /** Branch + commit this code was built from (written by the writeVersionFile task in build.gradle) */
@@ -64,7 +91,10 @@ public class Robot extends TimedRobot {
 
     @Override
     public void robotPeriodic() {
+        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+
         double loopStart = Timer.getFPGATimestamp();
+        RobotLog.tick();
         m_timeAndJoystickReplay.update();
         CommandScheduler.getInstance().run(); 
         m_robotContainer.updateBrownoutRumble();
@@ -79,17 +109,17 @@ public class Robot extends TimedRobot {
       updateVision("limelight-left");
 
       var pose = m_robotContainer.drivetrain.getState().Pose;
-      RobotLog.pose("Robot", pose);
-      SmartDashboard.putNumber("111 drive pose X", pose.getX());
-      SmartDashboard.putNumber("111 drive pose Y",  pose.getY());
-      SmartDashboard.putNumber("111 drive pose heading", pose.getRotation().getDegrees());
-      SmartDashboard.putNumber("Vision/Seconds since last tag", Timer.getFPGATimestamp() - m_lastTagTime);
+      if (tel) RobotLog.pose("Robot", pose);
+      if (tel) SmartDashboard.putNumber("111 drive pose X", pose.getX());
+      if (tel) SmartDashboard.putNumber("111 drive pose Y",  pose.getY());
+      if (tel) SmartDashboard.putNumber("111 drive pose heading", pose.getRotation().getDegrees());
+      if (tel) SmartDashboard.putNumber("Vision/Seconds since last tag", Timer.getFPGATimestamp() - m_lastTagTime);
     }
 
         // How long OUR code took this loop (the budget is 20 ms). If this stays small while the Driver Station
         // still reports loop overruns, the time is going somewhere else (CAN error spam, garbage collection, CPU).
         double loopMs = (Timer.getFPGATimestamp() - loopStart) * 1000.0;
-        SmartDashboard.putNumber("Loop/Robot code ms", loopMs);
+        if (tel) SmartDashboard.putNumber("Loop/Robot code ms", loopMs);
         RobotLog.eventOnRise("slowLoop", loopMs > 15.0, String.format("Slow robot code loop: %.1f ms", loopMs));
   }
 
@@ -136,6 +166,9 @@ public class Robot extends TimedRobot {
     private void recordVisionCorrection(Pose2d odometryPose, Pose2d visionPose, int tagCount,
                                         Limelighthelpers.RawFiducial[] rawFiducials) {
       m_lastTagTime = Timer.getFPGATimestamp();
+      if (!RobotLog.telemetryTick()) {
+        return;   // dashboard values at 10 Hz (loop time)
+      }
       if (rawFiducials != null) {
         // Which tags we localized from, how far away, and how unsure (ambiguity near 1 = unreliable)
         double[] ids = new double[rawFiducials.length];

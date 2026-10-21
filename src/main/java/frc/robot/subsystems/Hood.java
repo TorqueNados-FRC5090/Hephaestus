@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import frc.robot.RobotLog;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
@@ -131,15 +132,17 @@ public class Hood extends SubsystemBase {
 
     @Override
     public void periodic(){
+        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+
         // Runs every loop before commands, so even a hood left up gets pulled down before a trench
         m_forcedDown = m_nearTrench.getAsBoolean();
         if (m_forcedDown) {
             hood.setControl(m_request.withPosition(kHoodStowed));
         }
-        SmartDashboard.putBoolean("Hood/Forced Down (trench)", m_forcedDown);
-        SmartDashboard.putBoolean("Hood/Stowed", isStowed());
-        SmartDashboard.putNumber("Hood Angle", hood.getPosition().getValueAsDouble());
-        SmartDashboard.putNumber("Target Angle", setpoint);
+        if (tel) SmartDashboard.putBoolean("Hood/Forced Down (trench)", m_forcedDown);
+        if (tel) SmartDashboard.putBoolean("Hood/Stowed", isStowed());
+        if (tel) SmartDashboard.putNumber("Hood Angle", hood.getPosition().getValueAsDouble());
+        if (tel) SmartDashboard.putNumber("Target Angle", setpoint);
     }
 
 

@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import frc.robot.RobotLog;
 import static edu.wpi.first.units.Units.Second;
 import static edu.wpi.first.units.Units.Volts;
 
@@ -242,10 +243,12 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("robot yaw", getgyroyaw().getDegrees());
+        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+
+        if (tel) SmartDashboard.putNumber("robot yaw", getgyroyaw().getDegrees());
         // If Connected is false or Yaw doesn't change when the robot turns, the swerve has no heading
-        SmartDashboard.putBoolean("Gyro/Connected", getPigeon2().isConnected());
-        SmartDashboard.putNumber("Gyro/Yaw (deg)", getPigeon2().getYaw().getValueAsDouble());
+        if (tel) SmartDashboard.putBoolean("Gyro/Connected", getPigeon2().isConnected());
+        if (tel) SmartDashboard.putNumber("Gyro/Yaw (deg)", getPigeon2().getYaw().getValueAsDouble());
         /*
          * Periodically try to apply the operator perspective.
          * If we haven't applied the operator perspective before, then we should apply it regardless of DS state.
@@ -266,8 +269,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         
         
         // field post here
-        m_field.setRobotPose(getPose());
-        SmartDashboard.putData("Field", m_field);
+        if (tel) m_field.setRobotPose(getPose());
+        if (tel) SmartDashboard.putData("Field", m_field);
 
     }
 

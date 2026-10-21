@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import frc.robot.RobotLog;
 import java.util.function.DoubleSupplier;
 
 import com.ctre.phoenix6.CANBus;
@@ -134,11 +135,13 @@ public class Shooter extends SubsystemBase {
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Shooter/Velocity_RPS", leadShoot.getVelocity().getValueAsDouble());
-        SmartDashboard.putNumber("Shooter/Target_Velocity_RPS", setpoint); 
-        SmartDashboard.putBoolean("Shooter/Ready", isShooterReady(2)); 
+        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+
+        if (tel) SmartDashboard.putNumber("Shooter/Velocity_RPS", leadShoot.getVelocity().getValueAsDouble());
+        if (tel) SmartDashboard.putNumber("Shooter/Target_Velocity_RPS", setpoint);
+        if (tel) SmartDashboard.putBoolean("Shooter/Ready", isShooterReady(2)); 
         // CTRE motor commands ask for FOC by default; it only runs if the device/CANivore has a Phoenix Pro
         // license. Without one the motor quietly uses normal commutation and sets this fault.
-        SmartDashboard.putBoolean("FOC Unlicensed", leadShoot.getStickyFault_UnlicensedFeatureInUse().getValue()); 
+        if (tel) SmartDashboard.putBoolean("FOC Unlicensed", leadShoot.getStickyFault_UnlicensedFeatureInUse().getValue());
     }   
 }

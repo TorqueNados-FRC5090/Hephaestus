@@ -37,6 +37,18 @@ public final class RobotLog {
     private static final Map<String, StructPublisher<Pose2d>> s_poses = new HashMap<>();
     private static final Map<String, StructArrayPublisher<Pose2d>> s_poseArrays = new HashMap<>();
     private static final Map<String, Boolean> s_lastState = new HashMap<>();
+    private static int s_loopCount = 0;
+
+    /** Call once per robot loop (start of robotPeriodic) */
+    public static void tick() {
+        s_loopCount++;
+    }
+
+    /** True every 5th loop (10 Hz). Dashboard telemetry uses this: publishing ~100 values every 20 ms loop was
+     *  the biggest part of the loop overruns on the roboRIO. Control logic still runs every loop. */
+    public static boolean telemetryTick() {
+        return s_loopCount % 5 == 0;
+    }
 
     /** Call once, first thing in Robot() */
     public static void start() {

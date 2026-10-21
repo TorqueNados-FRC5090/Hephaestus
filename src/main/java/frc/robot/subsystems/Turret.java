@@ -232,10 +232,12 @@ public class Turret extends SubsystemBase {
 
     @Override
     public void periodic() {
+        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+
         // 1. --- LIVE MOTOR DATA ---
         double currentMotorRotations = m_turretMotor.getPosition().refresh().getValueAsDouble();
-        SmartDashboard.putNumber("Turret/Current_Motor_Rots", currentMotorRotations);
-        SmartDashboard.putNumber("Turret/Current_Turret_Rots", currentMotorRotations / kTurretGearRatio);
+        if (tel) SmartDashboard.putNumber("Turret/Current_Motor_Rots", currentMotorRotations);
+        if (tel) SmartDashboard.putNumber("Turret/Current_Turret_Rots", currentMotorRotations / kTurretGearRatio);
 
         // 2. --- FIELD VARIABLES ---
         Pose2d robotPose = m_robotPoseSupplier.get();
@@ -253,14 +255,14 @@ public class Turret extends SubsystemBase {
             .plus(m_robotRelativeTurretOffset.rotateBy(robotPose.getRotation()));
 
         m_underTrench = FieldZones.isNearTrench(globalTurretPos, kTrenchFireMargin);
-        SmartDashboard.putBoolean("Turret/Under_Trench", m_underTrench);
+        if (tel) SmartDashboard.putBoolean("Turret/Under_Trench", m_underTrench);
 
         // 3. --- MODE ---
         // G407: we may only shoot at our hub with bumpers in our alliance zone. Anywhere else we pass.
         double depthFromOurWall = isRed ? kFieldLength - robotPose.getX() : robotPose.getX();
         double shootingLimit = kAllianceZoneDepth + (m_isPassing ? kEnterShootingMargin : kExitShootingMargin);
         m_isPassing = depthFromOurWall > shootingLimit;
-        SmartDashboard.putString("Turret/Mode", m_isPassing ? "PASSING" : "SHOOTING");
+        if (tel) SmartDashboard.putString("Turret/Mode", m_isPassing ? "PASSING" : "SHOOTING");
 
         // 4. --- HUB TARGET (always computed so autos can spin up before entering the zone) ---
         Translation2d targetCorrectionOffset = new Translation2d(
@@ -274,25 +276,25 @@ public class Turret extends SubsystemBase {
 
         m_distanceToHubMeters = hubTarget.minus(globalTurretPos).getNorm();
         m_virtualDistanceToHubMeters = virtualHubTarget.minus(globalTurretPos).getNorm();
-        SmartDashboard.putNumber("Turret/Distance_To_Hub_Meters", m_distanceToHubMeters);
-        SmartDashboard.putNumber("Turret/Virtual_Distance_Meters", m_virtualDistanceToHubMeters);
+        if (tel) SmartDashboard.putNumber("Turret/Distance_To_Hub_Meters", m_distanceToHubMeters);
+        if (tel) SmartDashboard.putNumber("Turret/Virtual_Distance_Meters", m_virtualDistanceToHubMeters);
 
         // 5. --- PASS TARGET (middle and full field) ---
         Translation2d passTarget = choosePassTarget(globalTurretPos, isRed);
         Translation2d virtualPassTarget = leadTarget(passTarget, globalTurretPos, fieldSpeeds);
 
         m_distanceToPassTargetMeters = virtualPassTarget.minus(globalTurretPos).getNorm();
-        SmartDashboard.putNumber("Turret/Pass_Distance_Meters", m_distanceToPassTargetMeters);
-        SmartDashboard.putNumber("Turret/Pass_Target_Y", passTarget.getY());
-        SmartDashboard.putBoolean("Turret/Pass_Lane_Clear", m_passLaneClear);
+        if (tel) SmartDashboard.putNumber("Turret/Pass_Distance_Meters", m_distanceToPassTargetMeters);
+        if (tel) SmartDashboard.putNumber("Turret/Pass_Target_Y", passTarget.getY());
+        if (tel) SmartDashboard.putBoolean("Turret/Pass_Lane_Clear", m_passLaneClear);
 
         // 6. --- TURRET SETPOINT ---
         Translation2d aimPoint = m_isPassing ? virtualPassTarget : virtualHubTarget;
-        RobotLog.pose("Turret aim point", new Pose2d(aimPoint, Rotation2d.kZero));
+        if (tel) RobotLog.pose("Turret aim point", new Pose2d(aimPoint, Rotation2d.kZero));
         // Where the turret actually points on the field (from its motor), drawn from the turret's position
         Rotation2d turretFacing = robotPose.getRotation().plus(kTurretZeroOffset)
             .plus(Rotation2d.fromRotations(currentMotorRotations / kTurretGearRatio / kTurretDirectionMultiplier));
-        RobotLog.pose("Turret", new Pose2d(globalTurretPos, turretFacing));
+        if (tel) RobotLog.pose("Turret", new Pose2d(globalTurretPos, turretFacing));
         Rotation2d turretSetpoint = aimPoint.minus(globalTurretPos).getAngle()
             .minus(aimHeading)
             .minus(kTurretZeroOffset); 
@@ -309,9 +311,9 @@ public class Turret extends SubsystemBase {
         
         m_targetMotorRotations = desiredTurretRotations * kTurretGearRatio;
 
-        SmartDashboard.putNumber("Turret/Target_Motor_Rots", m_targetMotorRotations);
-        SmartDashboard.putNumber("Turret/Target_Turret_Rots", m_targetMotorRotations / kTurretGearRatio);
-        SmartDashboard.putBoolean("Turret/Target_Reachable", m_targetReachable);
+        if (tel) SmartDashboard.putNumber("Turret/Target_Motor_Rots", m_targetMotorRotations);
+        if (tel) SmartDashboard.putNumber("Turret/Target_Turret_Rots", m_targetMotorRotations / kTurretGearRatio);
+        if (tel) SmartDashboard.putBoolean("Turret/Target_Reachable", m_targetReachable);
     }
 
     /** Shoot-on-the-move: the ball keeps the robot's velocity, so aim at a point shifted against it */

@@ -35,7 +35,8 @@ import frc.robot.RobotLog;
  *
  * <p>How it works:
  * <ul>
- *   <li>Motor 11 (leader) is commanded; motor 14 follows it, Opposed (the motors face each other).
+ *   <li>Motor 11 (leader) is commanded; motor 14 follows it, ALIGNED. (The motors face each other, but the 10/21
+ *       log showed both encoders move the same way when the intake moves, so they must turn the same way.)
  *       Positive = intake goes OUT.</li>
  *   <li>Every move uses Motion Magic, so speed and acceleration are always limited (unlimited, this gearing
  *       would slam the rack at ~200 in/s). Standard Motion Magic on purpose: it works without a Phoenix Pro
@@ -132,8 +133,10 @@ public class EvilIntake extends SubsystemBase {
      final TalonFXS intakeMotorTwo;   // follower (CAN 14), opposed
      final TalonFX spinMotor;         // intake wheels (CAN 12)
 
-     private final MotionMagicVoltage m_moveRequest = new MotionMagicVoltage(0).withEnableFOC(true);
-     private final VoltageOut m_homingRequest = new VoltageOut(0).withEnableFOC(true);
+     // FOC OFF on the rack Talon FXSs: FOC needs a Phoenix Pro license on these devices, and in the 10/21 log they
+     // reported an unlicensed fault and put out 0 V. Normal commutation works with or without the license.
+     private final MotionMagicVoltage m_moveRequest = new MotionMagicVoltage(0).withEnableFOC(false);
+     private final VoltageOut m_homingRequest = new VoltageOut(0).withEnableFOC(false);
      private final NeutralOut m_stopRequest = new NeutralOut();
      final DutyCycleOut spinRequest = new DutyCycleOut(0).withEnableFOC(true);
 
@@ -167,12 +170,16 @@ public class EvilIntake extends SubsystemBase {
         // Tells the Talon FXS a Vortex is attached (through the REV Vortex Solo Adapter). Nothing runs without it.
         rackConfig.Commutation.MotorArrangement = MotorArrangementValue.VORTEX_JST;
         // AdvancedHallSupport (better Vortex commutation) is a Phoenix Pro feature: left OFF so the intake runs even
-        // if these Talons aren't covered by the license. Turn on once "Intake/Unlicensed fault" is confirmed false.
+        // if these Talons aren't covered by the license. Turn on once "Intake/Faults" never shows UNLICENSED.
         rackConfig.Commutation.AdvancedHallSupport = AdvancedHallSupportValue.Disabled;
         // Leader: positive = OUT. If the intake goes IN when it should go out, flip this to Clockwise_Positive.
         rackConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
         // Coast: the rack can give when hit while the robot is disabled
         rackConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+        // No limit switches are wired. The Talon FXS limit inputs share the data port the Vortex adapter plugs into,
+        // so leave them off; otherwise a floating input can read "pressed" and block motion in that direction.
+        rackConfig.HardwareLimitSwitch.ForwardLimitEnable = false;
+        rackConfig.HardwareLimitSwitch.ReverseLimitEnable = false;
         rackConfig.CurrentLimits.StatorCurrentLimit = kRackStatorLimitAmps;
         rackConfig.CurrentLimits.StatorCurrentLimitEnable = true;
         rackConfig.CurrentLimits.SupplyCurrentLimit = kRackSupplyLimitAmps;
@@ -184,8 +191,11 @@ public class EvilIntake extends SubsystemBase {
 
         intakeMotor.getConfigurator().apply(rackConfig);
         intakeMotorTwo.getConfigurator().apply(rackConfig);   // same limits on the follower (followers don't copy them)
-        // Motor 14 copies motor 11's output, reversed because the two motors face each other
-        intakeMotorTwo.setControl(new Follower(intakeID, MotorAlignmentValue.Opposed));
+        // Motor 14 copies motor 11's output in the SAME direction (both encoders move the same way with the intake)
+        intakeMotorTwo.setControl(new Follower(intakeID, MotorAlignmentValue.Aligned));
+        // Old faults (e.g. the unlicensed fault from earlier code) would otherwise show on the dashboard forever
+        intakeMotor.clearStickyFaults();
+        intakeMotorTwo.clearStickyFaults();
 
         // At power-on assume the intake is fully in. Auto zero corrects it on the first enable.
         intakeMotor.setPosition(0);
@@ -294,8 +304,8 @@ public class EvilIntake extends SubsystemBase {
     @Override
     public void periodic() {
         double leaderInches = getInches();
-        // The follower turns the opposite way, so its own position reads negative
-        double followerInches = -intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch;
+        // Aligned follower: its position reads the same sign as the leader's
+        double followerInches = intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch;
         double velocityRps = intakeMotor.getVelocity().getValueAsDouble();
 
         if (DriverStation.isDisabled() && m_state == State.HOMING) {
@@ -327,6 +337,9 @@ public class EvilIntake extends SubsystemBase {
             }
         }
 
+        if (!RobotLog.telemetryTick()) {
+            return;   // dashboard values at 10 Hz (loop time)
+        }
         SmartDashboard.putString("Intake/Status", m_state.toString());
         SmartDashboard.putBoolean("Intake/Homed", isHomed());
         SmartDashboard.putString("Intake/Zero from", m_zeroSource);
@@ -334,16 +347,25 @@ public class EvilIntake extends SubsystemBase {
         SmartDashboard.putNumber("Intake/Target (in)", m_targetInches);
         SmartDashboard.putNumber("Intake/Error (in)", m_targetInches - leaderInches);
         SmartDashboard.putNumber("Intake/Velocity (in per s)", velocityRps / kMotorRotationsPerInch);
-        // Should stay near 0. If it grows steadily on every move, the follower's sign assumption above is wrong.
+        // Should stay near 0. If it grows steadily on every move, the follower's direction/sign is wrong.
         SmartDashboard.putNumber("Intake/Sides differ (in)", leaderInches - followerInches);
         SmartDashboard.putNumber("Intake/Leader current (A)", intakeMotor.getStatorCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Intake/Follower current (A)", intakeMotorTwo.getStatorCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Intake/Leader volts", intakeMotor.getMotorVoltage().getValueAsDouble());
-        // True = these Talons are being asked for a Pro feature they aren't licensed for (they won't move)
-        SmartDashboard.putBoolean("Intake/Unlicensed fault",
-            intakeMotor.getStickyFault_UnlicensedFeatureInUse().getValue()
-            || intakeMotorTwo.getStickyFault_UnlicensedFeatureInUse().getValue());
         SmartDashboard.putNumber("Intake Roller voltage", spinMotor.getMotorVoltage().getValueAsDouble());
+        // Anything stopping a rack Talon FXS from driving, right now (not sticky)
+        String faults = activeFaults("leader", intakeMotor) + activeFaults("follower", intakeMotorTwo);
+        SmartDashboard.putString("Intake/Faults", faults.isEmpty() ? "none" : faults);
+    }
+
+    private static String activeFaults(String name, TalonFXS talon) {
+        StringBuilder f = new StringBuilder();
+        if (talon.getFault_UnlicensedFeatureInUse().getValue()) f.append(name).append(": UNLICENSED feature. ");
+        if (talon.getFault_ForwardHardLimit().getValue()) f.append(name).append(": forward limit switch. ");
+        if (talon.getFault_ReverseHardLimit().getValue()) f.append(name).append(": reverse limit switch. ");
+        if (talon.getFault_BridgeBrownout().getValue()) f.append(name).append(": bridge brownout. ");
+        if (talon.getFault_Undervoltage().getValue()) f.append(name).append(": low voltage. ");
+        return f.toString();
     }
 
     private void driveToTarget() {
@@ -388,7 +410,7 @@ public class EvilIntake extends SubsystemBase {
             // Stopped against the extension stop: that is 16"
             double stopRotations = kExtendStopInches * kMotorRotationsPerInch;
             intakeMotor.setPosition(stopRotations);
-            intakeMotorTwo.setPosition(-stopRotations);
+            intakeMotorTwo.setPosition(stopRotations);
             m_syncTimer.restart();
             m_state = State.READY;
             m_homeRequested = false;

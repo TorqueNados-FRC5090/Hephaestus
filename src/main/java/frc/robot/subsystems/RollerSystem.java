@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import frc.robot.RobotLog;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
@@ -118,8 +119,10 @@ public class RollerSystem extends SubsystemBase {
 
      @Override
     public void periodic() {
-         SmartDashboard.putNumber("Roller Floor voltage", rollerFloor.getMotorVoltage().getValueAsDouble());
-         SmartDashboard.putNumber("Roller Lower tunnel voltage", lowerBelt.getMotorVoltage().getValueAsDouble());
-         SmartDashboard.putNumber("Roller Upper tunnel voltage", upperBelt.getMotorVoltage().getValueAsDouble());
+        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+
+         if (tel) SmartDashboard.putNumber("Roller Floor voltage", rollerFloor.getMotorVoltage().getValueAsDouble());
+         if (tel) SmartDashboard.putNumber("Roller Lower tunnel voltage", lowerBelt.getMotorVoltage().getValueAsDouble());
+         if (tel) SmartDashboard.putNumber("Roller Upper tunnel voltage", upperBelt.getMotorVoltage().getValueAsDouble());
     }
 }
