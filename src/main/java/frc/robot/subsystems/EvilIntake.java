@@ -5,7 +5,7 @@ import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.configs.MotionMagicConfigs;
+import com.ctre.phoenix6.controls.DynamicMotionMagicVoltage;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VoltageOut;
@@ -71,13 +71,17 @@ public class EvilIntake extends SubsystemBase {
      /** Never command into the retract stop (fuel gets squeezed / jams) */
      private static final double kMinCommandInches = 0.2;
 
-     // ================= SPEED (Motion Magic) =================
+     // ================= SPEED (Dynamic Motion Magic: separate profile for deploy vs retract) =================
      // Change these live from the dashboard (Intake/Tune) and copy the good values back here.
-     // Slower than before on purpose: on 10/21 both motors sat at their current limit the whole move, so neither
-     // could follow the profile and the side with less friction ran ahead. Speed up only once "Sides differ" stays small.
-     // With the 5:1 the Vortex tops out ~45 in/s, so 25 in/s leaves the motors headroom to keep the sides together
-     private static final double kDefaultCruiseInPerSec = 25.0;   // full 11" stroke in ~0.6 s
-     private static final double kDefaultAccelInPerSec2 = 100.0;
+     // 10/21: going OUT pins both rack motors at the stator current limit almost the whole move (real mechanical
+     // resistance, not a profile problem) and that saturation made both motors fully drop output for ~70 ms every
+     // ~0.25 s -> felt rough/stuttery. Retracting never saturates like that and was smooth at the same speed.
+     // Fix: ask for less while extending (gentler accel = less torque demanded) so the motors don't have to
+     // saturate to keep up; retracting keeps the snappier profile since it was already smooth.
+     private static final double kRetractCruiseInPerSec = 25.0;   // full 11" stroke in ~0.6 s
+     private static final double kRetractAccelInPerSec2 = 100.0;
+     private static final double kDeployCruiseInPerSec = 14.0;    // full 11" stroke in ~1.1 s
+     private static final double kDeployAccelInPerSec2 = 35.0;
      // Agitate follows a slow back-and-forth (kAgitatePeriodSeconds), always slower than the cruise speed.
 
      // ================= AUTO ZERO (hard-stop homing) =================
@@ -118,7 +122,11 @@ public class EvilIntake extends SubsystemBase {
       *  40 A was only ~19 lb/side and both motors sat at the limit for whole moves (10/21 logs).
       *  Lower = more give when the intake gets hit (and less load on the chain). Don't go much above 25 A:
       *  the chain and rack feel all of it. */
-     private static final double kRackStatorLimitAmps = 20.0;
+     // Bumped from 20: 20 A wasn't enough to move smoothly against the real resistance going out (see above),
+     // so the gentler deploy profile above is what mainly fixes the stutter; this just gives a bit more headroom.
+     // More current = more force on the chain/rack/pinion every time it pushes -- watch for chain skip or wear
+     // if this goes much higher; back it down if so.
+     private static final double kRackStatorLimitAmps = 24.0;
      /** Rack motors, supply: caps battery draw per side so the intake can't add much to a brownout */
      private static final double kRackSupplyLimitAmps = 30.0;
      /** Intake wheels, stator: enough grip to pull fuel in; limits heat if the wheels stall on a jam */
@@ -159,8 +167,9 @@ public class EvilIntake extends SubsystemBase {
      // FOC ON: 11 and 14 are Phoenix Pro licensed (confirmed in the 10/21 19:49 log). ~15% more torque.
      // If the licenses ever lapse, set these to false or the Talons stop driving (unlicensed fault).
      private static final boolean kUseFOC = true;
-     private final MotionMagicVoltage m_moveRequest = new MotionMagicVoltage(0).withEnableFOC(kUseFOC);
-     private final MotionMagicVoltage m_moveRequest14 = new MotionMagicVoltage(0).withEnableFOC(kUseFOC);
+     // Dynamic Motion Magic: lets us pick cruise/accel per move (deploy vs retract) without re-flashing configs
+     private final DynamicMotionMagicVoltage m_moveRequest = new DynamicMotionMagicVoltage(0, 0, 0).withEnableFOC(kUseFOC);
+     private final DynamicMotionMagicVoltage m_moveRequest14 = new DynamicMotionMagicVoltage(0, 0, 0).withEnableFOC(kUseFOC);
      private final VoltageOut m_homingRequest = new VoltageOut(0).withEnableFOC(kUseFOC);
      private final NeutralOut m_stopRequest = new NeutralOut();
      final DutyCycleOut spinRequest = new DutyCycleOut(0).withEnableFOC(true);
@@ -181,6 +190,13 @@ public class EvilIntake extends SubsystemBase {
      private final boolean[] m_sideHomed = new boolean[2];
      private double m_homingVolts = kHomingStartVolts;
      private boolean m_motorTest = false;
+     /** True while either rack motor is pinned at its stator current limit (can't keep up with the profile) */
+     private boolean m_atCurrentLimit = false;
+     // Live cruise/accel, tunable separately per direction from Intake/Tune (see driveToTarget)
+     private double m_deployCruiseInPerSec = kDeployCruiseInPerSec;
+     private double m_deployAccelInPerSec2 = kDeployAccelInPerSec2;
+     private double m_retractCruiseInPerSec = kRetractCruiseInPerSec;
+     private double m_retractAccelInPerSec2 = kRetractAccelInPerSec2;
      private int m_intakeId;
 
     /** Constructs the intake
@@ -212,7 +228,8 @@ public class EvilIntake extends SubsystemBase {
         rackConfig.CurrentLimits.SupplyCurrentLimit = kRackSupplyLimitAmps;
         rackConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
         rackConfig.Slot0 = gainsFromDashboardDefaults();
-        rackConfig.MotionMagic = motionMagicFor(kDefaultCruiseInPerSec, kDefaultAccelInPerSec2);
+        // No MotionMagicConfigs here on purpose: Dynamic Motion Magic (below) sets cruise/accel/jerk on every
+        // control call instead, so it can use a different profile for deploying vs retracting.
         // Push toward the target to get past friction (kS sign follows the error)
         rackConfig.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
 
@@ -396,6 +413,9 @@ public class EvilIntake extends SubsystemBase {
         // Anything stopping a rack Talon FXS from driving, right now (not sticky)
         String faults = activeFaults("leader", intakeMotor) + activeFaults("follower", intakeMotorTwo);
         SmartDashboard.putString("Intake/Faults", faults.isEmpty() ? "none" : faults);
+        // True = the motors can't keep up with the commanded move without hitting their current limit (expect
+        // this briefly on hard starts; if it's on for a long stretch mid-move, that's real resistance to go look at)
+        SmartDashboard.putBoolean("Intake/At current limit", m_atCurrentLimit);
     }
 
     private static String activeFaults(String name, TalonFXS talon) {
@@ -421,16 +441,25 @@ public class EvilIntake extends SubsystemBase {
         double ahead11 = (inches11 - inches14) / 2.0;   // how far 11 is ahead of the middle (14 is the opposite)
         double sync = Math.max(-kSyncMaxVolts, Math.min(kSyncMaxVolts, kSyncVoltsPerInch * ahead11));
         double targetRotations = m_targetInches * kMotorRotationsPerInch;
-        intakeMotor.setControl(m_moveRequest.withPosition(targetRotations).withFeedForward(-sync));
-        intakeMotorTwo.setControl(m_moveRequest14.withPosition(targetRotations).withFeedForward(sync));
-    }
 
-    /** Motion Magic speed limits in motor units from inches */
-    private static MotionMagicConfigs motionMagicFor(double cruiseInPerSec, double accelInPerSec2) {
-        return new MotionMagicConfigs()
-            .withMotionMagicCruiseVelocity(cruiseInPerSec * kMotorRotationsPerInch)
-            .withMotionMagicAcceleration(accelInPerSec2 * kMotorRotationsPerInch)
-            .withMotionMagicJerk(accelInPerSec2 * kMotorRotationsPerInch * 10);   // ~0.1 s to full accel
+        // Gentler profile going out (see kDeployCruiseInPerSec above): asking for less acceleration means less
+        // torque demanded, so the motors don't have to hit the current limit just to keep up with the profile.
+        boolean deploying = m_targetInches > (inches11 + inches14) / 2.0;
+        double cruiseInPerSec = deploying ? m_deployCruiseInPerSec : m_retractCruiseInPerSec;
+        double accelInPerSec2 = deploying ? m_deployAccelInPerSec2 : m_retractAccelInPerSec2;
+        m_atCurrentLimit = intakeMotor.getFault_StatorCurrLimit().getValue()
+            || intakeMotorTwo.getFault_StatorCurrLimit().getValue();
+
+        intakeMotor.setControl(m_moveRequest.withPosition(targetRotations)
+            .withVelocity(cruiseInPerSec * kMotorRotationsPerInch)
+            .withAcceleration(accelInPerSec2 * kMotorRotationsPerInch)
+            .withJerk(accelInPerSec2 * kMotorRotationsPerInch * 10)
+            .withFeedForward(-sync));
+        intakeMotorTwo.setControl(m_moveRequest14.withPosition(targetRotations)
+            .withVelocity(cruiseInPerSec * kMotorRotationsPerInch)
+            .withAcceleration(accelInPerSec2 * kMotorRotationsPerInch)
+            .withJerk(accelInPerSec2 * kMotorRotationsPerInch * 10)
+            .withFeedForward(sync));
     }
 
     private void startHoming() {
@@ -576,8 +605,10 @@ public class EvilIntake extends SubsystemBase {
         SmartDashboard.putNumber("Intake/Tune/kS", kDefaultS);
         SmartDashboard.putNumber("Intake/Tune/kV", kDefaultV);
         SmartDashboard.putNumber("Intake/Tune/kA", kDefaultA);
-        SmartDashboard.putNumber("Intake/Tune/Cruise (in per s)", kDefaultCruiseInPerSec);
-        SmartDashboard.putNumber("Intake/Tune/Accel (in per s2)", kDefaultAccelInPerSec2);
+        SmartDashboard.putNumber("Intake/Tune/Deploy cruise (in per s)", kDeployCruiseInPerSec);
+        SmartDashboard.putNumber("Intake/Tune/Deploy accel (in per s2)", kDeployAccelInPerSec2);
+        SmartDashboard.putNumber("Intake/Tune/Retract cruise (in per s)", kRetractCruiseInPerSec);
+        SmartDashboard.putNumber("Intake/Tune/Retract accel (in per s2)", kRetractAccelInPerSec2);
         SmartDashboard.putNumber("Intake/Tune/Test target (in)", EvilIntakePosition.out.getInches());
         SmartDashboard.putData("Intake/Tune/Apply", new InstantCommand(this::applyTuning).ignoringDisable(true));
         SmartDashboard.putData("Intake/Tune/Go to test target",
@@ -604,11 +635,10 @@ public class EvilIntake extends SubsystemBase {
             .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
         intakeMotor.getConfigurator().apply(gains, 0.05);
         intakeMotorTwo.getConfigurator().apply(gains, 0.05);
-        MotionMagicConfigs speeds = motionMagicFor(
-            SmartDashboard.getNumber("Intake/Tune/Cruise (in per s)", kDefaultCruiseInPerSec),
-            SmartDashboard.getNumber("Intake/Tune/Accel (in per s2)", kDefaultAccelInPerSec2));
-        intakeMotor.getConfigurator().apply(speeds, 0.05);
-        intakeMotorTwo.getConfigurator().apply(speeds, 0.05);
+        m_deployCruiseInPerSec = SmartDashboard.getNumber("Intake/Tune/Deploy cruise (in per s)", kDeployCruiseInPerSec);
+        m_deployAccelInPerSec2 = SmartDashboard.getNumber("Intake/Tune/Deploy accel (in per s2)", kDeployAccelInPerSec2);
+        m_retractCruiseInPerSec = SmartDashboard.getNumber("Intake/Tune/Retract cruise (in per s)", kRetractCruiseInPerSec);
+        m_retractAccelInPerSec2 = SmartDashboard.getNumber("Intake/Tune/Retract accel (in per s2)", kRetractAccelInPerSec2);
         RobotLog.event(String.format("Intake tuning applied: kP %.3f kI %.3f kD %.3f kS %.3f kV %.3f kA %.3f",
             gains.kP, gains.kI, gains.kD, gains.kS, gains.kV, gains.kA));
     }
