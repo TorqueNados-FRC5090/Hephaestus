@@ -7,14 +7,12 @@ import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
-import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.hardware.TalonFXS;
 import com.ctre.phoenix6.signals.AdvancedHallSupportValue;
 import com.ctre.phoenix6.signals.InvertedValue;
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.MotorArrangementValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
@@ -35,9 +33,9 @@ import frc.robot.RobotLog;
  *
  * <p>How it works:
  * <ul>
- *   <li>Motor 11 (leader) is commanded; motor 14 follows it OPPOSED (the motors face each other). Confirmed on the
- *       robot 10/21: with Aligned, 11 drove out while 14 drove in and the intake bound. Positive = intake goes OUT
- *       (confirmed: +1 V on 11 moved it out).</li>
+ *   <li>Motors 11 and 14 each run their OWN position control (Motion Magic) to the same target, each on its own
+ *       encoder. A plain follower only copies power, so one side lagged ~1" when retracting, the intake cocked and
+ *       bound 3" short of in (10/21 log). Positive = OUT on both: 14 is inverted in its config because it faces 11.</li>
  *   <li>Every move uses Motion Magic, so speed and acceleration are always limited (unlimited, this gearing
  *       would slam the rack at ~200 in/s). Standard Motion Magic on purpose: it works without a Phoenix Pro
  *       license (Pro-only controls make an unlicensed Talon refuse to move).</li>
@@ -128,21 +126,22 @@ public class EvilIntake extends SubsystemBase {
      /** Seconds for one full out -> in -> out cycle. Bigger = slower */
      private static final double kAgitatePeriodSeconds = 2.0;
 
-     // ================= FOLLOWER DIRECTION =================
-     /** Motor 14 turns opposite to motor 11 (they face each other). Used everywhere the follower is set up. */
-     private static final MotorAlignmentValue kFollowerAlignment = MotorAlignmentValue.Opposed;
-     /** Because it's opposed, motor 14's own position reads the opposite sign of motor 11's */
-     private static final double kFollowerPositionSign = -1.0;
+     // ================= DIRECTIONS (both: positive = intake OUT) =================
+     /** Motor 11: +volts moved the intake out on the robot (10/21) */
+     private static final InvertedValue kMotor11Inverted = InvertedValue.CounterClockwise_Positive;
+     /** Motor 14 faces motor 11, so it's inverted the other way. With Aligned-follower it drove its side IN. */
+     private static final InvertedValue kMotor14Inverted = InvertedValue.Clockwise_Positive;
 
      // ================= HARDWARE =================
      final TalonFXS intakeMotor;      // leader (CAN 11)
      final TalonFXS intakeMotorTwo;   // follower (CAN 14), opposed
      final TalonFX spinMotor;         // intake wheels (CAN 12)
 
-     // FOC OFF on the rack Talon FXSs: FOC needs a Phoenix Pro license on these devices, and in the 10/21 log they
-     // reported an unlicensed fault and put out 0 V. Normal commutation works with or without the license.
-     private final MotionMagicVoltage m_moveRequest = new MotionMagicVoltage(0).withEnableFOC(false);
-     private final VoltageOut m_homingRequest = new VoltageOut(0).withEnableFOC(false);
+     // FOC ON: 11 and 14 are Phoenix Pro licensed (confirmed in the 10/21 19:49 log). ~15% more torque.
+     // If the licenses ever lapse, set these to false or the Talons stop driving (unlicensed fault).
+     private static final boolean kUseFOC = true;
+     private final MotionMagicVoltage m_moveRequest = new MotionMagicVoltage(0).withEnableFOC(kUseFOC);
+     private final VoltageOut m_homingRequest = new VoltageOut(0).withEnableFOC(kUseFOC);
      private final NeutralOut m_stopRequest = new NeutralOut();
      final DutyCycleOut spinRequest = new DutyCycleOut(0).withEnableFOC(true);
 
@@ -154,11 +153,12 @@ public class EvilIntake extends SubsystemBase {
      /** Where the current zero came from (dashboard) */
      private String m_zeroSource = "power-on (intake assumed fully in)";
      private final Timer m_homingTimer = new Timer();
-     private final Timer m_stallTimer = new Timer();
+     private final Timer[] m_stallTimer = { new Timer(), new Timer() };   // [0] = motor 11, [1] = motor 14
      private final Timer m_syncTimer = new Timer();
      private double m_targetInches = EvilIntakePosition.in.getInches();
-     private double m_homingStartInches = 0;
-     private boolean m_homingMoved = false;
+     private final double[] m_homingStartInches = new double[2];
+     private final boolean[] m_homingMoved = new boolean[2];
+     private final boolean[] m_sideHomed = new boolean[2];
      private double m_homingVolts = kHomingStartVolts;
      private boolean m_motorTest = false;
      private int m_intakeId;
@@ -178,11 +178,9 @@ public class EvilIntake extends SubsystemBase {
         TalonFXSConfiguration rackConfig = new TalonFXSConfiguration();
         // Tells the Talon FXS a Vortex is attached (through the REV Vortex Solo Adapter). Nothing runs without it.
         rackConfig.Commutation.MotorArrangement = MotorArrangementValue.VORTEX_JST;
-        // AdvancedHallSupport (better Vortex commutation) is a Phoenix Pro feature: left OFF so the intake runs even
-        // if these Talons aren't covered by the license. Turn on once "Intake/Faults" never shows UNLICENSED.
-        rackConfig.Commutation.AdvancedHallSupport = AdvancedHallSupportValue.Disabled;
-        // Leader: positive = OUT. If the intake goes IN when it should go out, flip this to Clockwise_Positive.
-        rackConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
+        // Better commutation + speed measurement for hall-sensor motors like the Vortex (Phoenix Pro: licensed now)
+        rackConfig.Commutation.AdvancedHallSupport = kUseFOC ? AdvancedHallSupportValue.Enabled : AdvancedHallSupportValue.Disabled;
+        rackConfig.MotorOutput.Inverted = kMotor11Inverted;
         // Coast: the rack can give when hit while the robot is disabled
         rackConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
         // No limit switches are wired. The Talon FXS limit inputs share the data port the Vortex adapter plugs into,
@@ -199,9 +197,8 @@ public class EvilIntake extends SubsystemBase {
         rackConfig.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
 
         intakeMotor.getConfigurator().apply(rackConfig);
-        intakeMotorTwo.getConfigurator().apply(rackConfig);   // same limits on the follower (followers don't copy them)
-        // Motor 14 copies motor 11's output, reversed (they face each other)
-        intakeMotorTwo.setControl(new Follower(intakeID, kFollowerAlignment));
+        rackConfig.MotorOutput.Inverted = kMotor14Inverted;   // same settings, mirrored direction
+        intakeMotorTwo.getConfigurator().apply(rackConfig);
         // Old faults (e.g. the unlicensed fault from earlier code) would otherwise show on the dashboard forever
         intakeMotor.clearStickyFaults();
         intakeMotorTwo.clearStickyFaults();
@@ -298,6 +295,11 @@ public class EvilIntake extends SubsystemBase {
         return intakeMotor.getPosition().getValueAsDouble();
     }
 
+    /** @return motor 14's side, in inches of rack travel */
+    private double getInches14(){
+        return intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch;
+    }
+
     /** @return leader position in inches of rack travel */
     public double getInches(){
         return getAngle() / kMotorRotationsPerInch;
@@ -313,13 +315,12 @@ public class EvilIntake extends SubsystemBase {
     @Override
     public void periodic() {
         if (m_motorTest) {
-            publishTelemetry(getInches(), kFollowerPositionSign * intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch,
+            publishTelemetry(getInches(), getInches14(),
                 intakeMotor.getVelocity().getValueAsDouble());
             return;   // Test mode: runMotorTest() is driving the motors, don't touch them here
         }
         double leaderInches = getInches();
-        // Opposed follower: flip its reading so both are "inches out" 
-        double followerInches = kFollowerPositionSign * intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch;
+        double followerInches = getInches14();   // both read "inches out" (14 is inverted in its config)
         double velocityRps = intakeMotor.getVelocity().getValueAsDouble();
 
         if (DriverStation.isDisabled() && m_state == State.HOMING) {
@@ -347,7 +348,10 @@ public class EvilIntake extends SubsystemBase {
                     }
                 }
                 // Out of sync: hold still until someone re-homes (D-pad up or dashboard)
-                case SIDES_OUT_OF_SYNC -> intakeMotor.setControl(m_stopRequest);
+                case SIDES_OUT_OF_SYNC -> {
+                    intakeMotor.setControl(m_stopRequest);
+                    intakeMotorTwo.setControl(m_stopRequest);
+                }
             }
         }
 
@@ -394,7 +398,10 @@ public class EvilIntake extends SubsystemBase {
     }
 
     private void driveToTarget() {
-        intakeMotor.setControl(m_moveRequest.withPosition(m_targetInches * kMotorRotationsPerInch));
+        // Same target to both sides, each closing the loop on its own encoder: keeps the intake square
+        m_moveRequest.withPosition(m_targetInches * kMotorRotationsPerInch);
+        intakeMotor.setControl(m_moveRequest);
+        intakeMotorTwo.setControl(m_moveRequest);
     }
 
     /** Motion Magic speed limits in motor units from inches */
@@ -408,48 +415,65 @@ public class EvilIntake extends SubsystemBase {
     private void startHoming() {
         m_state = State.HOMING;
         m_homingTimer.restart();
-        m_stallTimer.restart();
-        m_homingStartInches = getInches();
-        m_homingMoved = false;
+        m_homingStartInches[0] = getInches();
+        m_homingStartInches[1] = getInches14();
+        for (int side = 0; side < 2; side++) {
+            m_stallTimer[side].restart();
+            m_homingMoved[side] = false;
+            m_sideHomed[side] = false;
+        }
         m_homingVolts = kHomingStartVolts;
-        RobotLog.event("Intake homing: pushing out to the extension stop");
+        RobotLog.event("Intake homing: pushing both sides out to the extension stop");
     }
 
+    /** Both sides push out gently; each side is zeroed on its own when IT stops at the stop. If one side gets
+     *  there first, the other keeps pushing until it arrives too, which squares the intake. */
     private void runHoming(double velocityRps) {
-        if (!m_homingMoved) {
-            if (getInches() - m_homingStartInches >= kHomingMinTravelInches) {
-                m_homingMoved = true;   // it's travelling out; keep this voltage until it reaches the stop
-            } else if (m_homingTimer.get() > kHomingIgnoreSeconds) {
-                // Not moving yet (friction / chain): push a little harder, up to kHomingMaxVolts
-                m_homingVolts = Math.min(kHomingMaxVolts, m_homingVolts + kHomingRampVoltsPerSec * 0.02);
-            }
+        TalonFXS[] motors = { intakeMotor, intakeMotorTwo };
+        double[] inches = { getInches(), getInches14() };
+        double[] speeds = { velocityRps, intakeMotorTwo.getVelocity().getValueAsDouble() };
+        boolean anyMoved = m_homingMoved[0] || m_homingMoved[1];
+        if (!anyMoved && m_homingTimer.get() > kHomingIgnoreSeconds) {
+            // Not moving yet (friction / chain): push a little harder, up to kHomingMaxVolts
+            m_homingVolts = Math.min(kHomingMaxVolts, m_homingVolts + kHomingRampVoltsPerSec * 0.02);
         }
-        intakeMotor.setControl(m_homingRequest.withOutput(m_homingVolts));
+        double stopRotations = kExtendStopInches * kMotorRotationsPerInch;
+        for (int side = 0; side < 2; side++) {
+            if (inches[side] - m_homingStartInches[side] >= kHomingMinTravelInches) {
+                m_homingMoved[side] = true;
+            }
+            boolean moving = Math.abs(speeds[side]) > kHomingStallRps;
+            if (moving || !m_homingMoved[side] || m_homingTimer.get() < kHomingIgnoreSeconds) {
+                m_stallTimer[side].restart();
+            }
+            if (!m_sideHomed[side] && m_stallTimer[side].get() >= kHomingStallSeconds) {
+                motors[side].setPosition(stopRotations);   // this side is at the 16" stop
+                m_sideHomed[side] = true;
+            }
+            // Keep pushing gently (also once homed) so the other side can catch up without twisting
+            motors[side].setControl(m_homingRequest.withOutput(m_homingVolts));
+        }
         SmartDashboard.putNumber("Intake/Homing volts", m_homingVolts);
 
-        boolean moving = Math.abs(velocityRps) > kHomingStallRps;
-        if (moving || !m_homingMoved || m_homingTimer.get() < kHomingIgnoreSeconds) {
-            m_stallTimer.restart();
-        }
-        if (m_stallTimer.get() >= kHomingStallSeconds) {
-            // Stopped against the extension stop: that is 16"
-            double stopRotations = kExtendStopInches * kMotorRotationsPerInch;
-            intakeMotor.setPosition(stopRotations);
-            intakeMotorTwo.setPosition(kFollowerPositionSign * stopRotations);
+        if (m_sideHomed[0] && m_sideHomed[1]) {
             m_syncTimer.restart();
             m_state = State.READY;
             m_homeRequested = false;
-            m_zeroSource = "hard stop (homed)";
-            RobotLog.event(String.format("Intake homed in %.2f s", m_homingTimer.get()));
+            m_zeroSource = "hard stop (homed, both sides)";
+            RobotLog.event(String.format("Intake homed in %.2f s (both sides)", m_homingTimer.get()));
         } else if (m_homingTimer.get() > kHomingTimeoutSeconds) {
-            // Don't lock the intake up for the rest of the match: keep the zero we had and carry on
+            // Don't lock the intake up for the rest of the match: keep what we have and carry on
             m_syncTimer.restart();
             m_state = State.READY;
             m_homeRequested = false;
-            String why = m_homingMoved
-                ? "moved but never stopped at the 16\" stop (chain skipping? stop missing?)"
-                : "never moved even at " + kHomingMaxVolts + " V (wrong direction = pushing into the IN stop? "
-                  + "motor/adapter not plugged in? license fault? chain off?)";
+            String why;
+            if (m_sideHomed[0] || m_sideHomed[1]) {
+                why = "only motor " + (m_sideHomed[0] ? "11" : "14") + "'s side reached the stop (other side binding?)";
+            } else if (anyMoved) {
+                why = "moved but never stopped at the 16\" stop (chain skipping? stop missing?)";
+            } else {
+                why = "never moved even at " + kHomingMaxVolts + " V (direction? motor/adapter? license? chain off?)";
+            }
             m_zeroSource = "power-on (HOMING FAILED: " + why + ")";
             RobotLog.event("Intake homing FAILED: " + why + ". Kept the power-on zero; fix it, then re-home");
         }
@@ -465,6 +489,7 @@ public class EvilIntake extends SubsystemBase {
             if (kSyncGuardStopsIntake) {
                 m_state = State.SIDES_OUT_OF_SYNC;
                 intakeMotor.setControl(m_stopRequest);
+                intakeMotorTwo.setControl(m_stopRequest);
             }
             return;
         }
@@ -478,7 +503,7 @@ public class EvilIntake extends SubsystemBase {
     // 2. Type a small number (1.0 to 1.5 V) in "Intake/Test/Leader 11 volts". Watch which way the intake goes.
     //    Set it back to 0.
     // 3. Same with "Intake/Test/Follower 14 volts".
-    // 4. Expected: +volts on 11 = OUT, and -volts on 14 = OUT (14 is mounted facing the other way). Also check
+    // 4. Expected: +volts = OUT on BOTH (14's mirrored mounting is handled by its inverted config). Also check
     //    "Intake/Leader current (A)" and "Intake/Follower current (A)" go up when that motor is pushing.
     // Values are clamped to +/-3 V and drop to 0 when you leave Test mode.
     private static final double kMotorTestMaxVolts = 3.0;
@@ -493,15 +518,15 @@ public class EvilIntake extends SubsystemBase {
     public void runMotorTest() {
         double leader = clampVolts(SmartDashboard.getNumber("Intake/Test/Leader 11 volts", 0));
         double follower = clampVolts(SmartDashboard.getNumber("Intake/Test/Follower 14 volts", 0));
-        // Each motor on its own (the follower is temporarily NOT following)
-        intakeMotor.setControl(m_homingRequest.withOutput(leader));
-        intakeMotorTwo.setControl(new VoltageOut(follower).withEnableFOC(false));
+        // Each motor on its own
+        intakeMotor.setControl(new VoltageOut(leader).withEnableFOC(kUseFOC));
+        intakeMotorTwo.setControl(new VoltageOut(follower).withEnableFOC(kUseFOC));
     }
 
     public void endMotorTest() {
         m_motorTest = false;
         intakeMotor.setControl(m_stopRequest);
-        intakeMotorTwo.setControl(new Follower(m_intakeId, kFollowerAlignment));
+        intakeMotorTwo.setControl(m_stopRequest);
         m_state = State.NOT_HOMED;   // positions may have moved: re-zero on the next enable
         RobotLog.event("Intake motor test ended");
     }
@@ -562,6 +587,7 @@ public class EvilIntake extends SubsystemBase {
             SmartDashboard.getNumber("Intake/Tune/Cruise (in per s)", kDefaultCruiseInPerSec),
             SmartDashboard.getNumber("Intake/Tune/Accel (in per s2)", kDefaultAccelInPerSec2));
         intakeMotor.getConfigurator().apply(speeds, 0.05);
+        intakeMotorTwo.getConfigurator().apply(speeds, 0.05);
         RobotLog.event(String.format("Intake tuning applied: kP %.3f kI %.3f kD %.3f kS %.3f kV %.3f kA %.3f",
             gains.kP, gains.kI, gains.kD, gains.kS, gains.kV, gains.kA));
     }
