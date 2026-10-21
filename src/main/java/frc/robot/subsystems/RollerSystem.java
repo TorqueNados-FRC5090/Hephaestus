@@ -27,6 +27,7 @@ public class RollerSystem extends SubsystemBase {
     
 
     TalonFX rollerFloor; 
+    private final edu.wpi.first.wpilibj.Timer m_floorStallTimer = new edu.wpi.first.wpilibj.Timer();
     TalonFX lowerBelt; 
     TalonFX upperBelt;
     
@@ -119,10 +120,23 @@ public class RollerSystem extends SubsystemBase {
 
      @Override
     public void periodic() {
+        // Jam warning: floor pushing at its current limit but not turning. In the 10/21 log the floor sat at 0 rot/s
+        // with 80 A every time it was commanded (both directions) = mechanically locked, and it sagged the battery.
+        boolean floorStalled = Math.abs(rollerFloor.getStatorCurrent().getValueAsDouble()) > 60
+            && Math.abs(rollerFloor.getVelocity().getValueAsDouble()) < 1.0;
+        if (floorStalled) {
+            m_floorStallTimer.start();
+        } else {
+            m_floorStallTimer.stop();
+            m_floorStallTimer.reset();
+        }
+        boolean floorJammed = m_floorStallTimer.get() > 0.5;
+        RobotLog.eventOnRise("floorJam", floorJammed, "FLOOR ROLLER JAMMED: at its current limit but not turning");
         boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
 
          if (tel) SmartDashboard.putNumber("Roller Floor voltage", rollerFloor.getMotorVoltage().getValueAsDouble());
          if (tel) SmartDashboard.putNumber("Roller Lower tunnel voltage", lowerBelt.getMotorVoltage().getValueAsDouble());
          if (tel) SmartDashboard.putNumber("Roller Upper tunnel voltage", upperBelt.getMotorVoltage().getValueAsDouble());
+        if (tel) SmartDashboard.putBoolean("Floor/Jammed", floorJammed);
     }
 }

@@ -365,6 +365,13 @@ public class EvilIntake extends SubsystemBase {
         if (talon.getFault_ReverseHardLimit().getValue()) f.append(name).append(": reverse limit switch. ");
         if (talon.getFault_BridgeBrownout().getValue()) f.append(name).append(": bridge brownout. ");
         if (talon.getFault_Undervoltage().getValue()) f.append(name).append(": low voltage. ");
+        // Hall-sensor faults: the Talon FXS turns its output OFF. In the 10/21 log motor 11 had these (plus
+        // impossible +/-500 rot/s speed readings) = bad sensor connection between the Vortex adapter and the Talon.
+        if (talon.getFault_HallSensorMissing().getValue()) f.append(name).append(": HALL SENSOR MISSING (check sensor cable). ");
+        if (talon.getFault_DriveDisabledHallSensor().getValue()) f.append(name).append(": DRIVE DISABLED - hall sensor (check sensor cable). ");
+        if (talon.getFault_MotorArrangementNotSelected().getValue()) f.append(name).append(": motor type not set. ");
+        if (talon.getFault_BridgeShort().getValue()) f.append(name).append(": BRIDGE SHORT (motor wiring). ");
+        if (talon.getFault_5V().getValue()) f.append(name).append(": 5V sensor supply fault. ");
         return f.toString();
     }
 
