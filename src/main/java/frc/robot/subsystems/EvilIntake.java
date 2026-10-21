@@ -98,12 +98,12 @@ public class EvilIntake extends SubsystemBase {
      private static final boolean kSyncGuardStopsIntake = false;
 
      // ================= CURRENT LIMITS (why) =================
-     /** Rack motors, stator: the "spring". 20 A ~= 10 lb of push per side (20 lb total), plenty to move the rack
-      *  through fuel, but low enough that a hit shoves the intake in instead of skipping the chain. Raise toward
-      *  25-30 A if the intake gets pushed back during normal pickup; lower if the chain still skips. */
-     private static final double kRackStatorLimitAmps = 20.0;
-     /** Rack motors, supply: caps battery draw per side so the intake can't add to a brownout */
-     private static final double kRackSupplyLimitAmps = 20.0;
+     /** Rack motors, stator: 40 A ~= 21 lb of push per side (~42 lb with both), about what the old Kraken intake had
+      *  (~43 lb). It was 20 A (~10 lb/side) as a soft "spring", but in the 10/21 logs the rack stalled at the limit
+      *  and never moved. Once the intake works reliably, lower this step by step to get the give-on-impact back. */
+     private static final double kRackStatorLimitAmps = 40.0;
+     /** Rack motors, supply: caps battery draw per side so the intake can't add much to a brownout */
+     private static final double kRackSupplyLimitAmps = 30.0;
      /** Intake wheels, stator: enough grip to pull fuel in; limits heat if the wheels stall on a jam */
      private static final double kWheelStatorLimitAmps = 40.0;
      /** Intake wheels, supply: battery protection */
