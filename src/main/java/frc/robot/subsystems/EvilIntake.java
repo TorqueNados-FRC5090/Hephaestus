@@ -41,7 +41,7 @@ import frc.robot.RobotLog;
  *       license (Pro-only controls make an unlicensed Talon refuse to move).</li>
  *   <li>Zero: at power-on the intake must be fully in (0"). It NEVER homes by itself (the automatic homing on
  *       enable caused trouble on 10/21). Homing only runs from D-pad up / dashboard "Intake/Re-home": both sides
- *       push out against the 17" stop and each side is zeroed when it stops there (squares the intake).
+ *       push out against the extension stop and each side is zeroed when it stops there (squares the intake).
  *       If homing fails it falls back to the power-on zero and keeps working.</li>
  *   <li>Sync: each side gets a small extra push/hold-back based on how far it is ahead of the other side, so the
  *       side with less friction can't run ahead (10/21 log: one side got ~3" ahead, the intake twisted).</li>
@@ -53,16 +53,22 @@ import frc.robot.RobotLog;
  */
 public class EvilIntake extends SubsystemBase {
      // ================= GEARING / TRAVEL =================
-     /** MEASURED on the robot 10/21: from fully in (0") to the 17" stop is 6.06 motor rotations (both sides stalled
-      *  against the outer stop at "11.1 in" with the old math). The old math, 14T -> 24T chain and a 10T 10DP pinion
-      *  (1.0" pitch diameter), said 0.546 rot/inch, which made every position 35% short: "16 in" was really 17+".
-      *  A 15T 10DP pinion (1.5") would give 0.364, close to the measurement, so count the pinion teeth.
-      *  If the gearing changes: rotations per inch = (big sprocket / small sprocket) / (pi * pinion pitch diameter). */
-     public static final double kMotorRotationsPerInch = 6.06 / 17.0;
-     /** Extension hard stop (inches). Auto-zero pushes against this and sets it as the reference. */
-     private static final double kExtendStopInches = 17.0;   // arms fully out = 17" (Michel 10/21)
+     /** Vortex 14T -> 22T chain (1.57:1) */
+     private static final double kChainRatio = 22.0 / 14.0;
+     /** Planetary gearbox between each Vortex and its 14T sprocket. 1.0 = none. Set to 5.0 if a 5:1 stage goes in
+      *  (and drop kRackStatorLimitAmps, see there). */
+     private static final double kPlanetaryRatio = 1.0;
+     /** 10T 10DP pinion on a 10DP rack: pitch diameter = 10 / 10 = 1.0" */
+     private static final double kPinionPitchDiameterInches = 1.0;
+     /** Motor rotations per inch of rack travel: 1.57 / 3.14 = 0.500 (2.5 with a 5:1 planetary) */
+     public static final double kMotorRotationsPerInch =
+         kPlanetaryRatio * kChainRatio / (Math.PI * kPinionPitchDiameterInches);
+     /** Extension hard stop (inches of rack travel from fully in). MEASURED 10/21: both sides stalled solid at
+      *  6.06 motor rotations = 12.1" (the rack is 17" long, but the travel is shorter). Re-measure with a tape and
+      *  fix this if it's different. Homing pushes against this and sets it as the reference. */
+     private static final double kExtendStopInches = 12.1;
      /** Never command closer than this to the extension stop (Motion Magic would push into it) */
-     private static final double kMaxCommandInches = 16.5;
+     private static final double kMaxCommandInches = 11.75;
      /** Never command into the retract stop (fuel gets squeezed / jams) */
      private static final double kMinCommandInches = 0.2;
 
@@ -70,8 +76,8 @@ public class EvilIntake extends SubsystemBase {
      // Change these live from the dashboard (Intake/Tune) and copy the good values back here.
      // Slower than before on purpose: on 10/21 both motors sat at their current limit the whole move, so neither
      // could follow the profile and the side with less friction ran ahead. Speed up only once "Sides differ" stays small.
-     private static final double kDefaultCruiseInPerSec = 30.0;   // full 16" stroke in ~0.7 s
-     private static final double kDefaultAccelInPerSec2 = 100.0;
+     private static final double kDefaultCruiseInPerSec = 21.0;   // full 11" stroke in ~0.7 s
+     private static final double kDefaultAccelInPerSec2 = 70.0;
      // Agitate follows a slow back-and-forth (kAgitatePeriodSeconds), always slower than the cruise speed.
 
      // ================= AUTO ZERO (hard-stop homing) =================
@@ -108,9 +114,10 @@ public class EvilIntake extends SubsystemBase {
      private static final boolean kSyncGuardStopsIntake = false;
 
      // ================= CURRENT LIMITS (why) =================
-     /** Rack motors, stator: 40 A ~= 21 lb of push per side (~42 lb with both), about what the old Kraken intake had
-      *  (~43 lb). It was 20 A (~10 lb/side) as a soft "spring", but in the 10/21 logs the rack stalled at the limit
-      *  and never moved. Once the intake works reliably, lower this step by step to get the give-on-impact back. */
+     /** Rack motors, stator: 40 A ~= 19 lb of push per side (~38 lb with both) with no planetary. In the 10/21 logs
+      *  both motors sat at this limit for whole moves, i.e. the rack needs about all of it to move.
+      *  WITH A 5:1 PLANETARY every amp pushes 5x harder: use ~15-20 A there (~35-47 lb per side) and the motors
+      *  run cool instead of stalling at 40 A against a stop. */
      private static final double kRackStatorLimitAmps = 40.0;
      /** Rack motors, supply: caps battery draw per side so the intake can't add much to a brownout */
      private static final double kRackSupplyLimitAmps = 30.0;
@@ -134,7 +141,7 @@ public class EvilIntake extends SubsystemBase {
      /** Roller power while ejecting (spits fuel back out the intake) */
      private static final double kRollerEjectSpeed = 1.0;
      /** How far in the rack slides during agitate (inches). Only part way: all the way in with fuel jams it. */
-     private static final double kAgitateInInches = 8.0;
+     private static final double kAgitateInInches = 5.7;
      /** Seconds for one full out -> in -> out cycle. Bigger = slower */
      private static final double kAgitatePeriodSeconds = 2.0;
 
@@ -461,7 +468,7 @@ public class EvilIntake extends SubsystemBase {
                 m_stallTimer[side].restart();
             }
             if (!m_sideHomed[side] && m_stallTimer[side].get() >= kHomingStallSeconds) {
-                motors[side].setPosition(stopRotations);   // this side is at the 17" stop
+                motors[side].setPosition(stopRotations);   // this side is at the extension stop
                 m_sideHomed[side] = true;
             }
             // Keep pushing gently (also once homed) so the other side can catch up without twisting
@@ -484,7 +491,7 @@ public class EvilIntake extends SubsystemBase {
             if (m_sideHomed[0] || m_sideHomed[1]) {
                 why = "only motor " + (m_sideHomed[0] ? "11" : "14") + "'s side reached the stop (other side binding?)";
             } else if (anyMoved) {
-                why = "moved but never stopped at the 17\" stop (chain skipping? stop missing?)";
+                why = "moved but never stopped at the extension stop (chain skipping? stop missing?)";
             } else {
                 why = "never moved even at " + kHomingMaxVolts + " V (direction? motor/adapter? license? chain off?)";
             }
