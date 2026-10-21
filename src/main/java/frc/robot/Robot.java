@@ -230,13 +230,23 @@ public class Robot extends TimedRobot {
     @Override
     public void testInit() {
         CommandScheduler.getInstance().cancelAll();
+        // Test mode = hardware checks only: no commands/default commands run (nothing drives, turret stays put)
+        CommandScheduler.getInstance().disable();
+        m_robotContainer.evilIntake.startMotorTest();
     }
 
     @Override
-    public void testPeriodic(){}
+    public void testPeriodic(){
+        // Subsystem periodic() still runs (robotPeriodic) for the dashboard; this drives each intake motor alone
+        m_robotContainer.evilIntake.runMotorTest();
+        m_robotContainer.evilIntake.periodic();
+    }
 
     @Override
-    public void testExit(){}
+    public void testExit(){
+        m_robotContainer.evilIntake.endMotorTest();
+        CommandScheduler.getInstance().enable();
+    }
 
     @Override
     public void simulationPeriodic(){}

@@ -154,6 +154,8 @@ public class EvilIntake extends SubsystemBase {
      private double m_homingStartInches = 0;
      private boolean m_homingMoved = false;
      private double m_homingVolts = kHomingStartVolts;
+     private boolean m_motorTest = false;
+     private int m_intakeId;
 
     /** Constructs the intake
      * @param intakeID CAN ID of the leader rack motor (Talon FXS + Vortex), positive = out
@@ -161,6 +163,7 @@ public class EvilIntake extends SubsystemBase {
      * @param spinID CAN ID of the intake wheels (Talon FX)
      */
     public EvilIntake(int intakeID, int intakeTwoID, int spinID, CANBus canbus){
+        m_intakeId = intakeID;
         intakeMotor = new TalonFXS(intakeID, canbus);
         intakeMotorTwo = new TalonFXS(intakeTwoID, canbus);
         spinMotor = new TalonFX(spinID, canbus);
@@ -303,6 +306,11 @@ public class EvilIntake extends SubsystemBase {
     // =====================================================================
     @Override
     public void periodic() {
+        if (m_motorTest) {
+            publishTelemetry(getInches(), intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch,
+                intakeMotor.getVelocity().getValueAsDouble());
+            return;   // Test mode: runMotorTest() is driving the motors, don't touch them here
+        }
         double leaderInches = getInches();
         // Aligned follower: its position reads the same sign as the leader's
         double followerInches = intakeMotorTwo.getPosition().getValueAsDouble() / kMotorRotationsPerInch;
@@ -337,10 +345,14 @@ public class EvilIntake extends SubsystemBase {
             }
         }
 
+        publishTelemetry(leaderInches, followerInches, velocityRps);
+    }
+
+    private void publishTelemetry(double leaderInches, double followerInches, double velocityRps) {
         if (!RobotLog.telemetryTick()) {
             return;   // dashboard values at 10 Hz (loop time)
         }
-        SmartDashboard.putString("Intake/Status", m_state.toString());
+        SmartDashboard.putString("Intake/Status", m_motorTest ? "MOTOR TEST" : m_state.toString());
         SmartDashboard.putBoolean("Intake/Homed", isHomed());
         SmartDashboard.putString("Intake/Zero from", m_zeroSource);
         SmartDashboard.putNumber("Intake/Position (in)", leaderInches);
@@ -451,6 +463,45 @@ public class EvilIntake extends SubsystemBase {
             return;
         }
         RobotLog.eventOnRise("intakeSync", false, "");
+    }
+
+    // =====================================================================
+    // MOTOR TEST (Driver Station "Test" mode): drive each rack motor ALONE to check direction / wiring
+    // =====================================================================
+    // 1. Robot on blocks, chains on. Driver Station -> Test -> Enable.
+    // 2. Type a small number (1.0 to 1.5 V) in "Intake/Test/Leader 11 volts". Watch which way the intake goes.
+    //    Set it back to 0.
+    // 3. Same with "Intake/Test/Follower 14 volts".
+    // 4. Positive should be OUT on both (or tell the programmers what happened). Also check
+    //    "Intake/Leader current (A)" and "Intake/Follower current (A)" go up when that motor is pushing.
+    // Values are clamped to +/-3 V and drop to 0 when you leave Test mode.
+    private static final double kMotorTestMaxVolts = 3.0;
+
+    public void startMotorTest() {
+        m_motorTest = true;
+        SmartDashboard.putNumber("Intake/Test/Leader 11 volts", 0);
+        SmartDashboard.putNumber("Intake/Test/Follower 14 volts", 0);
+        RobotLog.event("Intake motor test started");
+    }
+
+    public void runMotorTest() {
+        double leader = clampVolts(SmartDashboard.getNumber("Intake/Test/Leader 11 volts", 0));
+        double follower = clampVolts(SmartDashboard.getNumber("Intake/Test/Follower 14 volts", 0));
+        // Each motor on its own (the follower is temporarily NOT following)
+        intakeMotor.setControl(m_homingRequest.withOutput(leader));
+        intakeMotorTwo.setControl(new VoltageOut(follower).withEnableFOC(false));
+    }
+
+    public void endMotorTest() {
+        m_motorTest = false;
+        intakeMotor.setControl(m_stopRequest);
+        intakeMotorTwo.setControl(new Follower(m_intakeId, MotorAlignmentValue.Aligned));
+        m_state = State.NOT_HOMED;   // positions may have moved: re-zero on the next enable
+        RobotLog.event("Intake motor test ended");
+    }
+
+    private static double clampVolts(double v) {
+        return Math.max(-kMotorTestMaxVolts, Math.min(kMotorTestMaxVolts, v));
     }
 
     // =====================================================================
