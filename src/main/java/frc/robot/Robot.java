@@ -40,10 +40,10 @@ public class Robot extends TimedRobot {
     // Kept around (not local to waitForCanBus) so robotPeriodic can keep checking them all match, not just at boot
     private final CANBus m_jarvisBus = new CANBus("Jarvis");
     private final CANBus m_upperBus = new CANBus("Upper");
-    // REV PDH on the RIO's CAN bus (10/22: confirmed team has one). Default module (type auto-detected, ID 1)
-    // -- gives REAL total battery current + per-channel currents, unlike RobotController.getInputCurrent()
-    // (the roboRIO's own tiny draw) which is all we had before.
-    private final PowerDistribution m_pdh = new PowerDistribution();
+    // REV PDH on the RIO's CAN bus (10/22: confirmed team has one). The no-arg constructor's auto-detect
+    // came back "CAN: Message not found" on every read in the 10/22 17:06 log -- explicit ID 1 + kRev instead
+    // (1 is both REV's own PDH default and this team's CAN numbering convention for it).
+    private final PowerDistribution m_pdh = new PowerDistribution(1, PowerDistribution.ModuleType.kRev);
 
     @Override
     public void robotInit(){

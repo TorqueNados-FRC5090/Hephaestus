@@ -127,12 +127,17 @@ public class EvilIntake extends SubsystemBase {
      // More current = more force on the chain/rack/pinion every time it pushes -- watch for chain skip or wear
      // if this goes much higher; back it down if so.
      private static final double kRackStatorLimitAmps = 24.0;
-     /** Rack motors, supply: caps battery draw per side so the intake can't add much to a brownout */
-     private static final double kRackSupplyLimitAmps = 30.0;
+     /** Rack motors, supply: caps battery draw per side so the intake can't add much to a brownout.
+      *  30->25 (10/22): brownouts lined up with every LB (intake) press, not just shooting. Stator (the force
+      *  that fixed yesterday's "won't come in all the way" bug) is untouched -- only the battery-draw side
+      *  came down. The PDH wasn't reporting real numbers yet in that log (wrong CAN ID, now fixed in Robot.java),
+      *  so this is a reasonable first trim, not a confirmed fix -- the next log's PDH/Intake rack current will
+      *  say whether the rack was really the big draw or whether it was the floor roller / driving at the same time. */
+     private static final double kRackSupplyLimitAmps = 25.0;
      /** Intake wheels, stator: enough grip to pull fuel in; limits heat if the wheels stall on a jam */
      private static final double kWheelStatorLimitAmps = 40.0;
-     /** Intake wheels, supply: battery protection */
-     private static final double kWheelSupplyLimitAmps = 30.0;
+     /** Intake wheels, supply: battery protection. 30->25 (10/22), same reasoning as the rack motors above. */
+     private static final double kWheelSupplyLimitAmps = 25.0;
 
      // ================= GAINS (starting values, tune on the dashboard) =================
      // Units: volts per motor rotation of error (kP), volts per rot/s (kV), volts (kS).
