@@ -56,9 +56,16 @@ public class RollerSystem extends SubsystemBase {
             .withStatorCurrentLimitEnable(true)
             .withSupplyCurrentLimit(40)
             .withSupplyCurrentLimitEnable(true);
-        // Floor gets more stator (it pushes the whole hopper of fuel), but the same 10/22 supply trim.
+        // Floor gets more stator (it pushes the whole hopper of fuel). 80->95 A (10/22 later): the 223626 log
+        // shows it stalling ~15 times in under 3 minutes, and every time, voltage was only ~2 V while already AT
+        // the stator limit -- that low a voltage at the current cap means it's hitting the limit at basically
+        // zero RPM (stall), not fighting the load at speed. That's genuinely not enough torque to get moving
+        // again once something backs up against it. Supply stays at 45: the low voltage/duty cycle at stall
+        // means supply current is nowhere near its limit here, so that number isn't what's holding it back.
+        // If it keeps stalling even at 95, that's a physical obstruction, not a current problem -- raising this
+        // forever just means hitting whatever it's stuck on harder.
         rollerFloor.getConfigurator().apply(new CurrentLimitsConfigs()
-            .withStatorCurrentLimit(80)
+            .withStatorCurrentLimit(95)
             .withStatorCurrentLimitEnable(true)
             .withSupplyCurrentLimit(45)
             .withSupplyCurrentLimitEnable(true));
