@@ -46,21 +46,21 @@ public class RollerSystem extends SubsystemBase {
         upperBelt.getConfigurator().apply(rollerConfig);
 
         // Current limits on all three motors (each one gets its own; limits are never shared).
-        // Stator 60 A: enough push to keep a full hopper moving and clear light jams; caps heat and belt load
-        //   when fuel really jams (the team raised this from 40).
-        // Supply 50 A: battery draw per motor; these run at full power while shooting, together with the
-        //   shooter, so this keeps the feed from browning the robot out. Lower toward 40 if brownouts return.
+        // Stator unchanged (that's the push to keep a full hopper moving / clear jams, not what browns us out).
+        // Supply 50->40 A (10/22): brownouts came back hard while shooting on the move -- every shot runs the
+        // shooter + hood + turret + these rollers + the intake agitating all at once, so the rollers' share of
+        // the battery budget is the first thing to trim since it costs the least (shot RPM doesn't depend on
+        // these). Raise back toward 50 if the floor/belts feel starved once the battery itself is healthy.
         CurrentLimitsConfigs rollerLimits = new CurrentLimitsConfigs()
             .withStatorCurrentLimit(60)
             .withStatorCurrentLimitEnable(true)
-            .withSupplyCurrentLimit(50)
+            .withSupplyCurrentLimit(40)
             .withSupplyCurrentLimitEnable(true);
-        // Floor gets more: it pushes the whole hopper of fuel and wasn't moving it at 60/50 A.
-        // Stator 80 A = more push into a full hopper; supply 60 A. Lower again if brownouts come back.
+        // Floor gets more stator (it pushes the whole hopper of fuel), but the same 10/22 supply trim.
         rollerFloor.getConfigurator().apply(new CurrentLimitsConfigs()
             .withStatorCurrentLimit(80)
             .withStatorCurrentLimitEnable(true)
-            .withSupplyCurrentLimit(60)
+            .withSupplyCurrentLimit(45)
             .withSupplyCurrentLimitEnable(true));
         lowerBelt.getConfigurator().apply(rollerLimits);
         upperBelt.getConfigurator().apply(rollerLimits);

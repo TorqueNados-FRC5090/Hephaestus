@@ -109,7 +109,10 @@ public class Robot extends TimedRobot {
         // mid-match (loose CANivore cable, etc.) wouldn't show up anywhere.
         if (tel) {
             SmartDashboard.putNumber("Battery/Voltage", RobotController.getBatteryVoltage());
-            SmartDashboard.putNumber("Battery/Current (A)", RobotController.getInputCurrent());
+            // NOT total robot current -- this is only what the roboRIO itself draws (under 1 A normally).
+            // There's no PDH/PDP object in this code, so there's no reading of total battery current or
+            // per-channel current yet. If one of those is wired in, say so and it's an easy add.
+            SmartDashboard.putNumber("RIO input current (A)", RobotController.getInputCurrent());
             publishBusHealth("Jarvis", m_jarvisBus);
             publishBusHealth("Upper", m_upperBus);
         }
