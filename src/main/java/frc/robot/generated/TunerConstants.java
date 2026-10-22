@@ -64,7 +64,10 @@ public class TunerConstants {
                 // drains the battery. NOTE: CTRE overwrites this with kSlipCurrent above, so change that one.
                 .withStatorCurrentLimit(Amps.of(60))
                 .withStatorCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(Amps.of(40)) // battery draw per drive motor (x4). Raise toward 50 if drive feels weak
+                // Supply 40->32 A (10/22, more brownout headroom): x4 motors this is still 128 A of drive alone,
+                // and traction limits acceleration well before 32 A/motor does in normal driving. Raise back
+                // toward 40 if the chassis ever feels weak accelerating.
+                .withSupplyCurrentLimit(Amps.of(32))
                 .withSupplyCurrentLimitEnable(true)
         );
     private static final TalonFXConfiguration steerInitialConfigs = new TalonFXConfiguration()
@@ -74,7 +77,9 @@ public class TunerConstants {
                 // stator current limit to help avoid brownouts without impacting performance.
                 .withStatorCurrentLimit(Amps.of(40))
                 .withStatorCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(Amps.of(30))
+                // Supply 30->22 A (10/22, more brownout headroom): steering barely needs sustained current even
+                // at this limit, so this should be unnoticeable in feel.
+                .withSupplyCurrentLimit(Amps.of(22))
                 .withSupplyCurrentLimitEnable(true)
         );
     private static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();
