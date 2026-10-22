@@ -364,6 +364,17 @@ public class EvilIntake extends SubsystemBase {
             m_state = State.NOT_HOMED;   // disabled mid-homing: start over on the next enable
         }
 
+        // 10/21: a chain came off one side and the zero silently drifted (position read -2.9" at one point,
+        // which is physically impossible if 0 = fully in). Nothing caught that live -- it only showed up when
+        // the logs were scanned by hand afterward. Flag it the moment it happens instead.
+        double outOfRangeInches = 1.0;   // some slop for normal overshoot/backlash, not a hair-trigger
+        boolean outOfRange = leaderInches < -outOfRangeInches || followerInches < -outOfRangeInches
+            || leaderInches > kExtendStopInches + outOfRangeInches
+            || followerInches > kExtendStopInches + outOfRangeInches;
+        RobotLog.eventOnRise("intakeOutOfRange", outOfRange, String.format(
+            "Intake position OUT OF RANGE (%.2f in / %.2f in, expected 0-%.1f) -- chain skipped or lost its zero, re-home",
+            leaderInches, followerInches, kExtendStopInches));
+
         if (DriverStation.isEnabled()) {
             switch (m_state) {
                 case NOT_HOMED -> {

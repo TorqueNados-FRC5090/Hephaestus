@@ -36,6 +36,9 @@ public class Robot extends TimedRobot {
     private final HootAutoReplay m_timeAndJoystickReplay = new HootAutoReplay()
         .withTimestampReplay()
         .withJoystickReplay();
+    // Kept around (not local to waitForCanBus) so robotPeriodic can keep checking them all match, not just at boot
+    private final CANBus m_jarvisBus = new CANBus("Jarvis");
+    private final CANBus m_upperBus = new CANBus("Upper");
 
     @Override
     public void robotInit(){
@@ -51,8 +54,8 @@ public class Robot extends TimedRobot {
         // The CANivores come up a few seconds after the robot program starts. Every config sent before that fails
         // ("failed config with error TxFailed" for all swerve Talons/CANcoders in the 10/21 logs) and CTRE doesn't
         // retry, so the swerve ran without our current limits/offsets. Wait for both buses first.
-        waitForCanBus("Jarvis", 8.0);
-        waitForCanBus("Upper", 8.0);
+        waitForCanBus(m_jarvisBus, "Jarvis", 8.0);
+        waitForCanBus(m_upperBus, "Upper", 8.0);
         m_robotContainer = new RobotContainer();
         // Dashboard switch: false = ignore the Limelight completely (pure odometry). Shooting never needs it.
         SmartDashboard.putBoolean("Vision/Use camera", true);
@@ -60,11 +63,10 @@ public class Robot extends TimedRobot {
     }
 
     /** Blocks (at startup only) until a CANivore bus is up, or the timeout passes */
-    private static void waitForCanBus(String name, double timeoutSeconds) {
+    private static void waitForCanBus(CANBus bus, String name, double timeoutSeconds) {
         if (RobotBase.isSimulation()) {
             return;   // no real CANivore in simulation
         }
-        CANBus bus = new CANBus(name);
         double start = Timer.getFPGATimestamp();
         while (!bus.getStatus().Status.isOK() && Timer.getFPGATimestamp() - start < timeoutSeconds) {
             Timer.delay(0.1);
@@ -100,6 +102,16 @@ public class Robot extends TimedRobot {
         m_robotContainer.updateBrownoutRumble();
         m_robotContainer.updateShotDiagnostics();
         RobotLog.eventOnRise("brownout", RobotController.isBrownedOut(), "BROWNOUT (battery " + RobotController.getBatteryVoltage() + " V)");
+        // Continuous battery/CAN health -- before this, battery voltage only showed up in the log at the moment
+        // it crossed the brownout line, so seeing a SAG (like 10/21's dying battery) meant counting brownout
+        // events by hand. Same idea for CAN: buses were only ever checked once at boot, so a bus that drops
+        // mid-match (loose CANivore cable, etc.) wouldn't show up anywhere.
+        if (tel) {
+            SmartDashboard.putNumber("Battery/Voltage", RobotController.getBatteryVoltage());
+            SmartDashboard.putNumber("Battery/Current (A)", RobotController.getInputCurrent());
+            publishBusHealth("Jarvis", m_jarvisBus);
+            publishBusHealth("Upper", m_upperBus);
+        }
     /* This example of adding Limelight is very simple and may not be sufficient for on-field use.
      * Users typically need to provide a standard deviation that scales with the distance to target and changes with number of tags available.
      *
@@ -127,6 +139,17 @@ public class Robot extends TimedRobot {
             RobotLog.quietEventOnRise("slowLoop", false, "");
         }
   }
+
+    /** Dashboard CAN health for one bus, every loop a telemetry tick fires (not just at boot) */
+    private static void publishBusHealth(String name, CANBus bus) {
+        var status = bus.getStatus();
+        SmartDashboard.putBoolean("CAN/" + name + " OK", status.Status.isOK());
+        SmartDashboard.putNumber("CAN/" + name + " busUtil %", status.BusUtilization * 100.0);
+        SmartDashboard.putNumber("CAN/" + name + " REC", status.REC);
+        SmartDashboard.putNumber("CAN/" + name + " TEC", status.TEC);
+        RobotLog.eventOnRise(name + "CanDown", !status.Status.isOK(),
+            "CAN bus " + name + " NOT OK mid-match: " + status.Status);
+    }
 
     /** Feeds one Limelight into the pose estimator.
      *  Enabled: MegaTag2. It takes the heading from the Pigeon and only corrects X/Y, which keeps the
