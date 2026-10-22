@@ -20,6 +20,8 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType; // Added for safety clamp
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap; // Added for Passing
+import java.util.Map;
+import java.util.function.BooleanSupplier;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.RobotController;
@@ -288,6 +290,31 @@ public class RobotContainer {
 
         SmartDashboard.putNumber("Optimal Hood Angle", optimal);
         return optimal;
+    }
+
+    // Buttons worth logging by name (matches the printed controller card in /workspace/controller-card).
+    // Raw button bits are already in the .wpilog (every DS axis/button, automatically), but decoding "button 5
+    // on joystick 0" back into "LB" takes the controller's mapping and isn't readable on its own -- this logs
+    // the actual name, and only the ones that do something, so "what was the driver pressing" is a quick read
+    // of the Events list instead of a bitmask.
+    private final Map<String, BooleanSupplier> m_loggedButtons = Map.ofEntries(
+        Map.entry("A", joystick.a()),
+        Map.entry("B (failsafe shot)", joystick.b()),
+        Map.entry("X (brake)", joystick.x()),
+        Map.entry("Y (shoot)", joystick.y()),
+        Map.entry("LB (intake)", joystick.leftBumper()),
+        Map.entry("RB (unjam)", joystick.rightBumper()),
+        Map.entry("LT (eject)", joystick.leftTrigger()),
+        Map.entry("RT (shoot)", joystick.rightTrigger()),
+        Map.entry("Start (seed field pose)", joystick.start()),
+        Map.entry("Back (shop test pose)", joystick.back()),
+        Map.entry("POV up (re-home intake)", joystick.povUp())
+    );
+
+    /** Logs a named event the instant a mapped button is pressed or released. Call every loop. */
+    public void logButtons() {
+        m_loggedButtons.forEach((name, button) ->
+            RobotLog.eventOnRise(name, button.getAsBoolean(), "Button: " + name));
     }
 
     /** Rumbles the driver controller harder the closer the battery gets to browning out. Call every loop. */

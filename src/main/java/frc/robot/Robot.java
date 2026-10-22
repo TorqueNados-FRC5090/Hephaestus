@@ -101,6 +101,7 @@ public class Robot extends TimedRobot {
         CommandScheduler.getInstance().run(); 
         m_robotContainer.updateBrownoutRumble();
         m_robotContainer.updateShotDiagnostics();
+        m_robotContainer.logButtons();
         RobotLog.eventOnRise("brownout", RobotController.isBrownedOut(), "BROWNOUT (battery " + RobotController.getBatteryVoltage() + " V)");
         // Continuous battery/CAN health -- before this, battery voltage only showed up in the log at the moment
         // it crossed the brownout line, so seeing a SAG (like 10/21's dying battery) meant counting brownout
@@ -157,6 +158,17 @@ public class Robot extends TimedRobot {
      *  Disabled: MegaTag1 with 2+ tags is allowed to fix the heading, so MegaTag2 starts the match
      *  with a correct heading even if the robot was placed crooked. */
     private void updateVision(String limelightName) {
+      // Basic per-camera status every tick, whether or not a pose correction ends up getting used below --
+      // otherwise a camera that never sees a tag (or whose updates keep getting rejected) publishes nothing,
+      // and it's impossible to tell "no tag in view" apart from "camera's not even running".
+      if (RobotLog.telemetryTick()) {
+        SmartDashboard.putBoolean("Vision/" + limelightName + "/Has target", Limelighthelpers.getTV(limelightName));
+        SmartDashboard.putNumber("Vision/" + limelightName + "/tx (deg)", Limelighthelpers.getTX(limelightName));
+        SmartDashboard.putNumber("Vision/" + limelightName + "/ty (deg)", Limelighthelpers.getTY(limelightName));
+        SmartDashboard.putNumber("Vision/" + limelightName + "/Primary tag ID", Limelighthelpers.getFiducialID(limelightName));
+        SmartDashboard.putNumber("Vision/" + limelightName + "/Pipeline latency (ms)", Limelighthelpers.getLatency_Pipeline(limelightName));
+      }
+
       if (!SmartDashboard.getBoolean("Vision/Use camera", true)) {
         return;
       }
@@ -174,13 +186,13 @@ public class Robot extends TimedRobot {
       if (DriverStation.isDisabled()) {
         var mt1 = Limelighthelpers.getBotPoseEstimate_wpiBlue(limelightName);
         if (mt1 != null && mt1.tagCount >= 2) {
-          recordVisionCorrection(driveState.Pose, mt1.pose, mt1.tagCount, mt1.rawFiducials);
+          recordVisionCorrection(limelightName, driveState.Pose, mt1.pose, mt1.tagCount, mt1.rawFiducials);
           drivetrain.addVisionMeasurement(mt1.pose, mt1.timestampSeconds, VecBuilder.fill(0.5, 0.5, 0.5));
         }
       } else {
         var mt2 = Limelighthelpers.getBotPoseEstimate_wpiBlue_MegaTag2(limelightName);
         if (mt2 != null && mt2.tagCount > 0) {
-          recordVisionCorrection(driveState.Pose, mt2.pose, mt2.tagCount, mt2.rawFiducials);
+          recordVisionCorrection(limelightName, driveState.Pose, mt2.pose, mt2.tagCount, mt2.rawFiducials);
           // Huge heading std dev = ignore vision heading, trust the Pigeon
           drivetrain.addVisionMeasurement(mt2.pose, mt2.timestampSeconds, VecBuilder.fill(0.7, 0.7, 9999999));
         }
@@ -191,7 +203,7 @@ public class Robot extends TimedRobot {
 
     /** How far the camera disagrees with odometry each time it sees tags. Small (under ~0.3m) = odometry is
      *  tracking well on its own. Big = odometry drifts when it can't see tags (wheel size, gearing, or gyro). */
-    private void recordVisionCorrection(Pose2d odometryPose, Pose2d visionPose, int tagCount,
+    private void recordVisionCorrection(String limelightName, Pose2d odometryPose, Pose2d visionPose, int tagCount,
                                         Limelighthelpers.RawFiducial[] rawFiducials) {
       m_lastTagTime = Timer.getFPGATimestamp();
       if (!RobotLog.telemetryTick()) {
@@ -207,14 +219,14 @@ public class Robot extends TimedRobot {
           dists[i] = rawFiducials[i].distToCamera;
           worstAmbiguity = Math.max(worstAmbiguity, rawFiducials[i].ambiguity);
         }
-        SmartDashboard.putNumberArray("Vision/Tag IDs", ids);
-        SmartDashboard.putNumberArray("Vision/Tag distances (m)", dists);
-        SmartDashboard.putNumber("Vision/Worst tag ambiguity", worstAmbiguity);
+        SmartDashboard.putNumberArray("Vision/" + limelightName + "/Tag IDs", ids);
+        SmartDashboard.putNumberArray("Vision/" + limelightName + "/Tag distances (m)", dists);
+        SmartDashboard.putNumber("Vision/" + limelightName + "/Worst tag ambiguity", worstAmbiguity);
       }
-      RobotLog.pose("Vision", visionPose);   // compare against Poses/Robot to see odometry drift
-      SmartDashboard.putNumber("Vision/Tags seen", tagCount);
-      SmartDashboard.putNumber("Vision/Correction (m)", odometryPose.getTranslation().getDistance(visionPose.getTranslation()));
-      SmartDashboard.putNumber("Vision/Heading disagreement (deg)", odometryPose.getRotation().minus(visionPose.getRotation()).getDegrees());
+      RobotLog.pose("Vision " + limelightName, visionPose);   // compare against Poses/Robot to see odometry drift
+      SmartDashboard.putNumber("Vision/" + limelightName + "/Tags seen", tagCount);
+      SmartDashboard.putNumber("Vision/" + limelightName + "/Correction (m)", odometryPose.getTranslation().getDistance(visionPose.getTranslation()));
+      SmartDashboard.putNumber("Vision/" + limelightName + "/Heading disagreement (deg)", odometryPose.getRotation().minus(visionPose.getRotation()).getDegrees());
     }
 
     /* Used to be used for the intializing of the robot when disabled. No idea why it was commented out.
