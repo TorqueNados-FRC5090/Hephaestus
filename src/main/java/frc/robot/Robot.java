@@ -161,10 +161,26 @@ public class Robot extends TimedRobot {
             channelCurrents[i] = m_pdh.getCurrent(i);
         }
         SmartDashboard.putNumberArray("PDH/Channel currents (A)", channelCurrents);
+        // Named rollups for the channels Michel's given us so far (10/22). Everything else is still in the raw
+        // array above -- add more entries here as more channels get identified.
+        SmartDashboard.putNumber("PDH/Shooter current (A)", sumChannels(channelCurrents, 3, 4));
+        SmartDashboard.putNumber("PDH/Hood current (A)", sumChannels(channelCurrents, 5));
+        SmartDashboard.putNumber("PDH/Intake rack current (A)", sumChannels(channelCurrents, 17, 18));
+        SmartDashboard.putNumber("PDH/Floor current (A)", sumChannels(channelCurrents, 15));
         // A brownout caused by one specific channel (a stalled/shorted motor) looks different from the whole
         // bus sagging together -- this makes that obvious at a glance instead of digging through the array.
         RobotLog.eventOnRise("pdhOverCurrent", m_pdh.getTotalCurrent() > 300,
             String.format("PDH total current %.0f A -- check PDH/Channel currents for which one", m_pdh.getTotalCurrent()));
+    }
+
+    private static double sumChannels(double[] channelCurrents, int... channels) {
+        double total = 0;
+        for (int ch : channels) {
+            if (ch >= 0 && ch < channelCurrents.length) {
+                total += channelCurrents[ch];
+            }
+        }
+        return total;
     }
 
     /** Dashboard CAN health for one bus, every loop a telemetry tick fires (not just at boot) */
