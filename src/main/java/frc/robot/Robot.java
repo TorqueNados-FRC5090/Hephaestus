@@ -18,6 +18,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -39,6 +40,10 @@ public class Robot extends TimedRobot {
     // Kept around (not local to waitForCanBus) so robotPeriodic can keep checking them all match, not just at boot
     private final CANBus m_jarvisBus = new CANBus("Jarvis");
     private final CANBus m_upperBus = new CANBus("Upper");
+    // REV PDH on the RIO's CAN bus (10/22: confirmed team has one). Default module (type auto-detected, ID 1)
+    // -- gives REAL total battery current + per-channel currents, unlike RobotController.getInputCurrent()
+    // (the roboRIO's own tiny draw) which is all we had before.
+    private final PowerDistribution m_pdh = new PowerDistribution();
 
     @Override
     public void robotInit(){
@@ -109,10 +114,10 @@ public class Robot extends TimedRobot {
         // mid-match (loose CANivore cable, etc.) wouldn't show up anywhere.
         if (tel) {
             SmartDashboard.putNumber("Battery/Voltage", RobotController.getBatteryVoltage());
-            // NOT total robot current -- this is only what the roboRIO itself draws (under 1 A normally).
-            // There's no PDH/PDP object in this code, so there's no reading of total battery current or
-            // per-channel current yet. If one of those is wired in, say so and it's an easy add.
+            // RobotController.getInputCurrent() is only what the roboRIO itself draws (under 1 A normally) --
+            // keeping it for reference, but PDH/Total current (A) below is the real number for brownout chasing.
             SmartDashboard.putNumber("RIO input current (A)", RobotController.getInputCurrent());
+            publishPdhHealth();
             publishBusHealth("Jarvis", m_jarvisBus);
             publishBusHealth("Upper", m_upperBus);
         }
@@ -143,6 +148,24 @@ public class Robot extends TimedRobot {
             RobotLog.quietEventOnRise("slowLoop", false, "");
         }
   }
+
+    /** Real total battery current + per-channel breakdown, so a brownout can be traced to a specific motor
+     *  instead of guessing from timing. Channel numbers are whatever's printed/labeled on the PDH itself --
+     *  ask Michel for the channel map once and these can get real names instead of "Channel 7". */
+    private void publishPdhHealth() {
+        SmartDashboard.putNumber("PDH/Total current (A)", m_pdh.getTotalCurrent());
+        SmartDashboard.putNumber("PDH/Voltage", m_pdh.getVoltage());
+        SmartDashboard.putNumber("PDH/Temperature (C)", m_pdh.getTemperature());
+        double[] channelCurrents = new double[m_pdh.getNumChannels()];
+        for (int i = 0; i < channelCurrents.length; i++) {
+            channelCurrents[i] = m_pdh.getCurrent(i);
+        }
+        SmartDashboard.putNumberArray("PDH/Channel currents (A)", channelCurrents);
+        // A brownout caused by one specific channel (a stalled/shorted motor) looks different from the whole
+        // bus sagging together -- this makes that obvious at a glance instead of digging through the array.
+        RobotLog.eventOnRise("pdhOverCurrent", m_pdh.getTotalCurrent() > 300,
+            String.format("PDH total current %.0f A -- check PDH/Channel currents for which one", m_pdh.getTotalCurrent()));
+    }
 
     /** Dashboard CAN health for one bus, every loop a telemetry tick fires (not just at boot) */
     private static void publishBusHealth(String name, CANBus bus) {
