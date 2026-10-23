@@ -133,11 +133,11 @@ public class EvilIntake extends SubsystemBase {
       *  came down. The PDH wasn't reporting real numbers yet in that log (wrong CAN ID, now fixed in Robot.java),
       *  so this is a reasonable first trim, not a confirmed fix -- the next log's PDH/Intake rack current will
       *  say whether the rack was really the big draw or whether it was the floor roller / driving at the same time. */
-     private static final double kRackSupplyLimitAmps = 25.0;
+     private static final double kRackSupplyLimitAmps = 20.0;   // 25->20 (10/22 later): still couldn't shoot
      /** Intake wheels, stator: enough grip to pull fuel in; limits heat if the wheels stall on a jam */
      private static final double kWheelStatorLimitAmps = 40.0;
      /** Intake wheels, supply: battery protection. 30->25 (10/22), same reasoning as the rack motors above. */
-     private static final double kWheelSupplyLimitAmps = 25.0;
+     private static final double kWheelSupplyLimitAmps = 20.0;   // 25->20 (10/22 later), same reasoning
 
      // ================= GAINS (starting values, tune on the dashboard) =================
      // Units: volts per motor rotation of error (kP), volts per rot/s (kV), volts (kS).

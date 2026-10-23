@@ -175,12 +175,9 @@ public class RobotContainer {
         
         // RT: just shoot -- fires the shooter, moves the hood, slows the chassis, intake untouched
         joystick.rightTrigger().whileTrue(fullShootCommand());
-        // While B is held (failsafe shot) and NOT touching the intake buttons, agitate the intake like auto does.
-        // Y now runs its own full intake (above) and RT is "just shoot", so only B still uses the gentle agitate.
-        // LB (intake) or LT (eject) take over and work exactly as before; agitate resumes when they're let go.
-        joystick.b()
-            .and(joystick.leftBumper().negate()).and(joystick.leftTrigger().negate())
-            .whileTrue(evilIntake.agitate(EvilIntakePosition.in));
+        // B (failsafe shot) no longer agitates the intake (10/22) -- Y runs its own full intake now, and B is
+        // meant to be a quick "just get a shot off" button, same spirit as RT. evilIntake.agitate() is still
+        // used by autos (AutonContainer's "IntakeAgitate"), just not from any teleop button anymore.
 
         drivetrain.registerTelemetry(logger::telemeterize);
     }

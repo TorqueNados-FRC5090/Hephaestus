@@ -56,18 +56,17 @@ public class RollerSystem extends SubsystemBase {
             .withStatorCurrentLimitEnable(true)
             .withSupplyCurrentLimit(40)
             .withSupplyCurrentLimitEnable(true);
-        // Floor gets more stator (it pushes the whole hopper of fuel). 80->95 A (10/22 later): the 223626 log
-        // shows it stalling ~15 times in under 3 minutes, and every time, voltage was only ~2 V while already AT
-        // the stator limit -- that low a voltage at the current cap means it's hitting the limit at basically
-        // zero RPM (stall), not fighting the load at speed. That's genuinely not enough torque to get moving
-        // again once something backs up against it. Supply stays at 45: the low voltage/duty cycle at stall
-        // means supply current is nowhere near its limit here, so that number isn't what's holding it back.
-        // If it keeps stalling even at 95, that's a physical obstruction, not a current problem -- raising this
-        // forever just means hitting whatever it's stuck on harder.
+        // Floor gets more stator (it pushes the whole hopper of fuel). 80->95 A: the 223626 log showed it
+        // stalling ~15 times in under 3 minutes at basically zero RPM -- genuinely not enough torque, stator is
+        // what fixes that, left at 95 untouched.
+        // Supply 45->35 (10/22 later): still couldn't get a shot off -- this is the actual battery-draw lever,
+        // stator isn't it. If the floor starts stalling again specifically when the battery is otherwise healthy
+        // (not mid-brownout), that's this number being too tight -- raise it back a little rather than touching
+        // stator again.
         rollerFloor.getConfigurator().apply(new CurrentLimitsConfigs()
             .withStatorCurrentLimit(95)
             .withStatorCurrentLimitEnable(true)
-            .withSupplyCurrentLimit(45)
+            .withSupplyCurrentLimit(35)
             .withSupplyCurrentLimitEnable(true));
         lowerBelt.getConfigurator().apply(rollerLimits);
         upperBelt.getConfigurator().apply(rollerLimits);
