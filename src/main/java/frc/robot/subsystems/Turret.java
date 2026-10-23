@@ -235,9 +235,16 @@ public class Turret extends SubsystemBase {
         boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
 
         // 1. --- LIVE MOTOR DATA ---
-        double currentMotorRotations = m_turretMotor.getPosition().refresh().getValueAsDouble();
-        if (tel) SmartDashboard.putNumber("Turret/Current_Motor_Rots", currentMotorRotations);
-        if (tel) SmartDashboard.putNumber("Turret/Current_Turret_Rots", currentMotorRotations / kTurretGearRatio);
+        // Telemetry/display only (the actual aiming setpoint below comes from field geometry, not this readback
+        // -- the Talon closes its own position loop in firmware once it has a target). .refresh() forces a
+        // blocking CAN round-trip, so only pay for it on the 10 Hz telemetry tick instead of every 20 ms loop
+        // (10/23: this was one of the two biggest contributors to the loop overruns that day).
+        double currentMotorRotations = 0;
+        if (tel) {
+            currentMotorRotations = m_turretMotor.getPosition().refresh().getValueAsDouble();
+            SmartDashboard.putNumber("Turret/Current_Motor_Rots", currentMotorRotations);
+            SmartDashboard.putNumber("Turret/Current_Turret_Rots", currentMotorRotations / kTurretGearRatio);
+        }
 
         // 2. --- FIELD VARIABLES ---
         Pose2d robotPose = m_robotPoseSupplier.get();
@@ -291,10 +298,13 @@ public class Turret extends SubsystemBase {
         // 6. --- TURRET SETPOINT ---
         Translation2d aimPoint = m_isPassing ? virtualPassTarget : virtualHubTarget;
         if (tel) RobotLog.pose("Turret aim point", new Pose2d(aimPoint, Rotation2d.kZero));
-        // Where the turret actually points on the field (from its motor), drawn from the turret's position
-        Rotation2d turretFacing = robotPose.getRotation().plus(kTurretZeroOffset)
-            .plus(Rotation2d.fromRotations(currentMotorRotations / kTurretGearRatio / kTurretDirectionMultiplier));
-        if (tel) RobotLog.pose("Turret", new Pose2d(globalTurretPos, turretFacing));
+        // Where the turret actually points on the field (from its motor), drawn from the turret's position.
+        // Telemetry only (same as above), reuses the reading from part 1 so it's not read twice.
+        if (tel) {
+            Rotation2d turretFacing = robotPose.getRotation().plus(kTurretZeroOffset)
+                .plus(Rotation2d.fromRotations(currentMotorRotations / kTurretGearRatio / kTurretDirectionMultiplier));
+            RobotLog.pose("Turret", new Pose2d(globalTurretPos, turretFacing));
+        }
         Rotation2d turretSetpoint = aimPoint.minus(globalTurretPos).getAngle()
             .minus(aimHeading)
             .minus(kTurretZeroOffset); 

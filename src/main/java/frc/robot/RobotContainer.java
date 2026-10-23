@@ -330,10 +330,12 @@ public class RobotContainer {
         Map.entry("POV up (re-home intake)", joystick.povUp())
     );
 
-    /** Logs a named event the instant a mapped button is pressed or released. Call every loop. */
+    /** Logs a named event the instant a mapped button is pressed or released. Call every loop.
+     *  Lazy message (10/23 loop-overrun pass): building "Button: " + name 11 times a loop regardless of
+     *  whether any button actually changed added up; now it's only built on an actual press/release. */
     public void logButtons() {
         m_loggedButtons.forEach((name, button) ->
-            RobotLog.eventOnRise(name, button.getAsBoolean(), "Button: " + name));
+            RobotLog.eventOnRise(name, button.getAsBoolean(), () -> "Button: " + name));
     }
 
     /** Rumbles the driver controller harder the closer the battery gets to browning out. Call every loop. */

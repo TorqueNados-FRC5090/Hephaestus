@@ -383,7 +383,9 @@ public class EvilIntake extends SubsystemBase {
         boolean outOfRange = leaderInches < -outOfRangeInches || followerInches < -outOfRangeInches
             || leaderInches > kExtendStopInches + outOfRangeInches
             || followerInches > kExtendStopInches + outOfRangeInches;
-        RobotLog.eventOnRise("intakeOutOfRange", outOfRange, String.format(
+        // Lazy message (10/23): String.format was running every 20 ms loop even when nothing was wrong --
+        // this is one of the fixes for that day's loop overruns. Only actually builds the string on the edge.
+        RobotLog.eventOnRise("intakeOutOfRange", outOfRange, () -> String.format(
             "Intake position OUT OF RANGE (%.2f in / %.2f in, expected 0-%.1f) -- chain skipped or lost its zero, re-home",
             leaderInches, followerInches, kExtendStopInches));
 
@@ -485,8 +487,12 @@ public class EvilIntake extends SubsystemBase {
         boolean deploying = m_targetInches > (inches11 + inches14) / 2.0;
         double cruiseInPerSec = deploying ? m_deployCruiseInPerSec : m_retractCruiseInPerSec;
         double accelInPerSec2 = deploying ? m_deployAccelInPerSec2 : m_retractAccelInPerSec2;
-        m_atCurrentLimit = intakeMotor.getFault_StatorCurrLimit().getValue()
-            || intakeMotorTwo.getFault_StatorCurrLimit().getValue();
+        // Telemetry only -- dashboard-informational, doesn't affect control -- so only read it on the 10 Hz
+        // tick instead of every 20 ms loop (10/23 loop-overrun pass: 2 fewer fault reads every loop).
+        if (RobotLog.telemetryTick()) {
+            m_atCurrentLimit = intakeMotor.getFault_StatorCurrLimit().getValue()
+                || intakeMotorTwo.getFault_StatorCurrLimit().getValue();
+        }
 
         intakeMotor.setControl(m_moveRequest.withPosition(targetRotations)
             .withVelocity(cruiseInPerSec * kMotorRotationsPerInch)

@@ -107,7 +107,8 @@ public class Robot extends TimedRobot {
         m_robotContainer.updateBrownoutRumble();
         m_robotContainer.updateShotDiagnostics();
         m_robotContainer.logButtons();
-        RobotLog.eventOnRise("brownout", RobotController.isBrownedOut(), "BROWNOUT (battery " + RobotController.getBatteryVoltage() + " V)");
+        RobotLog.eventOnRise("brownout", RobotController.isBrownedOut(),
+            () -> "BROWNOUT (battery " + RobotController.getBatteryVoltage() + " V)");
         // Continuous battery/CAN health -- before this, battery voltage only showed up in the log at the moment
         // it crossed the brownout line, so seeing a SAG (like 10/21's dying battery) meant counting brownout
         // events by hand. Same idea for CAN: buses were only ever checked once at boot, so a bus that drops

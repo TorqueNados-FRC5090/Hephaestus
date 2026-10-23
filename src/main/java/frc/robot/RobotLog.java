@@ -102,6 +102,19 @@ public final class RobotLog {
         s_lastState.put(key, condition);
     }
 
+    /** Same as eventOnRise, but the message is only built when it's actually about to be logged (the rising
+     *  edge) instead of every single loop this is called from. Use this one instead of the plain-String
+     *  version whenever the message is built with String.format/concatenation rather than a fixed literal --
+     *  10/23: one such call (String.format every 20 ms loop, almost always thrown away unused) was a real
+     *  contributor to that day's loop overruns. */
+    public static void eventOnRise(String key, boolean condition, java.util.function.Supplier<String> message) {
+        boolean last = s_lastState.getOrDefault(key, false);
+        if (condition && !last) {
+            event(message.get());
+        }
+        s_lastState.put(key, condition);
+    }
+
     /** Publishes a pose that AdvantageScope can draw on the field (also recorded in the log) */
     public static void pose(String name, Pose2d pose) {
         s_poses.computeIfAbsent(name, n ->
