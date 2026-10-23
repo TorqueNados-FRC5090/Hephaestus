@@ -131,8 +131,12 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> {
                 // Slow down while actually shooting on the move (RT held past 50%, or Y -- shoot + keep intaking).
                 // B (failsafe) isn't included: it zeros the turret and is meant for standing still anyway.
+                // 0.4->0.3 (10/23): 044730 log, the driving right at the end (no buttons held, Michel just easing
+                // off the stick) sat around 1.0-1.8 m/s and he said he liked that pace. 0.3x of the 5.85 m/s free
+                // speed caps it at 1.76 m/s, right in that range. Raise/lower this if the shot-on-the-move pace
+                // feels off from that.
                 boolean shootingOnTheMove = joystick.getRightTriggerAxis() > 0.5 || joystick.y().getAsBoolean();
-                double slowModeMultiplier = shootingOnTheMove ? 0.4 : 1.0;
+                double slowModeMultiplier = shootingOnTheMove ? 0.3 : 1.0;
 
                 return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * slowModeMultiplier)
                             .withVelocityY(-joystick.getLeftX() * MaxSpeed * slowModeMultiplier)
