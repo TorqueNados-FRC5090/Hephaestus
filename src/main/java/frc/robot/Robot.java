@@ -209,6 +209,7 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber("Vision/" + limelightName + "/ty (deg)", Limelighthelpers.getTY(limelightName));
         SmartDashboard.putNumber("Vision/" + limelightName + "/Primary tag ID", Limelighthelpers.getFiducialID(limelightName));
         SmartDashboard.putNumber("Vision/" + limelightName + "/Pipeline latency (ms)", Limelighthelpers.getLatency_Pipeline(limelightName));
+        logVisibleTags(limelightName);
       }
 
       if (!SmartDashboard.getBoolean("Vision/Use camera", true)) {
@@ -242,6 +243,32 @@ public class Robot extends TimedRobot {
     }
 
     private double m_lastTagTime = 0.0;
+    /** Last camera -> "sorted tag IDs it could see" seen, so the Events log only gets a line when the set of
+     *  tags actually changes instead of every 10 Hz tick. */
+    private final java.util.Map<String, String> m_lastTagSet = new java.util.HashMap<>();
+
+    /** Every AprilTag a camera can currently see, independent of whether that reading ends up correcting the
+     *  robot's pose below (rejected updates -- spinning too fast, too few tags -- otherwise left no record of
+     *  what was actually in view). Always-on dashboard arrays + an Events line whenever the set changes. */
+    private void logVisibleTags(String limelightName) {
+        Limelighthelpers.RawFiducial[] fiducials = Limelighthelpers.getRawFiducials(limelightName);
+        double[] ids = new double[fiducials.length];
+        double[] dists = new double[fiducials.length];
+        StringBuilder seen = new StringBuilder();
+        for (int i = 0; i < fiducials.length; i++) {
+            ids[i] = fiducials[i].id;
+            dists[i] = fiducials[i].distToCamera;
+            seen.append((int) fiducials[i].id).append(',');
+        }
+        SmartDashboard.putNumberArray("Vision/" + limelightName + "/All tag IDs", ids);
+        SmartDashboard.putNumberArray("Vision/" + limelightName + "/All tag distances (m)", dists);
+
+        String seenKey = seen.toString();
+        if (!seenKey.equals(m_lastTagSet.get(limelightName))) {
+            m_lastTagSet.put(limelightName, seenKey);
+            RobotLog.event(limelightName + " now sees tags: " + (fiducials.length == 0 ? "none" : seenKey));
+        }
+    }
 
     /** How far the camera disagrees with odometry each time it sees tags. Small (under ~0.3m) = odometry is
      *  tracking well on its own. Big = odometry drifts when it can't see tags (wheel size, gearing, or gyro). */
