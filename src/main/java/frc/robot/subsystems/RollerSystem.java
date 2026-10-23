@@ -59,14 +59,14 @@ public class RollerSystem extends SubsystemBase {
         // Floor gets more stator (it pushes the whole hopper of fuel). 80->95 A: the 223626 log showed it
         // stalling ~15 times in under 3 minutes at basically zero RPM -- genuinely not enough torque, stator is
         // what fixes that, left at 95 untouched.
-        // Supply 45->35 (10/22 later): still couldn't get a shot off -- this is the actual battery-draw lever,
-        // stator isn't it. If the floor starts stalling again specifically when the battery is otherwise healthy
-        // (not mid-brownout), that's this number being too tight -- raise it back a little rather than touching
-        // stator again.
+        // Supply 35->45 (10/22 even later): went too far trimming this for brownouts -- 35 was capping it
+        // below the 60A the jam detector watches for, so it was bogging down/stopping WITHOUT tripping
+        // "Floor/Jammed" (that check is on stator current, and supply was limiting it before stator got that
+        // high). Back up toward 45; watch PDH/Floor current next time instead of guessing further.
         rollerFloor.getConfigurator().apply(new CurrentLimitsConfigs()
             .withStatorCurrentLimit(95)
             .withStatorCurrentLimitEnable(true)
-            .withSupplyCurrentLimit(35)
+            .withSupplyCurrentLimit(45)
             .withSupplyCurrentLimitEnable(true));
         lowerBelt.getConfigurator().apply(rollerLimits);
         upperBelt.getConfigurator().apply(rollerLimits);

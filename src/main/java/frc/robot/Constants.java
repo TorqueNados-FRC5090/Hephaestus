@@ -118,8 +118,8 @@ public class Constants {
      *  Hard stops are at 0" (retracted) and 12.1" (extended, measured). EvilIntake converts inches to motor rotations
      *  (Vortex 14T -> 24T chain, 10T 10DP pinion: 1" = 0.546 motor rotations). */
     public enum EvilIntakePosition {
-        in(0.3),    // just off the retract stop: never squeeze into the stop with fuel inside
-        out(9.6);   // pickup: 2.5" short of the 12.1" extension stop (measured travel)
+        in(0.5),    // 0.3->0.5 (10/22): give it a bit more clearance off the retract stop
+        out(6.4);   // 9.6->6.4 (10/22): sides were drifting apart badly reaching further out
 
         private final double inches;
         EvilIntakePosition(double inches){

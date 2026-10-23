@@ -109,7 +109,10 @@ public class RobotContainer {
         configureBindings();
         
         // Populate the passing maps with your field-length data
-        m_passRpmMap.put(8.27, 45.0);
+        // 8.27m = center of the field, half of 16.54m -- 10/22 field test: passing from there was too hot at
+        // 45 RPS. Dropped to 38 as a first guess (no real data point yet for how much too hot); if it's still
+        // too strong or now too weak, say by how much and this can get tuned closer.
+        m_passRpmMap.put(8.27, 38.0);
         m_passRpmMap.put(16.54, 60.0);
         m_passHoodMap.put(8.27, -2.2);
         m_passHoodMap.put(16.54, -2.2);
