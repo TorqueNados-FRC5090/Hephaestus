@@ -119,7 +119,11 @@ public class Constants {
      *  (Vortex 14T -> 24T chain, 10T 10DP pinion: 1" = 0.546 motor rotations). */
     public enum EvilIntakePosition {
         in(0.5),    // 0.3->0.5 (10/22): give it a bit more clearance off the retract stop
-        out(6.4);   // 9.6->6.4 (10/22): sides were drifting apart badly reaching further out
+        // 9.6->6.4->9.6 (10/23): 6.4 was cut to fight the side-to-side drift, but that turned out to be a
+        // motor 11 hall-sensor fault, not a distance problem (see EvilIntake's class comment) -- and 6.4" wasn't
+        // reaching far enough to actually pick up a game piece. Back to 9.6; say the exact reach you need if
+        // this still isn't quite right.
+        out(9.6);
 
         private final double inches;
         EvilIntakePosition(double inches){

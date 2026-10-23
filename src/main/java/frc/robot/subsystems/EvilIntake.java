@@ -433,8 +433,14 @@ public class EvilIntake extends SubsystemBase {
         SmartDashboard.putNumber("Intake/Follower current (A)", intakeMotorTwo.getStatorCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Intake/Leader volts", intakeMotor.getMotorVoltage().getValueAsDouble());
         SmartDashboard.putNumber("Intake Roller voltage", spinMotor.getMotorVoltage().getValueAsDouble());
+        // Wheel current + velocity (10/23): voltage alone can't tell "spinning freely" apart from "stalled" --
+        // a stalled Kraken/Falcon can show the same low volts a lightly-loaded free-spinning one does. Current
+        // pegged at/near the limit while velocity sits near 0 is the stall signature (same as the floor roller).
+        SmartDashboard.putNumber("Intake/Wheel current (A)", spinMotor.getStatorCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Intake/Wheel velocity (rps)", spinMotor.getVelocity().getValueAsDouble());
         // Anything stopping a rack Talon FXS from driving, right now (not sticky)
-        String faults = activeFaults("leader", intakeMotor) + activeFaults("follower", intakeMotorTwo);
+        String faults = activeFaults("leader", intakeMotor) + activeFaults("follower", intakeMotorTwo)
+            + wheelFaults(spinMotor);
         SmartDashboard.putString("Intake/Faults", faults.isEmpty() ? "none" : faults);
         // True = the motors can't keep up with the commanded move without hitting their current limit (expect
         // this briefly on hard starts; if it's on for a long stretch mid-move, that's real resistance to go look at)
@@ -455,6 +461,15 @@ public class EvilIntake extends SubsystemBase {
         if (talon.getFault_MotorArrangementNotSelected().getValue()) f.append(name).append(": motor type not set. ");
         if (talon.getFault_BridgeShort().getValue()) f.append(name).append(": BRIDGE SHORT (motor wiring). ");
         if (talon.getFault_5V().getValue()) f.append(name).append(": 5V sensor supply fault. ");
+        return f.toString();
+    }
+
+    /** Same idea as activeFaults() above, but for the wheel motor (a plain TalonFX, no hall-sensor port) */
+    private static String wheelFaults(TalonFX talon) {
+        StringBuilder f = new StringBuilder();
+        if (talon.getFault_Hardware().getValue()) f.append("wheels: HARDWARE fault. ");
+        if (talon.getFault_BridgeBrownout().getValue()) f.append("wheels: bridge brownout. ");
+        if (talon.getFault_Undervoltage().getValue()) f.append("wheels: low voltage. ");
         return f.toString();
     }
 
