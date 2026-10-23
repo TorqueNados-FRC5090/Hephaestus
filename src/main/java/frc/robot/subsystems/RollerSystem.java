@@ -146,7 +146,7 @@ public class RollerSystem extends SubsystemBase {
         }
         boolean floorJammed = m_floorStallTimer.get() > 0.5;
         RobotLog.eventOnRise("floorJam", floorJammed, "FLOOR ROLLER JAMMED: at its current limit but not turning");
-        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+        boolean tel = RobotLog.telemetryTick(2);   // dashboard values at 10 Hz, own phase (10/23 overrun spread)
 
          if (tel) SmartDashboard.putNumber("Roller Floor voltage", rollerFloor.getMotorVoltage().getValueAsDouble());
          if (tel) SmartDashboard.putNumber("Roller Lower tunnel voltage", lowerBelt.getMotorVoltage().getValueAsDouble());

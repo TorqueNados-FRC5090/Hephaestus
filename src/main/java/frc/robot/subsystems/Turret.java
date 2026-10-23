@@ -232,7 +232,7 @@ public class Turret extends SubsystemBase {
 
     @Override
     public void periodic() {
-        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+        boolean tel = RobotLog.telemetryTick(1);   // dashboard values at 10 Hz, own phase (10/23 overrun spread)
 
         // 1. --- LIVE MOTOR DATA ---
         // Telemetry/display only (the actual aiming setpoint below comes from field geometry, not this readback

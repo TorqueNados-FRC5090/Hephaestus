@@ -98,7 +98,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void robotPeriodic() {
-        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+        boolean tel = RobotLog.telemetryTick(4);   // dashboard values at 10 Hz, own phase (10/23 overrun spread)
 
         double loopStart = Timer.getFPGATimestamp();
         RobotLog.tick();
@@ -204,7 +204,7 @@ public class Robot extends TimedRobot {
       // Basic per-camera status every tick, whether or not a pose correction ends up getting used below --
       // otherwise a camera that never sees a tag (or whose updates keep getting rejected) publishes nothing,
       // and it's impossible to tell "no tag in view" apart from "camera's not even running".
-      if (RobotLog.telemetryTick()) {
+      if (RobotLog.telemetryTick(4)) {
         SmartDashboard.putBoolean("Vision/" + limelightName + "/Has target", Limelighthelpers.getTV(limelightName));
         SmartDashboard.putNumber("Vision/" + limelightName + "/tx (deg)", Limelighthelpers.getTX(limelightName));
         SmartDashboard.putNumber("Vision/" + limelightName + "/ty (deg)", Limelighthelpers.getTY(limelightName));
@@ -276,7 +276,7 @@ public class Robot extends TimedRobot {
     private void recordVisionCorrection(String limelightName, Pose2d odometryPose, Pose2d visionPose, int tagCount,
                                         Limelighthelpers.RawFiducial[] rawFiducials) {
       m_lastTagTime = Timer.getFPGATimestamp();
-      if (!RobotLog.telemetryTick()) {
+      if (!RobotLog.telemetryTick(4)) {
         return;   // dashboard values at 10 Hz (loop time)
       }
       if (rawFiducials != null) {

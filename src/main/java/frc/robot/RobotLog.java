@@ -44,10 +44,20 @@ public final class RobotLog {
         s_loopCount++;
     }
 
-    /** True every 5th loop (10 Hz). Dashboard telemetry uses this: publishing ~100 values every 20 ms loop was
-     *  the biggest part of the loop overruns on the roboRIO. Control logic still runs every loop. */
+    /** True every 5th loop (10 Hz), all subsystems on the same loop (phase 0). Dashboard telemetry uses this.
+     *  10/23: every subsystem decimating to the SAME loop meant the entire match's worth of telemetry work
+     *  (PDH arrays, vision arrays, every subsystem's dashboard fields, CAN reads) landed in one 20 ms window
+     *  out of every 5, instead of being spread out -- the loop was still fast 4 loops out of 5, but blew the
+     *  budget badly on that 5th one. Prefer telemetryTick(phase) below for anything new so it lands on a
+     *  different loop than everyone else; this plain version is kept for call sites that don't care. */
     public static boolean telemetryTick() {
         return s_loopCount % 5 == 0;
+    }
+
+    /** Same idea (10 Hz), but on loop (phase mod 5) instead of always loop 0 -- give each subsystem/feature a
+     *  different phase (0-4) so their once-per-5-loops telemetry work doesn't all land on the same loop. */
+    public static boolean telemetryTick(int phase) {
+        return s_loopCount % 5 == phase % 5;
     }
 
     /** Call once, first thing in Robot() */

@@ -243,7 +243,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     @Override
     public void periodic() {
-        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+        boolean tel = RobotLog.telemetryTick(3);   // dashboard values at 10 Hz, own phase (10/23 overrun spread)
 
         if (tel) SmartDashboard.putNumber("robot yaw", getgyroyaw().getDegrees());
         // If Connected is false or Yaw doesn't change when the robot turns, the swerve has no heading

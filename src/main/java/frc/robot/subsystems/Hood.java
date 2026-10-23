@@ -132,7 +132,7 @@ public class Hood extends SubsystemBase {
 
     @Override
     public void periodic(){
-        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+        boolean tel = RobotLog.telemetryTick(2);   // dashboard values at 10 Hz, own phase (10/23 overrun spread)
 
         // Runs every loop before commands, so even a hood left up gets pulled down before a trench
         m_forcedDown = m_nearTrench.getAsBoolean();

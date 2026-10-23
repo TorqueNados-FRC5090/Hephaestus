@@ -135,7 +135,7 @@ public class Shooter extends SubsystemBase {
 
     @Override
     public void periodic() {
-        boolean tel = RobotLog.telemetryTick();   // dashboard values at 10 Hz (loop time)
+        boolean tel = RobotLog.telemetryTick(2);   // dashboard values at 10 Hz, own phase (10/23 overrun spread)
 
         if (tel) SmartDashboard.putNumber("Shooter/Velocity_RPS", leadShoot.getVelocity().getValueAsDouble());
         if (tel) SmartDashboard.putNumber("Shooter/Target_Velocity_RPS", setpoint);
