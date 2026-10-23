@@ -524,6 +524,8 @@ public class EvilIntake extends SubsystemBase {
         TalonFXS[] motors = { intakeMotor, intakeMotorTwo };
         double[] inches = { getInches(), getInches14() };
         double[] speeds = { velocityRps, intakeMotorTwo.getVelocity().getValueAsDouble() };
+        double[] currents = { Math.abs(intakeMotor.getStatorCurrent().getValueAsDouble()),
+                               Math.abs(intakeMotorTwo.getStatorCurrent().getValueAsDouble()) };
         boolean anyMoved = m_homingMoved[0] || m_homingMoved[1];
         if (!anyMoved && m_homingTimer.get() > kHomingIgnoreSeconds) {
             // Not moving yet (friction / chain): push a little harder, up to kHomingMaxVolts
@@ -535,7 +537,15 @@ public class EvilIntake extends SubsystemBase {
                 m_homingMoved[side] = true;
             }
             boolean moving = Math.abs(speeds[side]) > kHomingStallRps;
-            if (moving || !m_homingMoved[side] || m_homingTimer.get() < kHomingIgnoreSeconds) {
+            // 10/23: homing failed "never moved even at 4.0 V" twice in one day's logs, both times starting
+            // from ~0.5in (i.e. already basically at the retract stop when Re-home was pressed) with BOTH
+            // motors pinned near the stator limit the whole 5 s timeout -- that's the exact same "pushing hard,
+            // not moving" signature a real stop gives, but kHomingMinTravelInches can never see it click over
+            // to true if there's barely 0.5in left to travel in the first place. Count "pushing hard and not
+            // moving" as reaching the stop too, not just "moved far, then stopped".
+            boolean pushingHard = currents[side] > kRackStatorLimitAmps * 0.6;
+            boolean reachedSomething = m_homingMoved[side] || pushingHard;
+            if (moving || !reachedSomething || m_homingTimer.get() < kHomingIgnoreSeconds) {
                 m_stallTimer[side].restart();
             }
             if (!m_sideHomed[side] && m_stallTimer[side].get() >= kHomingStallSeconds) {
