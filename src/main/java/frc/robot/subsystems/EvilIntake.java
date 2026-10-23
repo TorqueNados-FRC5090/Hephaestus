@@ -41,8 +41,10 @@ import frc.robot.RobotLog;
  *       license (Pro-only controls make an unlicensed Talon refuse to move).</li>
  *   <li>Zero: at power-on the intake must be fully in (0"). It NEVER homes by itself (the automatic homing on
  *       enable caused trouble on 10/21). Homing only runs from D-pad up / dashboard "Intake/Re-home": both sides
- *       push out against the extension stop and each side is zeroed when it stops there (squares the intake).
- *       If homing fails it falls back to the power-on zero and keeps working.</li>
+ *       push IN against the retract stop and each side is zeroed at 0" directly when it stops there (squares
+ *       the intake). Pushing in rather than out on purpose (10/22): zero is defined right where it's measured
+ *       instead of backed out from the far end, and the retract side is just the robot's own frame, not
+ *       whatever's in front of the intake. If homing fails it falls back to the power-on zero and keeps working.</li>
  *   <li>Sync: each side gets a small extra push/hold-back based on how far it is ahead of the other side, so the
  *       side with less friction can't run ahead (10/21 log: one side got ~3" ahead, the intake twisted).</li>
  *   <li>A low stator current limit makes the rack act like a force-capped spring: a hit pushes it in instead of
@@ -489,11 +491,15 @@ public class EvilIntake extends SubsystemBase {
             m_sideHomed[side] = false;
         }
         m_homingVolts = kHomingStartVolts;
-        RobotLog.event("Intake homing: pushing both sides out to the extension stop");
+        // 10/22: homes against the RETRACT stop now (0"), not the extension stop -- zero is defined directly
+        // where it's measured instead of being backed out from the far end, and pushing in (against the frame)
+        // is also the safer direction to be shoving into blind (the extension side could have fuel/field stuff
+        // in the way; the retract side is just the robot's own frame).
+        RobotLog.event("Intake homing: pushing both sides in to the retract stop (zero)");
     }
 
-    /** Both sides push out gently; each side is zeroed on its own when IT stops at the stop. If one side gets
-     *  there first, the other keeps pushing until it arrives too, which squares the intake. */
+    /** Both sides push IN gently; each side is zeroed at 0" on its own when IT stops at the retract stop. If
+     *  one side gets there first, the other keeps pushing until it arrives too, which squares the intake. */
     private void runHoming(double velocityRps) {
         TalonFXS[] motors = { intakeMotor, intakeMotorTwo };
         double[] inches = { getInches(), getInches14() };
@@ -503,9 +509,9 @@ public class EvilIntake extends SubsystemBase {
             // Not moving yet (friction / chain): push a little harder, up to kHomingMaxVolts
             m_homingVolts = Math.min(kHomingMaxVolts, m_homingVolts + kHomingRampVoltsPerSec * 0.02);
         }
-        double stopRotations = kExtendStopInches * kMotorRotationsPerInch;
         for (int side = 0; side < 2; side++) {
-            if (inches[side] - m_homingStartInches[side] >= kHomingMinTravelInches) {
+            // Moving IN: position counts down from wherever it started, toward 0
+            if (m_homingStartInches[side] - inches[side] >= kHomingMinTravelInches) {
                 m_homingMoved[side] = true;
             }
             boolean moving = Math.abs(speeds[side]) > kHomingStallRps;
@@ -513,11 +519,11 @@ public class EvilIntake extends SubsystemBase {
                 m_stallTimer[side].restart();
             }
             if (!m_sideHomed[side] && m_stallTimer[side].get() >= kHomingStallSeconds) {
-                motors[side].setPosition(stopRotations);   // this side is at the extension stop
+                motors[side].setPosition(0);   // this side is at the retract stop: that's zero, directly
                 m_sideHomed[side] = true;
             }
-            // Keep pushing gently (also once homed) so the other side can catch up without twisting
-            motors[side].setControl(m_homingRequest.withOutput(m_homingVolts));
+            // Keep pushing gently inward (also once homed) so the other side can catch up without twisting
+            motors[side].setControl(m_homingRequest.withOutput(-m_homingVolts));
         }
         SmartDashboard.putNumber("Intake/Homing volts", m_homingVolts);
 
@@ -536,7 +542,7 @@ public class EvilIntake extends SubsystemBase {
             if (m_sideHomed[0] || m_sideHomed[1]) {
                 why = "only motor " + (m_sideHomed[0] ? "11" : "14") + "'s side reached the stop (other side binding?)";
             } else if (anyMoved) {
-                why = "moved but never stopped at the extension stop (chain skipping? stop missing?)";
+                why = "moved but never stopped at the retract stop (chain skipping? stop missing?)";
             } else {
                 why = "never moved even at " + kHomingMaxVolts + " V (direction? motor/adapter? license? chain off?)";
             }

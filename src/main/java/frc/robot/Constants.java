@@ -119,7 +119,7 @@ public class Constants {
      *  (Vortex 14T -> 24T chain, 10T 10DP pinion: 1" = 0.546 motor rotations). */
     public enum EvilIntakePosition {
         in(0.3),    // just off the retract stop: never squeeze into the stop with fuel inside
-        out(11.4);  // pickup: 0.7" short of the 12.1" extension stop (measured travel)
+        out(9.6);   // pickup: 2.5" short of the 12.1" extension stop (measured travel)
 
         private final double inches;
         EvilIntakePosition(double inches){
