@@ -126,8 +126,10 @@ public class RobotContainer {
         // DRIVETRAIN DEFAULT COMMAND (Includes Trigger Slow-Mode)
         drivetrain.setDefaultCommand(
             drivetrain.applyRequest(() -> {
-                // Check right trigger axis. If pulled more than 50%, set multiplier to 40% (0.4). Otherwise 100% (1.0).
-                double slowModeMultiplier = joystick.getRightTriggerAxis() > 0.5 ? 0.4 : 1.0;
+                // Slow down while actually shooting on the move (RT held past 50%, or Y -- shoot + keep intaking).
+                // B (failsafe) isn't included: it zeros the turret and is meant for standing still anyway.
+                boolean shootingOnTheMove = joystick.getRightTriggerAxis() > 0.5 || joystick.y().getAsBoolean();
+                double slowModeMultiplier = shootingOnTheMove ? 0.4 : 1.0;
 
                 return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * slowModeMultiplier)
                             .withVelocityY(-joystick.getLeftX() * MaxSpeed * slowModeMultiplier)
@@ -145,7 +147,8 @@ public class RobotContainer {
         RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
         // CONTROLLER BUTTONS
-        joystick.y().whileTrue(fullShootCommand());
+        // Y: shoot on the move AND keep the intake out collecting fuel the whole time
+        joystick.y().whileTrue(fullShootCommand(true));
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
         
@@ -170,12 +173,12 @@ public class RobotContainer {
         // Shop testing only: pretend we're straight in front of the hub (disabled when connected to a real match)
         joystick.back().and(() -> !DriverStation.isFMSAttached()).onTrue(shopTestPose());
         
-        // This will fire the shooter, move the hood, and slow the chassis
+        // RT: just shoot -- fires the shooter, moves the hood, slows the chassis, intake untouched
         joystick.rightTrigger().whileTrue(fullShootCommand());
-        // While shooting (RT, Y or B) and NOT touching the intake buttons, agitate the intake like auto does.
+        // While B is held (failsafe shot) and NOT touching the intake buttons, agitate the intake like auto does.
+        // Y now runs its own full intake (above) and RT is "just shoot", so only B still uses the gentle agitate.
         // LB (intake) or LT (eject) take over and work exactly as before; agitate resumes when they're let go.
-        // When shooting stops the intake goes back in and its wheels stop, same as before.
-        joystick.rightTrigger().or(joystick.y()).or(joystick.b())
+        joystick.b()
             .and(joystick.leftBumper().negate()).and(joystick.leftTrigger().negate())
             .whileTrue(evilIntake.agitate(EvilIntakePosition.in));
 
@@ -187,16 +190,28 @@ public class RobotContainer {
         return autonChooser.getSelected();
     }
 
-    /** This will coordinate all necessary subsystems and only shoot when they all report readiness */
+    /** This will coordinate all necessary subsystems and only shoot when they all report readiness.
+     *  "Just shoot" (RT): the intake is left alone, same as always. */
     public Command fullShootCommand() {
-        return new ParallelCommandGroup(
+        return fullShootCommand(false);
+    }
+
+    /** @param alsoIntake true = shoot on the move AND keep the intake deployed + collecting fuel the whole
+     *  time (Y) -- the floor keeps pulling fuel in regardless of what the feed tunnels are doing.
+     *  false = shooting only, intake untouched (RT, "just shoot"). */
+    public Command fullShootCommand(boolean alsoIntake) {
+        Command shootAndFeed = new ParallelCommandGroup(
             shooter.shoot(() -> calculateOptimalShooterRPS()),
             // Notice MoveTurret is gone! The default command we set above handles aiming.
-            
+
             // Command C: Shoot only when the other subsystems are ready.
-            new theYappy(rollersystem, () -> readyToShoot(), () -> logShot("teleop")),
+            new theYappy(rollersystem, () -> readyToShoot(), () -> logShot("teleop"), alsoIntake),
             hood.hoodgo(() -> calculateOptimalHoodAngle())
         );
+        // EvilIntake is a separate subsystem from the rollers (theYappy above), so this runs alongside it fine
+        return alsoIntake
+            ? shootAndFeed.alongWith(new EvilIntakePiece(evilIntake, EvilIntakePosition.out))
+            : shootAndFeed;
     }
 
     /** Auton-only shoot: never passes. Spins the shooter + hood for the hub the whole time (so it's
@@ -301,11 +316,11 @@ public class RobotContainer {
         Map.entry("A", joystick.a()),
         Map.entry("B (failsafe shot)", joystick.b()),
         Map.entry("X (brake)", joystick.x()),
-        Map.entry("Y (shoot)", joystick.y()),
+        Map.entry("Y (shoot + intake)", joystick.y()),
         Map.entry("LB (intake)", joystick.leftBumper()),
         Map.entry("RB (unjam)", joystick.rightBumper()),
         Map.entry("LT (eject)", joystick.leftTrigger()),
-        Map.entry("RT (shoot)", joystick.rightTrigger()),
+        Map.entry("RT (just shoot)", joystick.rightTrigger()),
         Map.entry("Start (seed field pose)", joystick.start()),
         Map.entry("Back (shop test pose)", joystick.back()),
         Map.entry("POV up (re-home intake)", joystick.povUp())

@@ -99,6 +99,14 @@ public class RollerSystem extends SubsystemBase {
         upperBelt.setControl(m_stopRequest);
     }
 
+    /** Floor and tunnels at independent speeds (shoot-on-the-move while still intaking: the floor keeps
+     *  pulling fuel in at its own speed while the tunnels do whatever theYappy's feed cycle needs). */
+    public void rollFloorAndBelts(double floorSpeed, double beltSpeed){
+        rollerFloor.setControl(m_floorRequest.withVelocity(floorSpeed));
+        lowerBelt.setControl(m_beltRequest.withVelocity(beltSpeed * kBeltDirection));
+        upperBelt.setControl(m_beltRequest.withVelocity(beltSpeed * kBeltDirection));
+    }
+
     // Cuts power to 0 volts instead of fighting PID, stopping the jitter!
     public void rollerStop(){
         rollerFloor.setControl(m_stopRequest);

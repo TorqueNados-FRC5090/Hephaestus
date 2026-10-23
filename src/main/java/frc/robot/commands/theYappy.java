@@ -19,15 +19,24 @@ public class theYappy extends Command{
     /** Called once each time feeding starts (used for the shot log) */
     private final Runnable onFeedStart;
     private boolean wasFeeding = false;
+    /** true = keep the floor pulling fuel in the whole time (shoot on the move), regardless of what phase
+     *  the tunnels are in below. false = floor follows the tunnels exactly like before (just shoot). */
+    private final boolean alsoIntakeFloor;
 
     public theYappy(RollerSystem rollers, BooleanSupplier runCondition){
         this(rollers, runCondition, () -> {});
     }
 
     public theYappy(RollerSystem rollers, BooleanSupplier runCondition, Runnable onFeedStart){
+        this(rollers, runCondition, onFeedStart, false);
+    }
+
+    public theYappy(RollerSystem rollers, BooleanSupplier runCondition, Runnable onFeedStart,
+                     boolean alsoIntakeFloor){
         this.rollers = rollers;
         this.runCondition = runCondition;
         this.onFeedStart = onFeedStart;
+        this.alsoIntakeFloor = alsoIntakeFloor;
 
         addRequirements(rollers);
     }
@@ -41,22 +50,35 @@ public class theYappy extends Command{
     // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
+        String suffix = alsoIntakeFloor ? " (+ intaking)" : "";
         if (timer.get() < kPrimeReverseSeconds) {
-            rollers.roll(RollerSystem.kUnjamSpeedRPS);
-            SmartDashboard.putString("Feeder/State", "Priming (backwards)");
+            if (alsoIntakeFloor) {
+                rollers.rollFloorAndBelts(RollerSystem.kIntakeFloorSpeedRPS, RollerSystem.kUnjamSpeedRPS);
+            } else {
+                rollers.roll(RollerSystem.kUnjamSpeedRPS);
+            }
+            SmartDashboard.putString("Feeder/State", "Priming (backwards)" + suffix);
         }
         else if (runCondition.getAsBoolean()) {
             if (!wasFeeding) {
                 onFeedStart.run();
             }
             wasFeeding = true;
-            rollers.roll(RollerSystem.kFeedSpeedRPS); 
-            SmartDashboard.putString("Feeder/State", "FEEDING");
+            if (alsoIntakeFloor) {
+                rollers.rollFloorAndBelts(RollerSystem.kIntakeFloorSpeedRPS, RollerSystem.kFeedSpeedRPS);
+            } else {
+                rollers.roll(RollerSystem.kFeedSpeedRPS);
+            }
+            SmartDashboard.putString("Feeder/State", "FEEDING" + suffix);
         }
         else{ 
             wasFeeding = false;
-            rollers.rollerStop();
-            SmartDashboard.putString("Feeder/State", "Waiting for Ready (see Ready/ lights)");
+            if (alsoIntakeFloor) {
+                rollers.rollFloorOnly(RollerSystem.kIntakeFloorSpeedRPS);   // keep collecting; tunnels truly off (no jitter)
+            } else {
+                rollers.rollerStop();
+            }
+            SmartDashboard.putString("Feeder/State", "Waiting for Ready (see Ready/ lights)" + suffix);
         }
     }
 
