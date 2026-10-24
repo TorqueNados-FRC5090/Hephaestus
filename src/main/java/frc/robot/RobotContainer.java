@@ -155,8 +155,8 @@ public class RobotContainer {
         RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
         // CONTROLLER BUTTONS
-        // Y: shoot on the move AND keep the intake out collecting fuel the whole time
-        joystick.y().whileTrue(fullShootCommand(true));
+        // Y: same as RT (just shoot) plus the gentle intake agitation, so fuel keeps feeding while shooting
+        joystick.y().whileTrue(Commands.parallel(fullShootCommand(), evilIntake.agitate(EvilIntakePosition.in)));
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
         
@@ -183,9 +183,9 @@ public class RobotContainer {
         
         // RT: just shoot -- fires the shooter, moves the hood, slows the chassis, intake untouched
         joystick.rightTrigger().whileTrue(fullShootCommand());
-        // B (failsafe shot) no longer agitates the intake (10/22) -- Y runs its own full intake now, and B is
-        // meant to be a quick "just get a shot off" button, same spirit as RT. evilIntake.agitate() is still
-        // used by autos (AutonContainer's "IntakeAgitate"), just not from any teleop button anymore.
+        // B (failsafe shot) still doesn't agitate -- it's meant to be a quick "just get a shot off" button,
+        // same spirit as RT. Y is the one that agitates (above). evilIntake.agitate() is also used by autos
+        // (AutonContainer's "IntakeAgitate").
 
         drivetrain.registerTelemetry(logger::telemeterize);
     }
@@ -321,7 +321,7 @@ public class RobotContainer {
         Map.entry("A", joystick.a()),
         Map.entry("B (failsafe shot)", joystick.b()),
         Map.entry("X (brake)", joystick.x()),
-        Map.entry("Y (shoot + intake)", joystick.y()),
+        Map.entry("Y (shoot + agitate)", joystick.y()),
         Map.entry("LB (intake)", joystick.leftBumper()),
         Map.entry("RB (unjam)", joystick.rightBumper()),
         Map.entry("LT (eject)", joystick.leftTrigger()),
