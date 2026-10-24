@@ -422,6 +422,10 @@ public class EvilIntake extends SubsystemBase {
         SmartDashboard.putNumber("Intake/Sides differ (in)", leaderInches - followerInches);
         SmartDashboard.putNumber("Intake/Leader current (A)", intakeMotor.getStatorCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Intake/Follower current (A)", intakeMotorTwo.getStatorCurrent().getValueAsDouble());
+        // 10/24: Michel noticed one rack controller running hot. This wasn't tracked anywhere before --
+        // watch these against the DeviceTemp fault above (CTRE's Talon FXS trips that one in the 80s C).
+        SmartDashboard.putNumber("Intake/Leader temp (C)", intakeMotor.getDeviceTemp().getValueAsDouble());
+        SmartDashboard.putNumber("Intake/Follower temp (C)", intakeMotorTwo.getDeviceTemp().getValueAsDouble());
         SmartDashboard.putNumber("Intake/Leader volts", intakeMotor.getMotorVoltage().getValueAsDouble());
         SmartDashboard.putNumber("Intake Roller voltage", spinMotor.getMotorVoltage().getValueAsDouble());
         // Wheel current + velocity (10/23): voltage alone can't tell "spinning freely" apart from "stalled" --
@@ -456,6 +460,11 @@ public class EvilIntake extends SubsystemBase {
         if (talon.getFault_MotorArrangementNotSelected().getValue()) f.append(name).append(": motor type not set. ");
         if (talon.getFault_BridgeShort().getValue()) f.append(name).append(": BRIDGE SHORT (motor wiring). ");
         if (talon.getFault_5V().getValue()) f.append(name).append(": 5V sensor supply fault. ");
+        // 10/24: Michel noticed one rack controller running hot. Neither of these was being checked before --
+        // DeviceTemp is the Talon FXS board itself overheating (likely, given how often these sit pinned near
+        // their current limit); ProcTemp is its internal CPU. Both cut the Talon's output when tripped.
+        if (talon.getFault_DeviceTemp().getValue()) f.append(name).append(": CONTROLLER OVERHEATED (DeviceTemp). ");
+        if (talon.getFault_ProcTemp().getValue()) f.append(name).append(": controller CPU overheated (ProcTemp). ");
         return f.toString();
     }
 

@@ -155,8 +155,13 @@ public class RobotContainer {
         RobotModeTriggers.disabled().whileTrue(drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
         // CONTROLLER BUTTONS
-        // Y: same as RT (just shoot) plus the gentle intake agitation, so fuel keeps feeding while shooting
-        joystick.y().whileTrue(Commands.parallel(fullShootCommand(), evilIntake.agitate(EvilIntakePosition.in)));
+        // Y: same as RT (just shoot) plus the gentle intake agitation, so fuel keeps feeding while shooting.
+        // Debounced on release (10/24): the wheels and the rack both stop the instant the raw button goes
+        // false, but the rack is still physically pulling back in for a bit after that -- fuel caught between
+        // the rollers and the bumper right then has nothing feeding it through. Keep running a little past
+        // the actual release so it clears instead of binding there.
+        joystick.y().debounce(0.4, DebounceType.kFalling)
+            .whileTrue(Commands.parallel(fullShootCommand(), evilIntake.agitate(EvilIntakePosition.in)));
         joystick.b().whileTrue(failsafeShoot());
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
         
