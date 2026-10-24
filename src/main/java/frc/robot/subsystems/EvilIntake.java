@@ -133,7 +133,10 @@ public class EvilIntake extends SubsystemBase {
     private static final double kRackSupplyLimitAmps = 15.0;
     /** Intake wheels, stator: enough grip to pull fuel in; limits heat if the wheels stall on a jam */
     private static final double kWheelStatorLimitAmps = 40.0;
-    /** Intake wheels, supply: battery protection, same reasoning as the rack's supply limit above. */
+    /** Intake wheels, supply: battery protection, same reasoning as the rack's supply limit above.
+     *  15->25 (10/24): 15A was too little torque to spin up to speed quickly ("takes a second to rev up"
+     *  instead of snapping to it) -- raise further if it's still slow, lower back toward 15 if brownouts
+     *  come back and this turns out to be why. */
     private static final double kWheelSupplyLimitAmps = 25.0;
 
     // ================= GAINS (starting values, tune on the dashboard) =================
@@ -259,6 +262,10 @@ public class EvilIntake extends SubsystemBase {
         // below) drives both. Unlike the rack motors, the wheels don't need independent position control or a
         // sync correction -- it's a plain velocity spinner, so a real Follower is the simple, correct choice here.
         spinMotorTwo.getConfigurator().apply(spinConfig);
+        // Opposed->Aligned (10/24): both LEDs showed the same color while intaking, which means they were
+        // spinning the SAME direction, not opposite -- the two wheels need to spin toward each other to grip
+        // fuel between them. Both motors use the same (default) Inverted setting, so whichever alignment value
+        // actually flips the real rotor direction here is the one to use; Aligned is the one to try next.
         spinMotorTwo.setControl(new Follower(spinID, MotorAlignmentValue.Opposed));
 
         publishTuningControls();
