@@ -59,163 +59,147 @@ import frc.robot.RobotLog;
  * Commands only set a target; periodic() is the one place that talks to the rack motors.
  */
 public class EvilIntake extends SubsystemBase {
-     // ================= GEARING / TRAVEL =================
-     /** Vortex 14T -> 22T chain (1.57:1) */
-     private static final double kChainRatio = 22.0 / 14.0;
-     /** Planetary gearbox between each Vortex and its 14T sprocket (5:1 added 10/21). 1.0 = none. */
-     private static final double kPlanetaryRatio = 5.0;
-     /** 10T 10DP pinion on a 10DP rack: pitch diameter = 10 / 10 = 1.0" */
-     private static final double kPinionPitchDiameterInches = 1.0;
-     /** Motor rotations per inch of rack travel: 1.57 / 3.14 = 0.500 (2.5 with a 5:1 planetary) */
-     public static final double kMotorRotationsPerInch =
-         kPlanetaryRatio * kChainRatio / (Math.PI * kPinionPitchDiameterInches);
-     /** Extension hard stop (inches of rack travel from fully in). MEASURED 10/21: both sides stalled solid at
-      *  6.06 motor rotations = 12.1" (the rack is 17" long, but the travel is shorter). Re-measure with a tape and
-      *  fix this if it's different. Homing pushes against this and sets it as the reference. */
-     private static final double kExtendStopInches = 12.1;
-     /** Never command closer than this to the extension stop (Motion Magic would push into it) */
-     private static final double kMaxCommandInches = 11.75;
-     /** Never command into the retract stop (fuel gets squeezed / jams) */
-     private static final double kMinCommandInches = 0.2;
+    // ================= GEARING / TRAVEL =================
+    /** Vortex 14T -> 22T chain (1.57:1) */
+    private static final double kChainRatio = 22.0 / 14.0;
+    /** Planetary gearbox between each Vortex and its 14T sprocket (5:1 added 10/21). 1.0 = none. */
+    private static final double kPlanetaryRatio = 5.0;
+    /** 10T 10DP pinion on a 10DP rack: pitch diameter = 10 / 10 = 1.0" */
+    private static final double kPinionPitchDiameterInches = 1.0;
+    /** Motor rotations per inch of rack travel: 1.57 / 3.14 = 0.500 (2.5 with a 5:1 planetary) */
+    public static final double kMotorRotationsPerInch =
+        kPlanetaryRatio * kChainRatio / (Math.PI * kPinionPitchDiameterInches);
+    /** Extension hard stop (inches of rack travel from fully in). MEASURED 10/21: both sides stalled solid at
+     *  6.06 motor rotations = 12.1" (the rack is 17" long, but the travel is shorter). Re-measure with a tape and
+     *  fix this if it's different. Homing pushes against this and sets it as the reference. */
+    private static final double kExtendStopInches = 12.1;
+    /** Never command closer than this to the extension stop (Motion Magic would push into it) */
+    private static final double kMaxCommandInches = 11.75;
+    /** Never command into the retract stop (fuel gets squeezed / jams) */
+    private static final double kMinCommandInches = 0.2;
 
-     // ================= SPEED (Dynamic Motion Magic: separate profile for deploy vs retract) =================
-     // Change these live from the dashboard (Intake/Tune) and copy the good values back here.
-     // 10/21: going OUT pins both rack motors at the stator current limit almost the whole move (real mechanical
-     // resistance, not a profile problem) and that saturation made both motors fully drop output for ~70 ms every
-     // ~0.25 s -> felt rough/stuttery. Retracting never saturates like that and was smooth at the same speed.
-     // Fix: ask for less while extending (gentler accel = less torque demanded) so the motors don't have to
-     // saturate to keep up; retracting keeps the snappier profile since it was already smooth.
-     private static final double kRetractCruiseInPerSec = 25.0;   // full 11" stroke in ~0.6 s
-     private static final double kRetractAccelInPerSec2 = 100.0;
-     private static final double kDeployCruiseInPerSec = 14.0;    // full 11" stroke in ~1.1 s
-     private static final double kDeployAccelInPerSec2 = 35.0;
-     // Agitate follows a slow back-and-forth (kAgitatePeriodSeconds), always slower than the cruise speed.
+    // ================= SPEED (Dynamic Motion Magic: separate profile for deploy vs retract) =================
+    // Change these live from the dashboard (Intake/Tune) and copy the good values back here.
+    // Deploying is gentler on purpose: going out pins both motors near the current limit for real mechanical
+    // resistance, so asking for less acceleration there means less torque demanded and it doesn't stutter.
+    // Retracting doesn't fight that resistance, so it keeps the snappier profile.
+    private static final double kRetractCruiseInPerSec = 25.0;   // full 11" stroke in ~0.6 s
+    private static final double kRetractAccelInPerSec2 = 100.0;
+    private static final double kDeployCruiseInPerSec = 14.0;    // full 11" stroke in ~1.1 s
+    private static final double kDeployAccelInPerSec2 = 35.0;
+    // Agitate follows a slow back-and-forth (kAgitatePeriodSeconds), always slower than the cruise speed.
 
-     // ================= AUTO ZERO (hard-stop homing) =================
-     /** Volts pushing OUT while homing. Starts at 2 V (~7 in/s with the 5:1) and steps up if the rack doesn't move. */
-     private static final double kHomingStartVolts = 2.0;
-     private static final double kHomingMaxVolts = 4.0;
-     /** Volts added per second while the rack still hasn't moved */
-     private static final double kHomingRampVoltsPerSec = 1.0;
-     /** The rack must travel at least this far before a stall counts as "hit the stop" (otherwise "it never
-      *  moved" would look exactly like "it hit the stop") */
-     private static final double kHomingMinTravelInches = 2.0;
-     /** Below this speed (motor rot/s) the rack counts as stopped */
-     private static final double kHomingStallRps = 0.5;
-     /** Must stay stopped this long to count as "hit the stop" */
-     private static final double kHomingStallSeconds = 0.20;
-     /** Ignore the first part of homing while the motor gets moving */
-     private static final double kHomingIgnoreSeconds = 0.30;
-     /** Give up after this long (something is jammed or a motor is unplugged) */
-     private static final double kHomingTimeoutSeconds = 5.0;
+    // ================= AUTO ZERO (hard-stop homing) =================
+    /** Volts pushing OUT while homing. Starts at 2 V (~7 in/s with the 5:1) and steps up if the rack doesn't move. */
+    private static final double kHomingStartVolts = 2.0;
+    private static final double kHomingMaxVolts = 4.0;
+    /** Volts added per second while the rack still hasn't moved */
+    private static final double kHomingRampVoltsPerSec = 1.0;
+    /** The rack must travel at least this far before a stall counts as "hit the stop" (otherwise "it never
+     *  moved" would look exactly like "it hit the stop") */
+    private static final double kHomingMinTravelInches = 2.0;
+    /** Below this speed (motor rot/s) the rack counts as stopped */
+    private static final double kHomingStallRps = 0.5;
+    /** Must stay stopped this long to count as "hit the stop" */
+    private static final double kHomingStallSeconds = 0.20;
+    /** Ignore the first part of homing while the motor gets moving */
+    private static final double kHomingIgnoreSeconds = 0.30;
+    /** Give up after this long (something is jammed or a motor is unplugged) */
+    private static final double kHomingTimeoutSeconds = 5.0;
 
-     // ================= KEEPING THE SIDES TOGETHER =================
-     /** Extra volts per inch one side is ahead of the average: the side ahead is held back, the side behind is
-      *  pushed harder. Bigger = tighter together (too big = buzzing/shaking). */
-     private static final double kSyncVoltsPerInch = 2.0;   // lowered for the 5:1 (each volt pushes 5x harder)
-     /** Cap on that extra push, in volts */
-     private static final double kSyncMaxVolts = 3.0;
+    // ================= KEEPING THE SIDES TOGETHER =================
+    /** Extra volts per inch one side is ahead of the average: the side ahead is held back, the side behind is
+     *  pushed harder. Bigger = tighter together (too big = buzzing/shaking). */
+    private static final double kSyncVoltsPerInch = 2.0;   // lowered for the 5:1 (each volt pushes 5x harder)
+    /** Cap on that extra push, in volts */
+    private static final double kSyncMaxVolts = 3.0;
 
-     // ================= SYNC GUARD =================
-     /** If the two sides disagree by more than this (inches) for kSyncFaultSeconds, both stop until re-homed */
-     private static final double kSyncFaultInches = 1.0;
-     private static final double kSyncFaultSeconds = 0.25;
-     /** false = only warn (dashboard + log). Set true once "Intake/Sides differ (in)" has been seen to stay near
-      *  0 during normal moves (proves the follower reading is the right way round). */
-     private static final boolean kSyncGuardStopsIntake = false;
+    // ================= SYNC GUARD =================
+    /** If the two sides disagree by more than this (inches) for kSyncFaultSeconds, both stop until re-homed */
+    private static final double kSyncFaultInches = 1.0;
+    private static final double kSyncFaultSeconds = 0.25;
+    /** false = only warn (dashboard + log). Set true once "Intake/Sides differ (in)" has been seen to stay near
+     *  0 during normal moves (proves the follower reading is the right way round). */
+    private static final boolean kSyncGuardStopsIntake = false;
 
-     // ================= CURRENT LIMITS (why) =================
-     /** Rack motors, stator: with the 5:1 planetary, 20 A ~= 47 lb of push per side (~94 lb both). Before the 5:1,
-      *  40 A was only ~19 lb/side and both motors sat at the limit for whole moves (10/21 logs).
-      *  Lower = more give when the intake gets hit (and less load on the chain). Don't go much above 25 A:
-      *  the chain and rack feel all of it. */
-     // Bumped from 20: 20 A wasn't enough to move smoothly against the real resistance going out (see above),
-     // so the gentler deploy profile above is what mainly fixes the stutter; this just gives a bit more headroom.
-     // More current = more force on the chain/rack/pinion every time it pushes -- watch for chain skip or wear
-     // if this goes much higher; back it down if so.
-     private static final double kRackStatorLimitAmps = 24.0;
-     /** Rack motors, supply: caps battery draw per side so the intake can't add much to a brownout.
-      *  30->25 (10/22): brownouts lined up with every LB (intake) press, not just shooting. Stator (the force
-      *  that fixed yesterday's "won't come in all the way" bug) is untouched -- only the battery-draw side
-      *  came down. The PDH wasn't reporting real numbers yet in that log (wrong CAN ID, now fixed in Robot.java),
-      *  so this is a reasonable first trim, not a confirmed fix -- the next log's PDH/Intake rack current will
-      *  say whether the rack was really the big draw or whether it was the floor roller / driving at the same time. */
-     // 20->15 (10/22 even later): the 012049 log's real PDH numbers put the rack at 35A combined max, not
-     // huge, so this trim is precautionary more than a confirmed fix -- the side-to-side drift in that same
-     // log traces to motor 11 losing its hall sensor for about a second (DRIVE DISABLED / HALL SENSOR MISSING),
-     // not current. That's a wiring fault, not something a current limit can fix -- worth re-checking that
-     // connector since it's now shown up more than once.
-     private static final double kRackSupplyLimitAmps = 15.0;
-     /** Intake wheels, stator: enough grip to pull fuel in; limits heat if the wheels stall on a jam */
-     private static final double kWheelStatorLimitAmps = 40.0;
-     /** Intake wheels, supply: battery protection. 20->15 (10/22 even later), same reasoning as the rack above. */
-     private static final double kWheelSupplyLimitAmps = 15.0;
+    // ================= CURRENT LIMITS (why) =================
+    /** Rack motors, stator: the actual push force. 24 A with the 5:1 planetary is roughly 47 lb/side (94 lb
+     *  both) -- enough to move the rack without the chain/pinion feeling excessive force. Lower = more give
+     *  when the intake gets hit; don't go much above 25 A or the chain takes all of it. */
+    private static final double kRackStatorLimitAmps = 24.0;
+    /** Rack motors, supply: caps battery draw per side (separate from stator -- this is what trims brownouts,
+     *  not push force). Trimmed down over several brownout-chasing sessions; raise it if the rack ever feels
+     *  starved once the battery itself checks out healthy. */
+    private static final double kRackSupplyLimitAmps = 15.0;
+    /** Intake wheels, stator: enough grip to pull fuel in; limits heat if the wheels stall on a jam */
+    private static final double kWheelStatorLimitAmps = 40.0;
+    /** Intake wheels, supply: battery protection, same reasoning as the rack's supply limit above. */
+    private static final double kWheelSupplyLimitAmps = 15.0;
 
-     // ================= GAINS (starting values, tune on the dashboard) =================
-     // Units: volts per motor rotation of error (kP), volts per rot/s (kV), volts (kS).
-     private static final double kDefaultP = 1.5;   // pushes harder the further it is from target (1" off = 2.5 rot = ~3.8 V)
-     private static final double kDefaultI = 0.0;   // normally not needed
-     private static final double kDefaultD = 0.0;   // add a little if it overshoots or bounces
-     private static final double kDefaultS = 0.25;  // volts to get past friction
-     private static final double kDefaultV = 0.11;  // ~12 V / Vortex free speed (113 rot/s)
-     private static final double kDefaultA = 0.0;
+    // ================= GAINS (starting values, tune on the dashboard) =================
+    // Units: volts per motor rotation of error (kP), volts per rot/s (kV), volts (kS).
+    // kI and kA aren't exposed for tuning: this mechanism has never needed either (Motion Magic handles the
+    // acceleration feedforward on its own, and there's been no steady-state error worth an integral term).
+    private static final double kDefaultP = 1.5;   // pushes harder the further it is from target (1" off = 2.5 rot = ~3.8 V)
+    private static final double kDefaultD = 0.0;   // add a little if it overshoots or bounces
+    private static final double kDefaultS = 0.25;  // volts to get past friction
+    private static final double kDefaultV = 0.11;  // ~12 V / Vortex free speed (113 rot/s)
 
-     // ================= WHEELS / AGITATE =================
-     /** Roller power while intaking. Negative = pulls fuel in (same as EvilIntakePiece). */
-     private static final double kRollerIntakeSpeed = -1.0;
-     /** Roller power while ejecting (spits fuel back out the intake) */
-     private static final double kRollerEjectSpeed = 1.0;
-     /** How far in the rack slides during agitate (inches). Only part way: all the way in with fuel jams it. */
-     private static final double kAgitateInInches = 5.7;
-     /** Seconds for one full out -> in -> out cycle. Bigger = slower */
-     private static final double kAgitatePeriodSeconds = 2.0;
+    // ================= WHEELS / AGITATE =================
+    /** Roller power while intaking. Negative = pulls fuel in (same as EvilIntakePiece). */
+    private static final double kRollerIntakeSpeed = -1.0;
+    /** Roller power while ejecting (spits fuel back out the intake) */
+    private static final double kRollerEjectSpeed = 1.0;
+    /** How far in the rack slides during agitate (inches). Only part way: all the way in with fuel jams it. */
+    private static final double kAgitateInInches = 5.7;
+    /** Seconds for one full out -> in -> out cycle. Bigger = slower */
+    private static final double kAgitatePeriodSeconds = 2.0;
 
-     // ================= DIRECTIONS (both: positive = intake OUT) =================
-     /** Motor 11: +volts moved the intake out on the robot (10/21) */
-     private static final InvertedValue kMotor11Inverted = InvertedValue.CounterClockwise_Positive;
-     /** Motor 14 faces motor 11, so it's inverted the other way. With Aligned-follower it drove its side IN. */
-     private static final InvertedValue kMotor14Inverted = InvertedValue.Clockwise_Positive;
+    // ================= DIRECTIONS (both: positive = intake OUT) =================
+    /** Motor 11: +volts moved the intake out on the robot (10/21) */
+    private static final InvertedValue kMotor11Inverted = InvertedValue.CounterClockwise_Positive;
+    /** Motor 14 faces motor 11, so it's inverted the other way. With Aligned-follower it drove its side IN. */
+    private static final InvertedValue kMotor14Inverted = InvertedValue.Clockwise_Positive;
 
-     // ================= HARDWARE =================
-     final TalonFXS intakeMotor;      // leader (CAN 11)
-     final TalonFXS intakeMotorTwo;   // follower (CAN 14), opposed
-     final TalonFX spinMotor;         // intake wheels, leader (CAN 12)
-     final TalonFX spinMotorTwo;      // intake wheels #2, follower (10/23: second Kraken X60, spins opposed)
+    // ================= HARDWARE =================
+    final TalonFXS intakeMotor;      // leader (CAN 11)
+    final TalonFXS intakeMotorTwo;   // follower (CAN 14), opposed
+    final TalonFX spinMotor;         // intake wheels, leader (CAN 12)
+    final TalonFX spinMotorTwo;      // intake wheels #2, follower (10/23: second Kraken X60, spins opposed)
 
-     // FOC ON: 11 and 14 are Phoenix Pro licensed (confirmed in the 10/21 19:49 log). ~15% more torque.
-     // If the licenses ever lapse, set these to false or the Talons stop driving (unlicensed fault).
-     private static final boolean kUseFOC = true;
-     // Dynamic Motion Magic: lets us pick cruise/accel per move (deploy vs retract) without re-flashing configs
-     private final DynamicMotionMagicVoltage m_moveRequest = new DynamicMotionMagicVoltage(0, 0, 0).withEnableFOC(kUseFOC);
-     private final DynamicMotionMagicVoltage m_moveRequest14 = new DynamicMotionMagicVoltage(0, 0, 0).withEnableFOC(kUseFOC);
-     private final VoltageOut m_homingRequest = new VoltageOut(0).withEnableFOC(kUseFOC);
-     private final NeutralOut m_stopRequest = new NeutralOut();
-     final DutyCycleOut spinRequest = new DutyCycleOut(0).withEnableFOC(true);
+    // FOC ON: 11 and 14 are Phoenix Pro licensed (confirmed in the 10/21 19:49 log). ~15% more torque.
+    // If the licenses ever lapse, set these to false or the Talons stop driving (unlicensed fault).
+    private static final boolean kUseFOC = true;
+    // Dynamic Motion Magic: lets us pick cruise/accel per move (deploy vs retract) without re-flashing configs
+    private final DynamicMotionMagicVoltage m_moveRequest = new DynamicMotionMagicVoltage(0, 0, 0).withEnableFOC(kUseFOC);
+    private final DynamicMotionMagicVoltage m_moveRequest14 = new DynamicMotionMagicVoltage(0, 0, 0).withEnableFOC(kUseFOC);
+    private final VoltageOut m_homingRequest = new VoltageOut(0).withEnableFOC(kUseFOC);
+    private final NeutralOut m_stopRequest = new NeutralOut();
+    final DutyCycleOut spinRequest = new DutyCycleOut(0).withEnableFOC(true);
 
-     // ================= STATE =================
-     private enum State { NOT_HOMED, HOMING, READY, SIDES_OUT_OF_SYNC }
-     private State m_state = State.NOT_HOMED;
-     /** true = home even when connected to the field (driver/dashboard asked for it) */
-     private boolean m_homeRequested = false;
-     /** Where the current zero came from (dashboard) */
-     private String m_zeroSource = "power-on (intake assumed fully in)";
-     private final Timer m_homingTimer = new Timer();
-     private final Timer[] m_stallTimer = { new Timer(), new Timer() };   // [0] = motor 11, [1] = motor 14
-     private final Timer m_syncTimer = new Timer();
-     private double m_targetInches = EvilIntakePosition.in.getInches();
-     private final double[] m_homingStartInches = new double[2];
-     private final boolean[] m_homingMoved = new boolean[2];
-     private final boolean[] m_sideHomed = new boolean[2];
-     private double m_homingVolts = kHomingStartVolts;
-     private boolean m_motorTest = false;
-     /** True while either rack motor is pinned at its stator current limit (can't keep up with the profile) */
-     private boolean m_atCurrentLimit = false;
-     // Live cruise/accel, tunable separately per direction from Intake/Tune (see driveToTarget)
-     private double m_deployCruiseInPerSec = kDeployCruiseInPerSec;
-     private double m_deployAccelInPerSec2 = kDeployAccelInPerSec2;
-     private double m_retractCruiseInPerSec = kRetractCruiseInPerSec;
-     private double m_retractAccelInPerSec2 = kRetractAccelInPerSec2;
-     private int m_intakeId;
+    // ================= STATE =================
+    private enum State { NOT_HOMED, HOMING, READY, SIDES_OUT_OF_SYNC }
+    private State m_state = State.NOT_HOMED;
+    /** true = home even when connected to the field (driver/dashboard asked for it) */
+    private boolean m_homeRequested = false;
+    /** Where the current zero came from (dashboard) */
+    private String m_zeroSource = "power-on (intake assumed fully in)";
+    private final Timer m_homingTimer = new Timer();
+    private final Timer[] m_stallTimer = { new Timer(), new Timer() };   // [0] = motor 11, [1] = motor 14
+    private final Timer m_syncTimer = new Timer();
+    private double m_targetInches = EvilIntakePosition.in.getInches();
+    private final double[] m_homingStartInches = new double[2];
+    private final boolean[] m_homingMoved = new boolean[2];
+    private final boolean[] m_sideHomed = new boolean[2];
+    private double m_homingVolts = kHomingStartVolts;
+    private boolean m_motorTest = false;
+    /** True while either rack motor is pinned at its stator current limit (can't keep up with the profile) */
+    private boolean m_atCurrentLimit = false;
+    // Live cruise/accel, tunable separately per direction from Intake/Tune (see driveToTarget)
+    private double m_deployCruiseInPerSec = kDeployCruiseInPerSec;
+    private double m_deployAccelInPerSec2 = kDeployAccelInPerSec2;
+    private double m_retractCruiseInPerSec = kRetractCruiseInPerSec;
+    private double m_retractAccelInPerSec2 = kRetractAccelInPerSec2;
 
     /** Constructs the intake
      * @param intakeID CAN ID of the leader rack motor (Talon FXS + Vortex), positive = out
@@ -225,7 +209,6 @@ public class EvilIntake extends SubsystemBase {
      *                  other way so the two wheels spin toward each other to grip fuel between them
      */
     public EvilIntake(int intakeID, int intakeTwoID, int spinID, int spinTwoID, CANBus canbus){
-        m_intakeId = intakeID;
         intakeMotor = new TalonFXS(intakeID, canbus);
         intakeMotorTwo = new TalonFXS(intakeTwoID, canbus);
         spinMotor = new TalonFX(spinID, canbus);
@@ -290,17 +273,9 @@ public class EvilIntake extends SubsystemBase {
         setTargetInches(pos.getInches());
     }
 
-    /** Old placeholder, does nothing */
-    public void evilyummy(){
-    }
-
     /** Intake wheel power, -1..1 (negative pulls fuel in) */
     public void evileryummy(double speed){
         spinMotor.setControl(spinRequest.withOutput(speed));
-    }
-
-    public Command evilestyummy(EvilIntakePosition pos){
-        return run(() -> evilyummy(pos));
     }
 
     /** Rollers on while the rack slowly slides between pickup and kAgitateInInches, squeezing the hopper so
@@ -561,12 +536,9 @@ public class EvilIntake extends SubsystemBase {
                 m_homingMoved[side] = true;
             }
             boolean moving = Math.abs(speeds[side]) > kHomingStallRps;
-            // 10/23: homing failed "never moved even at 4.0 V" twice in one day's logs, both times starting
-            // from ~0.5in (i.e. already basically at the retract stop when Re-home was pressed) with BOTH
-            // motors pinned near the stator limit the whole 5 s timeout -- that's the exact same "pushing hard,
-            // not moving" signature a real stop gives, but kHomingMinTravelInches can never see it click over
-            // to true if there's barely 0.5in left to travel in the first place. Count "pushing hard and not
-            // moving" as reaching the stop too, not just "moved far, then stopped".
+            // Pushing hard with no movement counts as reaching the stop too, not just "moved far, then
+            // stopped" -- otherwise starting homing already near zero (barely any travel left) can never
+            // satisfy kHomingMinTravelInches even though it's genuinely jammed against the stop.
             boolean pushingHard = currents[side] > kRackStatorLimitAmps * 0.6;
             boolean reachedSomething = m_homingMoved[side] || pushingHard;
             if (moving || !reachedSomething || m_homingTimer.get() < kHomingIgnoreSeconds) {
@@ -676,11 +648,9 @@ public class EvilIntake extends SubsystemBase {
 
     private void publishTuningControls() {
         SmartDashboard.putNumber("Intake/Tune/kP", kDefaultP);
-        SmartDashboard.putNumber("Intake/Tune/kI", kDefaultI);
         SmartDashboard.putNumber("Intake/Tune/kD", kDefaultD);
         SmartDashboard.putNumber("Intake/Tune/kS", kDefaultS);
         SmartDashboard.putNumber("Intake/Tune/kV", kDefaultV);
-        SmartDashboard.putNumber("Intake/Tune/kA", kDefaultA);
         SmartDashboard.putNumber("Intake/Tune/Deploy cruise (in per s)", kDeployCruiseInPerSec);
         SmartDashboard.putNumber("Intake/Tune/Deploy accel (in per s2)", kDeployAccelInPerSec2);
         SmartDashboard.putNumber("Intake/Tune/Retract cruise (in per s)", kRetractCruiseInPerSec);
@@ -695,19 +665,16 @@ public class EvilIntake extends SubsystemBase {
 
     private static Slot0Configs gainsFromDashboardDefaults() {
         return new Slot0Configs()
-            .withKP(kDefaultP).withKI(kDefaultI).withKD(kDefaultD)
-            .withKS(kDefaultS).withKV(kDefaultV).withKA(kDefaultA);
+            .withKP(kDefaultP).withKD(kDefaultD).withKS(kDefaultS).withKV(kDefaultV);
     }
 
     /** Reads the Intake/Tune numbers and applies them (gains to both motors, speeds immediately) */
     private void applyTuning() {
         Slot0Configs gains = new Slot0Configs()
             .withKP(SmartDashboard.getNumber("Intake/Tune/kP", kDefaultP))
-            .withKI(SmartDashboard.getNumber("Intake/Tune/kI", kDefaultI))
             .withKD(SmartDashboard.getNumber("Intake/Tune/kD", kDefaultD))
             .withKS(SmartDashboard.getNumber("Intake/Tune/kS", kDefaultS))
             .withKV(SmartDashboard.getNumber("Intake/Tune/kV", kDefaultV))
-            .withKA(SmartDashboard.getNumber("Intake/Tune/kA", kDefaultA))
             .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
         intakeMotor.getConfigurator().apply(gains, 0.05);
         intakeMotorTwo.getConfigurator().apply(gains, 0.05);
@@ -715,7 +682,7 @@ public class EvilIntake extends SubsystemBase {
         m_deployAccelInPerSec2 = SmartDashboard.getNumber("Intake/Tune/Deploy accel (in per s2)", kDeployAccelInPerSec2);
         m_retractCruiseInPerSec = SmartDashboard.getNumber("Intake/Tune/Retract cruise (in per s)", kRetractCruiseInPerSec);
         m_retractAccelInPerSec2 = SmartDashboard.getNumber("Intake/Tune/Retract accel (in per s2)", kRetractAccelInPerSec2);
-        RobotLog.event(String.format("Intake tuning applied: kP %.3f kI %.3f kD %.3f kS %.3f kV %.3f kA %.3f",
-            gains.kP, gains.kI, gains.kD, gains.kS, gains.kV, gains.kA));
+        RobotLog.event(String.format("Intake tuning applied: kP %.3f kD %.3f kS %.3f kV %.3f",
+            gains.kP, gains.kD, gains.kS, gains.kV));
     }
 }
