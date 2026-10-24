@@ -73,7 +73,8 @@ public class RobotContainer {
             Hood.kTrenchReachMeters, Hood.kTrenchLookaheadSeconds);
     });
     // Rack: leader 11 (positive = out) + follower 14 (opposed), both Talon FXS + Vortex. Wheels: 12 (Talon FX).
-    public final EvilIntake evilIntake = new EvilIntake(11, 14, 12, upper);
+    // 10/23: second intake wheel motor added (CAN 18, Kraken X60), opposed-Follower of the leader wheel (12)
+    public final EvilIntake evilIntake = new EvilIntake(11, 14, 12, 18, upper);
     public final Shooter shooter = new Shooter(upper);
     public final RollerSystem rollersystem = new RollerSystem(upper);
     

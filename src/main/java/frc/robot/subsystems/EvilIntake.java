@@ -6,6 +6,7 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.DynamicMotionMagicVoltage;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.controls.VoltageOut;
@@ -13,6 +14,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.hardware.TalonFXS;
 import com.ctre.phoenix6.signals.AdvancedHallSupportValue;
 import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.MotorArrangementValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
@@ -29,7 +31,10 @@ import frc.robot.RobotLog;
 
 /**
  * Rack-and-pinion intake: two NEO Vortex motors (one per side, Talon FXS controllers) drive the racks,
- * plus the intake wheels (Talon FX).
+ * plus two Kraken X60 intake wheels (Talon FX) facing each other, so they spin toward each other to grip
+ * fuel between them. The second wheel (10/23) is a real CTRE Follower (Opposed) of the first -- unlike the
+ * rack motors, the wheels just need to spin together, not hold independent positions, so one command
+ * (spinRequest, see below) drives both with no extra code.
  *
  * <p>How it works:
  * <ul>
@@ -174,7 +179,8 @@ public class EvilIntake extends SubsystemBase {
      // ================= HARDWARE =================
      final TalonFXS intakeMotor;      // leader (CAN 11)
      final TalonFXS intakeMotorTwo;   // follower (CAN 14), opposed
-     final TalonFX spinMotor;         // intake wheels (CAN 12)
+     final TalonFX spinMotor;         // intake wheels, leader (CAN 12)
+     final TalonFX spinMotorTwo;      // intake wheels #2, follower (10/23: second Kraken X60, spins opposed)
 
      // FOC ON: 11 and 14 are Phoenix Pro licensed (confirmed in the 10/21 19:49 log). ~15% more torque.
      // If the licenses ever lapse, set these to false or the Talons stop driving (unlicensed fault).
@@ -214,13 +220,16 @@ public class EvilIntake extends SubsystemBase {
     /** Constructs the intake
      * @param intakeID CAN ID of the leader rack motor (Talon FXS + Vortex), positive = out
      * @param intakeTwoID CAN ID of the follower rack motor (Talon FXS + Vortex), mounted opposite
-     * @param spinID CAN ID of the intake wheels (Talon FX)
+     * @param spinID CAN ID of the leader intake wheel motor (Talon FX, Kraken X60)
+     * @param spinTwoID CAN ID of the second intake wheel motor (Talon FX, Kraken X60), mounted facing the
+     *                  other way so the two wheels spin toward each other to grip fuel between them
      */
-    public EvilIntake(int intakeID, int intakeTwoID, int spinID, CANBus canbus){
+    public EvilIntake(int intakeID, int intakeTwoID, int spinID, int spinTwoID, CANBus canbus){
         m_intakeId = intakeID;
         intakeMotor = new TalonFXS(intakeID, canbus);
         intakeMotorTwo = new TalonFXS(intakeTwoID, canbus);
         spinMotor = new TalonFX(spinID, canbus);
+        spinMotorTwo = new TalonFX(spinTwoID, canbus);
 
         // --- RACK MOTORS (Talon FXS + NEO Vortex) ---
         TalonFXSConfiguration rackConfig = new TalonFXSConfiguration();
@@ -263,6 +272,11 @@ public class EvilIntake extends SubsystemBase {
         spinConfig.CurrentLimits.SupplyCurrentLimit = kWheelSupplyLimitAmps;
         spinConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
         spinMotor.getConfigurator().apply(spinConfig);
+        // Second wheel motor (10/23): same limits, just follows motor 12 opposed so one command (spinRequest
+        // below) drives both. Unlike the rack motors, the wheels don't need independent position control or a
+        // sync correction -- it's a plain velocity spinner, so a real Follower is the simple, correct choice here.
+        spinMotorTwo.getConfigurator().apply(spinConfig);
+        spinMotorTwo.setControl(new Follower(spinID, MotorAlignmentValue.Opposed));
 
         publishTuningControls();
     }
@@ -440,9 +454,13 @@ public class EvilIntake extends SubsystemBase {
         // pegged at/near the limit while velocity sits near 0 is the stall signature (same as the floor roller).
         SmartDashboard.putNumber("Intake/Wheel current (A)", spinMotor.getStatorCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Intake/Wheel velocity (rps)", spinMotor.getVelocity().getValueAsDouble());
+        // Second wheel motor (10/23): it's a Follower electrically, but it's still a separate physical motor
+        // that can jam/fault on its own while the leader spins fine -- worth watching independently.
+        SmartDashboard.putNumber("Intake/Wheel 2 current (A)", spinMotorTwo.getStatorCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Intake/Wheel 2 velocity (rps)", spinMotorTwo.getVelocity().getValueAsDouble());
         // Anything stopping a rack Talon FXS from driving, right now (not sticky)
         String faults = activeFaults("leader", intakeMotor) + activeFaults("follower", intakeMotorTwo)
-            + wheelFaults(spinMotor);
+            + wheelFaults("wheels", spinMotor) + wheelFaults("wheels 2", spinMotorTwo);
         SmartDashboard.putString("Intake/Faults", faults.isEmpty() ? "none" : faults);
         // True = the motors can't keep up with the commanded move without hitting their current limit (expect
         // this briefly on hard starts; if it's on for a long stretch mid-move, that's real resistance to go look at)
@@ -467,11 +485,11 @@ public class EvilIntake extends SubsystemBase {
     }
 
     /** Same idea as activeFaults() above, but for the wheel motor (a plain TalonFX, no hall-sensor port) */
-    private static String wheelFaults(TalonFX talon) {
+    private static String wheelFaults(String name, TalonFX talon) {
         StringBuilder f = new StringBuilder();
-        if (talon.getFault_Hardware().getValue()) f.append("wheels: HARDWARE fault. ");
-        if (talon.getFault_BridgeBrownout().getValue()) f.append("wheels: bridge brownout. ");
-        if (talon.getFault_Undervoltage().getValue()) f.append("wheels: low voltage. ");
+        if (talon.getFault_Hardware().getValue()) f.append(name).append(": HARDWARE fault. ");
+        if (talon.getFault_BridgeBrownout().getValue()) f.append(name).append(": bridge brownout. ");
+        if (talon.getFault_Undervoltage().getValue()) f.append(name).append(": low voltage. ");
         return f.toString();
     }
 
