@@ -32,6 +32,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.EvilIntakePosition;
 import frc.robot.commands.AutonContainer;
 import frc.robot.commands.EvilIntakePiece;
@@ -166,14 +167,19 @@ public class RobotContainer {
         joystick.x().whileTrue(drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
         
         
-       // joystick.leftBumper().whileTrue(new EvilIntakePiece(evilIntake, EvilIntakePosition.out))
-       // .and(joystick.leftBumper().whileTrue(rollersystem.roll(100)));
-        joystick.leftBumper().whileTrue(
-            Commands.parallel(
-                new EvilIntakePiece(evilIntake, EvilIntakePosition.out),
-                rollersystem.intakeFloor()   // floor only; the tunnels only run when shooting
-            )
-            );
+        // LB: intake out, wheels pulling fuel in. Debounced on release (10/24, same reasoning as Y's agitate):
+        // fuel caught between the rollers and the bumper needs the wheels running while the rack pulls back
+        // in, not just while the button's actually held. Unlike agitate, EvilIntakePiece only sets its target
+        // once (on press), so this checks the RAW button itself each loop -- once it's actually released the
+        // rack heads back to "in" while the wheels keep feeding, and only the debounce-extended command
+        // ending (0.4 s later) finally stops them.
+        Trigger lbHeld = joystick.leftBumper();
+        Command lbIntake = evilIntake.run(() -> {
+            evilIntake.evilyummy(lbHeld.getAsBoolean() ? EvilIntakePosition.out : EvilIntakePosition.in);
+            evilIntake.evileryummy(-1);
+        }).finallyDo(() -> evilIntake.evileryummy(0));
+        lbHeld.debounce(0.4, DebounceType.kFalling)
+            .whileTrue(Commands.parallel(lbIntake, rollersystem.intakeFloor()));
 
         
         // Unjam: floor + lower + upper tunnel all spin backwards while held
