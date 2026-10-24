@@ -133,8 +133,11 @@ public class EvilIntake extends SubsystemBase {
     private static final double kRackSupplyLimitAmps = 15.0;
     /** Intake wheels, stator: enough grip to pull fuel in; limits heat if the wheels stall on a jam */
     private static final double kWheelStatorLimitAmps = 40.0;
-    /** Intake wheels, supply: battery protection, same reasoning as the rack's supply limit above. */
-    private static final double kWheelSupplyLimitAmps = 15.0;
+    /** Intake wheels, supply: battery protection, same reasoning as the rack's supply limit above.
+     *  15->25 (10/24): 15A was too little torque to spin up to speed quickly ("takes a second to rev up"
+     *  instead of snapping to it) -- raise further if it's still slow, lower back toward 15 if brownouts
+     *  come back and this turns out to be why. */
+    private static final double kWheelSupplyLimitAmps = 25.0;
 
     // ================= GAINS (starting values, tune on the dashboard) =================
     // Units: volts per motor rotation of error (kP), volts per rot/s (kV), volts (kS).
