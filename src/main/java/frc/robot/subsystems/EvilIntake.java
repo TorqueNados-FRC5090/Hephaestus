@@ -259,7 +259,11 @@ public class EvilIntake extends SubsystemBase {
         // below) drives both. Unlike the rack motors, the wheels don't need independent position control or a
         // sync correction -- it's a plain velocity spinner, so a real Follower is the simple, correct choice here.
         spinMotorTwo.getConfigurator().apply(spinConfig);
-        spinMotorTwo.setControl(new Follower(spinID, MotorAlignmentValue.Opposed));
+        // Opposed->Aligned (10/24): both LEDs showed the same color while intaking, which means they were
+        // spinning the SAME direction, not opposite -- the two wheels need to spin toward each other to grip
+        // fuel between them. Both motors use the same (default) Inverted setting, so whichever alignment value
+        // actually flips the real rotor direction here is the one to use; Aligned is the one to try next.
+        spinMotorTwo.setControl(new Follower(spinID, MotorAlignmentValue.Aligned));
 
         publishTuningControls();
     }
