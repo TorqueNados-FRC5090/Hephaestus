@@ -134,7 +134,7 @@ public class EvilIntake extends SubsystemBase {
     /** Intake wheels, stator: enough grip to pull fuel in; limits heat if the wheels stall on a jam */
     private static final double kWheelStatorLimitAmps = 40.0;
     /** Intake wheels, supply: battery protection, same reasoning as the rack's supply limit above. */
-    private static final double kWheelSupplyLimitAmps = 15.0;
+    private static final double kWheelSupplyLimitAmps = 25.0;
 
     // ================= GAINS (starting values, tune on the dashboard) =================
     // Units: volts per motor rotation of error (kP), volts per rot/s (kV), volts (kS).

@@ -118,12 +118,12 @@ public class Constants {
      *  Hard stops are at 0" (retracted) and 12.1" (extended, measured). EvilIntake converts inches to motor rotations
      *  (Vortex 14T -> 24T chain, 10T 10DP pinion: 1" = 0.546 motor rotations). */
     public enum EvilIntakePosition {
-        in(0.5),    // 0.3->0.5 (10/22): give it a bit more clearance off the retract stop
+        in(0.75),    // 0.3->0.5 (10/22): give it a bit more clearance off the retract stop
         // 9.6->6.4->9.6 (10/23): 6.4 was cut to fight the side-to-side drift, but that turned out to be a
         // motor 11 hall-sensor fault, not a distance problem (see EvilIntake's class comment) -- and 6.4" wasn't
         // reaching far enough to actually pick up a game piece. Back to 9.6; say the exact reach you need if
         // this still isn't quite right.
-        out(9.6);
+        out(10.6);
 
         private final double inches;
         EvilIntakePosition(double inches){
