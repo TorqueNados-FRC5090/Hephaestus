@@ -7,7 +7,10 @@ package frc.robot;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
+import java.util.List;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.HootAutoReplay;
@@ -122,6 +125,12 @@ public class Robot extends TimedRobot {
             publishBusHealth("Jarvis", m_jarvisBus);
             publishBusHealth("Upper", m_upperBus);
         }
+        // 10/26: testing whether JVM garbage collection explains the ~40ms/loop of unaccounted time seen in
+        // the 10/24 match logs (Tracer's named subsystems only add up to ~20ms of a 60+ms robotPeriodic).
+        // Not gated by tel on purpose -- a GC pause could land in any loop, and we want to catch exactly
+        // which one. Cheap to read every loop (two in-memory counters, no CAN/IO); NT only actually sends a
+        // new value when the number changes, so loops with no collection cost nothing extra to log.
+        publishGcHealth();
     /* This example of adding Limelight is very simple and may not be sufficient for on-field use.
      * Users typically need to provide a standard deviation that scales with the distance to target and changes with number of tags available.
      *
@@ -153,6 +162,25 @@ public class Robot extends TimedRobot {
     /** Real total battery current + per-channel breakdown, so a brownout can be traced to a specific motor
      *  instead of guessing from timing. Channel numbers are whatever's printed/labeled on the PDH itself --
      *  ask Michel for the channel map once and these can get real names instead of "Channel 7". */
+    // Every GC the JVM has (usually 2: young-gen + old-gen). Reused, not re-fetched each loop.
+    private final List<GarbageCollectorMXBean> m_gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
+
+    /** Running totals (ms spent paused in GC, number of collections) since this robot program started.
+     *  If a slow loop lines up with a jump in GC time/count, that loop was a garbage-collection pause, not
+     *  something our own code was doing -- compare this against Loop/Robot code ms in the next log. */
+    private void publishGcHealth() {
+        long totalMs = 0;
+        long totalCount = 0;
+        for (GarbageCollectorMXBean bean : m_gcBeans) {
+            long t = bean.getCollectionTime();   // -1 if this JVM can't report it for this collector
+            long c = bean.getCollectionCount();
+            if (t > 0) totalMs += t;
+            if (c > 0) totalCount += c;
+        }
+        SmartDashboard.putNumber("Diagnostics/GC total ms", totalMs);
+        SmartDashboard.putNumber("Diagnostics/GC total count", totalCount);
+    }
+
     private void publishPdhHealth() {
         SmartDashboard.putNumber("PDH/Total current (A)", m_pdh.getTotalCurrent());
         SmartDashboard.putNumber("PDH/Voltage", m_pdh.getVoltage());
