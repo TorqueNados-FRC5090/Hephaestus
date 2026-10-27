@@ -102,7 +102,7 @@ public class TunerConstants {
     // MK5n R3 (16T drive pinion): first stage 54/16, second 25/16. Was R2 (54/14 * 25/16).
     private static final double kCoupleRatio = 54.0 / 16.0;
 
-    private static final double kDriveGearRatio = (54.0 / 16.0) * (25.0 / 16.0);
+    private static final double kDriveGearRatio = (54.0 / 14.0) * (25.0 / 16.0); // (54/16 -> 54/14)
     private static final double kSteerGearRatio = 26.09090909090909;
     private static final Distance kWheelRadius = Inches.of(2);
 

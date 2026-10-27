@@ -119,7 +119,7 @@ public class Constants {
      *  (Vortex 14T -> 24T chain, 10T 10DP pinion: 1" = 0.546 motor rotations). */
     public enum EvilIntakePosition {
         in(0.5),    // 0.3->0.5 (10/22): give it a bit more clearance off the retract stop
-        out(10.6);  // 9.6->10.6 (10/24): measured on the robot for the actual reach needed to pick up a piece
+        out(10.4);  // 9.6->10.6 -> 10.4 (10/24): measured on the robot for the actual reach needed to pick up a piece
 
         private final double inches;
         EvilIntakePosition(double inches){

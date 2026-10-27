@@ -179,13 +179,13 @@ public class RobotContainer {
             evilIntake.evileryummy(-1);
         }).finallyDo(() -> evilIntake.evileryummy(0));
         lbHeld.debounce(0.4, DebounceType.kFalling)
-            .whileTrue(Commands.parallel(lbIntake, rollersystem.intakeFloor()));
+            .whileTrue(Commands.parallel(lbIntake));
 
         
         // Unjam: floor + lower + upper tunnel all spin backwards while held
-        joystick.rightBumper().whileTrue(rollersystem.otherUnjam());
+        joystick.a().whileTrue(rollersystem.otherUnjam());
         // Eject: everything backwards like unjam, plus the intake goes out with its wheels reversed to spit fuel out
-        joystick.leftTrigger().whileTrue(Commands.parallel(rollersystem.otherUnjam(), evilIntake.eject()));
+        joystick.rightBumper().whileTrue(Commands.parallel(rollersystem.otherUnjam(), evilIntake.eject()));
         joystick.start().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric)); 
         // Re-zero the intake against its extension stop (after a big hit, or if it says SIDES_OUT_OF_SYNC)
         joystick.povUp().onTrue(evilIntake.requestHomeCommand());
@@ -243,6 +243,12 @@ public class RobotContainer {
 
     /** Gets the shooter and hood to hub speed/angle without feeding anything */
     public Command spinUpCommand() {
+        return new ParallelCommandGroup(
+            shooter.shoot(() -> hubShooterRPS(turret.getHubShootingDistance())),
+            hood.hoodgo(() -> hubHoodAngle(turret.getHubShootingDistance()))
+        );
+    }
+    public Command unjCommand() {
         return new ParallelCommandGroup(
             shooter.shoot(() -> hubShooterRPS(turret.getHubShootingDistance())),
             hood.hoodgo(() -> hubHoodAngle(turret.getHubShootingDistance()))

@@ -2,6 +2,7 @@ package frc.robot.commands;
 
 import static frc.robot.Constants.PathPlannerConfigs.PP_CONFIG;
 
+import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.config.PIDConstants;
@@ -73,6 +74,10 @@ public class AutonContainer{
         NamedCommands.registerCommand("SpinUp", robotContainer.spinUpCommand());
         // Never ends on its own: use in a deadline group. Intake wheels spin the whole time.
         NamedCommands.registerCommand("IntakeAgitate", robotContainer.evilIntake.agitate());
+
+        NamedCommands.registerCommand("IntakeUnjam", robotContainer.rollersystem.otherUnjam());
+        NamedCommands.registerCommand("lockDrive", robotContainer.drivetrain.applyRequest(() -> new SwerveRequest.SwerveDriveBrake()));
+        
     }
 
     public SendableChooser<Command> buildAutonChooser() {
@@ -89,6 +94,8 @@ public class AutonContainer{
         chooser.addOption("Center Depot + Trench", AutoBuilder.buildAuto("Center Depot Trench"));
         chooser.addOption("Left Double Swipe (SOTM)", AutoBuilder.buildAuto("Left Double Swipe"));
         chooser.addOption("Right Double Swipe (SOTM)", AutoBuilder.buildAuto("Right Double Swipe"));
+        chooser.addOption("GET IN THE WAY", AutoBuilder.buildAuto("blocking left"));
+        
 
         return chooser;
     }
