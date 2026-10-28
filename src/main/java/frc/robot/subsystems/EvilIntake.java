@@ -265,8 +265,12 @@ public class EvilIntake extends SubsystemBase {
         // Opposed->Aligned (10/24): both LEDs showed the same color while intaking, which means they were
         // spinning the SAME direction, not opposite -- the two wheels need to spin toward each other to grip
         // fuel between them. Both motors use the same (default) Inverted setting, so whichever alignment value
-        // actually flips the real rotor direction here is the one to use; Aligned is the one to try next.
-        spinMotorTwo.setControl(new Follower(spinID, MotorAlignmentValue.Opposed));
+        // actually flips the real rotor direction here is the one to use.
+        // NOTE (10/27): this Aligned fix got silently reverted back to Opposed by a same-day merge (1d64516) that
+        // took the other branch's still-Opposed copy of this line. 10/27 practice logs confirm the regression --
+        // Wheel and Wheel 2 velocity read the exact same sign on every sample (0 opposite-sign samples across 5
+        // fresh logs), meaning they were in fact still spinning the same direction the whole session.
+        spinMotorTwo.setControl(new Follower(spinID, MotorAlignmentValue.Aligned));
 
         publishTuningControls();
     }
